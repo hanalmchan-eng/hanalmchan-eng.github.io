@@ -206,12 +206,16 @@
       if (px + pw > maxX) maxX = px + pw;
       if (py + ph > maxY) maxY = py + ph;
     }
-    var marginX = window.innerWidth / 4;
-    var marginY = window.innerHeight / 4;
+    // 여백을 화면 크기만큼 넉넉히 줘서 첫/마지막 게시물도 화면 중앙까지 끌어올 수 있게 함
+    var marginX = window.innerWidth * 0.9;
+    var marginY = window.innerHeight * 0.9;
     bounds.maxX = marginX;
     bounds.maxY = marginY;
     bounds.minX = -(maxX - window.innerWidth) - marginX;
     bounds.minY = -(maxY - window.innerHeight) - marginY;
+    // 콘텐츠가 화면보다 작으면 양방향으로 자유롭게
+    if (maxX < window.innerWidth) { bounds.minX = -marginX; bounds.maxX = marginX; }
+    if (maxY < window.innerHeight) { bounds.minY = -marginY; bounds.maxY = marginY; }
   }
 
   function clampPosition() {

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -50,6 +51,15 @@
   }
   #header a { color: inherit; text-decoration: none; display: inline-block; }
   #header a:hover { color: #888888; }
+  #header img.logo {
+    display: block;
+    width: 180px;
+    height: auto;
+    -webkit-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+    filter: invert(1);
+  }
 
   #nav {
     position: fixed; bottom: 20px; right: 20px; z-index: 100;
@@ -112,12 +122,31 @@
     z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
   }
 </style>
+
 </head>
 <body>
 
 <div id="header">
-  <a href="/">hanalmchan</a>
+  <a href="/" id="header-link">hanalmchan</a>
 </div>
+
+<script>
+// logo.png 있으면 로고 이미지로, 없으면 텍스트로
+(function() {
+  var img = new Image();
+  img.onload = function() {
+    var a = document.getElementById('header-link');
+    a.textContent = '';
+    var logo = document.createElement('img');
+    logo.className = 'logo';
+    logo.src = 'logo.png';
+    logo.alt = 'hanalmchan';
+    a.appendChild(logo);
+  };
+  img.onerror = function() { /* 텍스트 그대로 */ };
+  img.src = 'logo.png';
+})();
+</script>
 
 <div id="nav">
   <a href="upload.html">업로드</a>
@@ -527,5 +556,6 @@
 
 })();
 </script>
+
 </body>
 </html>

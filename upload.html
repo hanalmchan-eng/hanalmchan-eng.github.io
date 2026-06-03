@@ -334,6 +334,13 @@ margin-bottom: 30px;
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+      console.log('Cloudinary response:', JSON.stringify(data));
+      if (data.error) {
+        console.error('Cloudinary error:', data.error.message);
+        if (qItem) { qItem.classList.remove('uploading'); qItem.classList.add('error'); qItem.querySelector('.status').textContent = '✗'; }
+        uploadNext(idx + 1);
+        return;
+      }
       if (qItem) {
         qItem.classList.remove('uploading');
         qItem.classList.add('done');

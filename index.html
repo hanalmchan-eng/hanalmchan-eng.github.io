@@ -1,334 +1,573 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <title>hanalmchan</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
-  <link rel="shortcut icon" href="favicon.png">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #f0ede8; }
+<meta charset="utf-8">
+<title>hanalmchan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 
-```
-#canvas {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  cursor: grab; user-select: none; -webkit-user-select: none;
-}
-#canvas.grabbing { cursor: grabbing; }
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-#plane {
-  position: absolute; top: 0; left: 0;
-  transform-origin: 0 0;
-}
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #ffffff;
+    color: #111111;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
 
-.post {
-  position: absolute;
-}
+  #canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+  }
 
-.post img.photo {
-  display: block;
-  max-width: none;
-  max-height: 90vh;
-  width: auto;
-  height: auto;
-  pointer-events: none;
-  -webkit-user-drag: none;
-}
+  #canvas.dragging { cursor: grabbing; }
 
-.post .caption {
-  position: absolute;
-  bottom: -22px;
-  left: 0;
-  font-size: 11px;
-  color: #888;
-  font-family: Helvetica, Arial, sans-serif;
-  white-space: nowrap;
-}
+  #plane {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1px; height: 1px;
+    will-change: transform;
+    transform: translate3d(0, 0, 0) scale(2.156);
+    transform-origin: 0 0;
+  }
 
-/* Header */
-#header {
-  position: fixed;
-  top: 24px; left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
-  mix-blend-mode: difference;
-  pointer-events: none;
-}
-#header .logo {
-  height: 28px;
-  width: auto;
-  display: block;
-}
-#header .logo-text {
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 15px;
-  font-weight: 500;
-  color: #fff;
-  letter-spacing: 0.08em;
-  text-transform: lowercase;
-}
+  #header {
+    position: fixed; top: 70px; left: 20px; z-index: 100;
+    font-size: 13px; mix-blend-mode: difference; color: #ffffff;
+  }
+  #header a { color: inherit; text-decoration: none; display: inline-block; }
+  #header a:hover { color: #888888; }
+  #header img.logo {
+    display: block;
+    width: 180px;
+    height: auto;
+    -webkit-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+    filter: none;
+  }
+  /* 로고 이미지 로드 실패 시 깨진 아이콘(물음표) 숨김 */
+  #header img.logo:not([src]),
+  #header img.logo[src=""] { display: none; }
 
-/* Minimap */
-#minimap {
-  position: fixed;
-  bottom: 20px; right: 20px;
-  width: 120px; height: 80px;
-  background: rgba(0,0,0,0.08);
-  border-radius: 4px;
-  overflow: hidden;
-  z-index: 100;
-  cursor: pointer;
-}
-#minimap canvas {
-  width: 100%; height: 100%;
-}
-```
+  #nav {
+    position: fixed; bottom: 20px; right: 20px; z-index: 100;
+    font-size: 12px; mix-blend-mode: difference; color: #ffffff;
+  }
+  #nav a { color: inherit; text-decoration: none; margin-left: 12px; }
+  #nav a:hover { color: #888888; }
 
-  </style>
+  .post { position: absolute; top: 0; left: 0; }
+
+  .post img.photo {
+    display: block;
+    width: auto;
+    height: auto;
+    max-height: 95vh;
+    max-width: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+  }
+
+  .post-photo a, .post-photoset a {
+    display: block;
+    cursor: inherit;
+    pointer-events: none;
+  }
+
+  .photo-wrap {
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .post-text, .post-quote, .post-link {
+    width: 625px;
+    padding: 20px;
+  }
+
+  .caption {
+    margin-top: 10px; font-size: 12px; color: #111111;
+    max-width: 625px;
+    padding: 10px; background: rgba(255,255,255,0.9);
+  }
+
+  #hint {
+    position: fixed; bottom: 20px; left: 20px; z-index: 100;
+    font-size: 11px; color: #888888; mix-blend-mode: difference;
+    pointer-events: none; opacity: 0.7; transition: opacity 0.5s;
+  }
+  #hint.hidden { opacity: 0; }
+
+  #loading {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
+  }
+</style>
 </head>
 <body>
+
+<div id="header">
+  <a href="/" id="header-link">hanalmchan</a>
+</div>
+
+<div id="nav">
+</div>
+
+<div id="hint">스크롤·드래그로 탐색</div>
+<div id="loading">loading...</div>
 
 <div id="canvas">
   <div id="plane"></div>
 </div>
 
-<div id="header">
-  <span class="logo-text">hanalmchan</span>
-</div>
-
-<div id="minimap">
-  <canvas id="minimapCanvas"></canvas>
-</div>
+<script>
+// 로고: logo.png가 실제로 로드되면 텍스트를 이미지로 교체. 실패하면 텍스트 유지.
+(function() {
+  var probe = new Image();
+  probe.onload = function() {
+    if (probe.naturalWidth === 0) return;
+    var a = document.getElementById('header-link');
+    if (!a) return;
+    a.textContent = '';
+    var logo = document.createElement('img');
+    logo.className = 'logo';
+    logo.alt = 'hanalmchan';
+    logo.src = 'logo.png';
+    a.appendChild(logo);
+  };
+  probe.onerror = function() { /* 텍스트 그대로 둠 */ };
+  probe.src = 'logo.png';
+})();
+</script>
 
 <script>
-  const R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
-  const SCALE = 2.156;
-  const GAP = 40;
+(function() {
+  'use strict';
 
-  const canvas = document.getElementById('canvas');
-  const plane = document.getElementById('plane');
-  const minimapCanvas = document.getElementById('minimapCanvas');
-  const ctx = minimapCanvas.getContext('2d');
+  var R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
+  var gap = 4;
+  var planeScale = 2.156;
 
-  let posX = 0, posY = 0;
-  let dragging = false;
-  let lastX = 0, lastY = 0;
-  let bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
-  let posts = [];
-
-  // Logo
-  const logoImg = new Image();
-  logoImg.onload = () => {
-    const logoEl = document.getElementById('header');
-    const img = document.createElement('img');
-    img.className = 'logo';
-    img.src = 'logo.png';
-    logoEl.innerHTML = '';
-    logoEl.appendChild(img);
-  };
-  logoImg.onerror = () => {};
-  logoImg.src = 'logo.png';
-
-  // Resolve image URL from post entry
-  function resolveUrl(post) {
-    if (post.url) return post.url;
-    if (post.file) return R2_BASE + '/' + post.file;
-    return '';
+  if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      if (typeof r === 'number') r = [r, r, r, r];
+      r = r || [0, 0, 0, 0];
+      this.moveTo(x + r[0], y);
+      this.lineTo(x + w - r[1], y);
+      this.arcTo(x + w, y, x + w, y + r[1], r[1]);
+      this.lineTo(x + w, y + h - r[2]);
+      this.arcTo(x + w, y + h, x + w - r[2], y + h, r[2]);
+      this.lineTo(x + r[3], y + h);
+      this.arcTo(x, y + h, x, y + h - r[3], r[3]);
+      this.lineTo(x, y + r[0]);
+      this.arcTo(x, y, x + r[0], y, r[0]);
+      return this;
+    };
   }
 
-  // Load posts
-  fetch('posts.json?t=' + Date.now())
-    .then(r => r.json())
-    .then(data => {
-      posts = data.filter(p => resolveUrl(p));
-      if (posts.length === 0) return;
-      layoutPosts();
-    })
-    .catch(() => {});
+  var canvas = document.getElementById('canvas');
+  var plane = document.getElementById('plane');
+  var hint = document.getElementById('hint');
+  var loadingEl = document.getElementById('loading');
+
+  var tx = 0, ty = 50;
+  var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+
+  function updateBounds() {
+    var posts = document.querySelectorAll('#plane .post');
+    if (posts.length === 0) return;
+    var maxX = -Infinity, maxY = -Infinity;
+    for (var i = 0; i < posts.length; i++) {
+      var p = posts[i];
+      var px = (parseInt(p.style.left) || 0) * planeScale;
+      var py = (parseInt(p.style.top) || 0) * planeScale;
+      var pw = p.offsetWidth * planeScale;
+      var ph = p.offsetHeight * planeScale;
+      if (px + pw > maxX) maxX = px + pw;
+      if (py + ph > maxY) maxY = py + ph;
+    }
+    // 여백을 화면 크기만큼 넉넉히 줘서 첫/마지막 게시물도 화면 중앙까지 끌어올 수 있게 함
+    var marginX = window.innerWidth * 0.9;
+    var marginY = window.innerHeight * 0.9;
+    bounds.maxX = marginX;
+    bounds.maxY = marginY;
+    bounds.minX = -(maxX - window.innerWidth) - marginX;
+    bounds.minY = -(maxY - window.innerHeight) - marginY;
+    // 콘텐츠가 화면보다 작으면 양방향으로 자유롭게
+    if (maxX < window.innerWidth) { bounds.minX = -marginX; bounds.maxX = marginX; }
+    if (maxY < window.innerHeight) { bounds.minY = -marginY; bounds.maxY = marginY; }
+  }
+
+  function clampPosition() {
+    if (bounds.maxX === 0 && bounds.minX === 0) return;
+    if (tx > bounds.maxX) tx = bounds.maxX;
+    if (tx < bounds.minX) tx = bounds.minX;
+    if (ty > bounds.maxY) ty = bounds.maxY;
+    if (ty < bounds.minY) ty = bounds.minY;
+  }
+
+  function updateTransform() {
+    clampPosition();
+    plane.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + planeScale + ')';
+    drawMinimap();
+  }
 
   function layoutPosts() {
+    var posts = document.querySelectorAll('#plane .post');
+    if (posts.length === 0) return;
+    var x = 0;
+    for (var i = 0; i < posts.length; i++) {
+      var post = posts[i];
+      var w = post.offsetWidth;
+      var h = post.offsetHeight;
+      if (w === 0 || h === 0) continue;
+      post.style.left = x + 'px';
+      post.style.top = '0px';
+      x += w + gap;
+    }
+    updateBounds();
+    drawMinimap();
+  }
+
+  function buildImageUrl(filename) {
+    return R2_BASE + '/' + encodeURIComponent(filename);
+  }
+
+  function renderPosts(posts) {
     plane.innerHTML = '';
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const maxH = vh * 0.85;
+    // 유효한 항목만
+    posts = (posts || []).filter(function(p) {
+      if (!p) return false;
+      if (p.file) return true;
+      if (p.url && p.url.indexOf('undefined') === -1) return true;
+      return false;
+    });
 
-    let x = vw * 0.15;
-    let y = vh * 0.1;
-    let rowMaxH = 0;
-    const cols = Math.max(1, Math.round(vw / 500));
-    let col = 0;
+    if (posts.length === 0) {
+      if (loadingEl) loadingEl.textContent = '아직 업로드된 사진이 없어요.';
+      return;
+    }
+    if (loadingEl) loadingEl.remove();
 
-    posts.forEach((post, i) => {
-      const div = document.createElement('div');
-      div.className = 'post';
+    var loaded = 0;
+    posts.forEach(function(post) {
+      var div = document.createElement('div');
+      div.className = 'post post-photo';
 
-      const img = document.createElement('img');
+      var img = document.createElement('img');
       img.className = 'photo';
+      img.src = post.file ? buildImageUrl(post.file) : post.url;
+      img.alt = post.caption || '';
       img.draggable = false;
 
-      // natural size hint
-      if (post.width && post.height) {
-        const ratio = post.height / post.width;
-        const h = Math.min(maxH, post.height * SCALE);
-        const w = h / ratio;
-        img.style.height = h + 'px';
-        img.style.width = w + 'px';
-        div.style.left = x + 'px';
-        div.style.top = y + 'px';
-        rowMaxH = Math.max(rowMaxH, h);
-        x += w + GAP * SCALE;
-        col++;
-        if (col >= cols) {
-          col = 0;
-          x = vw * 0.15;
-          y += rowMaxH + GAP * SCALE * 2;
-          rowMaxH = 0;
-        }
-      } else {
-        div.style.left = x + 'px';
-        div.style.top = y + 'px';
-        img.onload = () => {
-          updateBounds();
-          drawMinimap();
-        };
-      }
+      img.addEventListener('load', function() {
+        loaded++;
+        layoutPosts();
+        if (loaded === posts.length) layoutPosts();
+      });
+      img.addEventListener('error', function() {
+        // 로드 실패한 이미지는 제거 (깨진 물음표 방지)
+        if (div.parentNode) div.parentNode.removeChild(div);
+        loaded++;
+        layoutPosts();
+      });
 
-      img.src = resolveUrl(post);
+      div.appendChild(img);
 
       if (post.caption) {
-        const cap = document.createElement('div');
+        var cap = document.createElement('div');
         cap.className = 'caption';
         cap.textContent = post.caption;
         div.appendChild(cap);
       }
 
-      div.appendChild(img);
       plane.appendChild(div);
     });
 
-    updateBounds();
-    drawMinimap();
+    layoutPosts();
+    setTimeout(layoutPosts, 500);
+    setTimeout(layoutPosts, 1500);
   }
 
-  function updateBounds() {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const pad = Math.max(vw, vh) * 0.9;
-    let maxX = 0, maxY = 0;
-    plane.querySelectorAll('.post').forEach(p => {
-      maxX = Math.max(maxX, p.offsetLeft + p.offsetWidth);
-      maxY = Math.max(maxY, p.offsetTop + p.offsetHeight);
+  fetch('posts.json?v=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(posts) { renderPosts(posts); })
+    .catch(function() {
+      if (loadingEl) loadingEl.textContent = '포스트를 불러올 수 없어요.';
     });
-    bounds = {
-      minX: -(maxX * SCALE - vw + pad),
-      maxX: pad,
-      minY: -(maxY * SCALE - vh + pad),
-      maxY: pad
-    };
-  }
 
-  function clamp(val, min, max) { return Math.min(max, Math.max(min, val)); }
-
-  function applyPos() {
-    posX = clamp(posX, bounds.minX, bounds.maxX);
-    posY = clamp(posY, bounds.minY, bounds.maxY);
-    plane.style.transform = `translate(${posX}px, ${posY}px) scale(${SCALE})`;
-    drawMinimap();
-  }
-
-  // Mouse
-  canvas.addEventListener('mousedown', e => {
-    dragging = true; lastX = e.clientX; lastY = e.clientY;
-    canvas.classList.add('grabbing');
-  });
-  window.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    posX += e.clientX - lastX; posY += e.clientY - lastY;
-    lastX = e.clientX; lastY = e.clientY;
-    applyPos();
-  });
-  window.addEventListener('mouseup', () => { dragging = false; canvas.classList.remove('grabbing'); });
-
-  // Touch
-  let lastTouchX = 0, lastTouchY = 0;
-  canvas.addEventListener('touchstart', e => {
-    lastTouchX = e.touches[0].clientX;
-    lastTouchY = e.touches[0].clientY;
-  }, { passive: true });
-  canvas.addEventListener('touchmove', e => {
+  function onWheel(e) {
+    if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
     e.preventDefault();
-    posX += e.touches[0].clientX - lastTouchX;
-    posY += e.touches[0].clientY - lastTouchY;
-    lastTouchX = e.touches[0].clientX;
-    lastTouchY = e.touches[0].clientY;
-    applyPos();
+    hideHint();
+    var dx = e.deltaX, dy = e.deltaY;
+    if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
+    else if (e.deltaMode === 2) { dx *= window.innerWidth; dy *= window.innerHeight; }
+    if (e.shiftKey && dx === 0) { dx = dy; dy = 0; }
+    tx -= dx; ty -= dy;
+    updateTransform();
+  }
+  window.addEventListener('wheel', onWheel, { passive: false, capture: true });
+
+  var isDragging = false, didMove = false;
+  var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
+  var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
+  var momentumRAF = null;
+
+  function stopMomentum() {
+    if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
+  }
+
+  function startDrag(clientX, clientY, target) {
+    if (target && target.closest && target.closest('button, input, textarea, video, audio, iframe')) return false;
+    stopMomentum();
+    isDragging = true; didMove = false;
+    dragStartX = clientX; dragStartY = clientY;
+    dragStartTx = tx; dragStartTy = ty;
+    lastDragX = clientX; lastDragY = clientY;
+    velX = 0; velY = 0;
+    canvas.classList.add('dragging');
+    hideHint();
+    return true;
+  }
+
+  function moveDrag(clientX, clientY) {
+    if (!isDragging) return;
+    var dx = clientX - dragStartX, dy = clientY - dragStartY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didMove = true;
+    velX = clientX - lastDragX; velY = clientY - lastDragY;
+    lastDragX = clientX; lastDragY = clientY;
+    tx = dragStartTx + dx; ty = dragStartTy + dy;
+    updateTransform();
+  }
+
+  function endDrag() {
+    if (!isDragging) return;
+    isDragging = false;
+    canvas.classList.remove('dragging');
+    if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) startMomentum();
+  }
+
+  function startMomentum() {
+    var friction = 0.93;
+    function step() {
+      velX *= friction; velY *= friction;
+      tx += velX; ty += velY;
+      var bx = tx, by = ty;
+      updateTransform();
+      if (tx === bx && Math.abs(velX) > 0.1) velX = 0;
+      if (ty === by && Math.abs(velY) > 0.1) velY = 0;
+      if (Math.abs(velX) < 0.1 && Math.abs(velY) < 0.1) { momentumRAF = null; return; }
+      momentumRAF = requestAnimationFrame(step);
+    }
+    momentumRAF = requestAnimationFrame(step);
+  }
+
+  canvas.addEventListener('mousedown', function(e) { if (startDrag(e.clientX, e.clientY, e.target)) e.preventDefault(); });
+  canvas.addEventListener('dragstart', function(e) { if (e.target && e.target.tagName === 'IMG') e.preventDefault(); });
+  window.addEventListener('mousemove', function(e) { if (isDragging) { e.preventDefault(); moveDrag(e.clientX, e.clientY); } });
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('mouseleave', endDrag);
+
+  canvas.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) { var t = e.touches[0]; startDrag(t.clientX, t.clientY, e.target); }
+    else { e.preventDefault(); endDrag(); }
   }, { passive: false });
 
-  // Minimap
-  function drawMinimap() {
-    const mw = minimapCanvas.width = minimapCanvas.offsetWidth * 2;
-    const mh = minimapCanvas.height = minimapCanvas.offsetHeight * 2;
-    ctx.clearRect(0, 0, mw, mh);
+  canvas.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 1 && isDragging) { e.preventDefault(); var t = e.touches[0]; moveDrag(t.clientX, t.clientY); }
+    else if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
 
-    let totalW = 0, totalH = 0;
-    plane.querySelectorAll('.post').forEach(p => {
-      totalW = Math.max(totalW, (p.offsetLeft + p.offsetWidth) * SCALE);
-      totalH = Math.max(totalH, (p.offsetTop + p.offsetHeight) * SCALE);
-    });
-    if (totalW === 0 || totalH === 0) return;
+  canvas.addEventListener('touchend', endDrag);
+  canvas.addEventListener('touchcancel', endDrag);
 
-    const scaleX = mw / totalW;
-    const scaleY = mh / totalH;
+  document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+  document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+  document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+  document.addEventListener('wheel', function(e) { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false, capture: true });
 
-    // Draw post thumbnails
-    plane.querySelectorAll('.post').forEach(p => {
-      const px = p.offsetLeft * SCALE * scaleX;
-      const py = p.offsetTop * SCALE * scaleY;
-      const pw = p.offsetWidth * SCALE * scaleX;
-      const ph = p.offsetHeight * SCALE * scaleY;
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.fillRect(px, py, pw, ph);
-    });
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e) {
+    var now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
 
-    // Draw viewport
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const vx = (-posX) * scaleX;
-    const vy = (-posY) * scaleY;
-    const vwm = vw * scaleX;
-    const vhm = vh * scaleY;
-
-    ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-    ctx.lineWidth = 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.fillRect(vx, vy, vwm, vhm);
-    ctx.strokeRect(vx, vy, vwm, vhm);
-  }
-
-  // Minimap click to navigate
-  document.getElementById('minimap').addEventListener('click', e => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) / rect.width;
-    const my = (e.clientY - rect.top) / rect.height;
-
-    let totalW = 0, totalH = 0;
-    plane.querySelectorAll('.post').forEach(p => {
-      totalW = Math.max(totalW, (p.offsetLeft + p.offsetWidth) * SCALE);
-      totalH = Math.max(totalH, (p.offsetTop + p.offsetHeight) * SCALE);
-    });
-    posX = -(mx * totalW - window.innerWidth / 2);
-    posY = -(my * totalH - window.innerHeight / 2);
-    applyPos();
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) { e.preventDefault(); return; }
+    var step = 100;
+    if (e.key === 'ArrowLeft')  { tx += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowRight') { tx -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowUp')    { ty += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
   });
 
-  window.addEventListener('resize', () => { updateBounds(); applyPos(); drawMinimap(); });
+  canvas.addEventListener('click', function(e) {
+    if (didMove) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
 
-  // Prevent right-click / drag
-  document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('dragstart', e => e.preventDefault());
+  var hintHidden = false;
+  function hideHint() {
+    if (hintHidden || !hint) return;
+    hintHidden = true;
+    hint.classList.add('hidden');
+    setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
+  }
+  setTimeout(hideHint, 5000);
 
-  applyPos();
+  var MINIMAP_W = 160, MINIMAP_H = 65, MINIMAP_PADDING = 7;
+
+  var minimapEl = document.createElement('div');
+  minimapEl.id = 'minimap';
+  minimapEl.style.cssText = [
+    'position:fixed', 'bottom:50px', 'right:20px',
+    'width:' + MINIMAP_W + 'px', 'height:' + MINIMAP_H + 'px',
+    'z-index:200', 'border-radius:16px', 'overflow:hidden', 'pointer-events:none',
+    'background:rgba(255,255,255,0.10)',
+    'backdrop-filter:blur(16px) saturate(180%) brightness(1.06)',
+    '-webkit-backdrop-filter:blur(16px) saturate(180%) brightness(1.06)',
+    'border:1px solid rgba(255,255,255,0.08)',
+    'box-shadow:0 6px 24px rgba(0,0,0,0.10), inset 0 1px 1px rgba(255,255,255,0.10)'
+  ].join(';');
+
+  var minimapCanvas = document.createElement('canvas');
+  minimapCanvas.width = MINIMAP_W; minimapCanvas.height = MINIMAP_H;
+  minimapCanvas.style.cssText = 'position:absolute;top:0;left:0;';
+  minimapEl.appendChild(minimapCanvas);
+
+  var vpCanvas = document.createElement('canvas');
+  vpCanvas.width = MINIMAP_W; vpCanvas.height = MINIMAP_H;
+  vpCanvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
+  minimapEl.appendChild(vpCanvas);
+
+  var specularLayer = document.createElement('div');
+  specularLayer.style.cssText = [
+    'position:absolute', 'top:0', 'left:0', 'width:100%', 'height:100%',
+    'pointer-events:none', 'border-radius:16px',
+    'background:linear-gradient(135deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 40%)'
+  ].join(';');
+  minimapEl.appendChild(specularLayer);
+  document.body.appendChild(minimapEl);
+
+  var mctx = minimapCanvas.getContext('2d');
+  var vctx = vpCanvas.getContext('2d');
+  var vpTarget = { x:0, y:0, w:0, h:0 };
+  var vpCurrent = { x:0, y:0, w:0, h:0 };
+  var vpInited = false;
+  var vpScaleX = 1, vpScaleY = 1, vpGlow = 0;
+
+  function drawMinimap() {
+    var posts = document.querySelectorAll('#plane .post');
+    if (posts.length === 0) return;
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (var i = 0; i < posts.length; i++) {
+      var p = posts[i];
+      var px = parseInt(p.style.left) || 0;
+      var py = parseInt(p.style.top) || 0;
+      var pw = p.offsetWidth, ph = p.offsetHeight;
+      if (px < minX) minX = px;
+      if (py < minY) minY = py;
+      if (px + pw > maxX) maxX = px + pw;
+      if (py + ph > maxY) maxY = py + ph;
+    }
+    var contentW = (maxX - minX) * planeScale;
+    var contentH = (maxY - minY) * planeScale;
+    var scaleX = (MINIMAP_W - MINIMAP_PADDING * 2) / contentW;
+    var scaleY = (MINIMAP_H - MINIMAP_PADDING * 2) / contentH;
+    var s = Math.min(scaleX, scaleY);
+
+    mctx.clearRect(0, 0, MINIMAP_W, MINIMAP_H);
+    mctx.fillStyle = 'rgba(0,0,0,0.12)';
+    for (var j = 0; j < posts.length; j++) {
+      var pp = posts[j];
+      var rx = MINIMAP_PADDING + ((parseInt(pp.style.left) || 0) - minX) * planeScale * s;
+      var ry = MINIMAP_PADDING + ((parseInt(pp.style.top) || 0) - minY) * planeScale * s;
+      var rw = pp.offsetWidth * planeScale * s;
+      var rh = pp.offsetHeight * planeScale * s;
+      mctx.beginPath();
+      mctx.roundRect(rx, ry, rw, rh, 2);
+      mctx.fill();
+    }
+
+    vpTarget.x = MINIMAP_PADDING + (-tx - minX * planeScale) * s;
+    vpTarget.y = MINIMAP_PADDING + (-ty - minY * planeScale) * s;
+    vpTarget.w = window.innerWidth * s;
+    vpTarget.h = window.innerHeight * s;
+    if (!vpInited) {
+      vpCurrent.x = vpTarget.x; vpCurrent.y = vpTarget.y;
+      vpCurrent.w = vpTarget.w; vpCurrent.h = vpTarget.h;
+      vpInited = true;
+    }
+  }
+
+  (function animateViewport() {
+    requestAnimationFrame(animateViewport);
+    if (!vpInited) return;
+    var ease = 0.18;
+    var dx = vpTarget.x - vpCurrent.x, dy = vpTarget.y - vpCurrent.y;
+    vpCurrent.x += dx * ease; vpCurrent.y += dy * ease;
+    vpCurrent.w += (vpTarget.w - vpCurrent.w) * ease;
+    vpCurrent.h += (vpTarget.h - vpCurrent.h) * ease;
+    var speed = Math.sqrt(dx * dx + dy * dy);
+    var stretch = Math.min(speed * 0.012, 0.35);
+    var ang = Math.atan2(dy, dx);
+    var targetSX = 1 + Math.abs(Math.cos(ang)) * stretch;
+    var targetSY = 1 + Math.abs(Math.sin(ang)) * stretch;
+    vpScaleX += (targetSX - vpScaleX) * 0.25;
+    vpScaleY += (targetSY - vpScaleY) * 0.25;
+    var targetGlow = Math.min(speed * 0.08, 1);
+    vpGlow += (targetGlow - vpGlow) * 0.15;
+
+    vctx.clearRect(0, 0, MINIMAP_W, MINIMAP_H);
+    var cx = vpCurrent.x + vpCurrent.w / 2;
+    var cy = vpCurrent.y + vpCurrent.h / 2;
+    var w = vpCurrent.w * vpScaleX, h = vpCurrent.h * vpScaleY;
+    var x = cx - w / 2, y = cy - h / 2;
+
+    if (vpGlow > 0.01) {
+      vctx.save();
+      vctx.shadowColor = 'rgba(0,0,0,' + (0.5 * vpGlow) + ')';
+      vctx.shadowBlur = 8 * vpGlow;
+      vctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.18 + 0.2 * vpGlow, 0.45) + ')';
+      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
+      vctx.restore();
+      vctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      vctx.lineWidth = 1.5;
+      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.stroke();
+    } else {
+      vctx.fillStyle = 'rgba(0,0,0,0.18)';
+      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
+      vctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      vctx.lineWidth = 1.5;
+      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.stroke();
+    }
+  })();
+
+  updateTransform();
+  setTimeout(drawMinimap, 2000);
+
+})();
 </script>
 
 </body>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>업로드 — hanalmchan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #f8f8f8;
+    color: #111;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+    padding: 60px 40px;
+  }
+
+  h1 {
+    font-size: 14px;
+    font-weight: normal;
+    letter-spacing: 0.1em;
+    margin-bottom: 40px;
+    color: #888;
+  }
+  h1 a { color: #888; text-decoration: none; }
+  h1 a:hover { color: #111; }
+
+  #drop-area {
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    padding: 60px 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 30px;
+    background: #fff;
+  }
+  #drop-area:hover, #drop-area.dragover {
+    border-color: #111;
+    background: #fafafa;
+  }
+  #drop-area p { color: #888; line-height: 2; }
+  #drop-area strong { color: #111; }
+
+  #file-input { display: none; }
+
+  #queue {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 30px;
+  }
+
+  .queue-item {
+    width: 120px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #fff;
+    position: relative;
+  }
+  .queue-item img {
+    width: 100%;
+    height: 90px;
+    object-fit: cover;
+    display: block;
+  }
+  .queue-item .meta {
+    padding: 6px 8px;
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .queue-item .status {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold;
+    background: rgba(255,255,255,0.85);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .queue-item.uploading .status { opacity: 1; color: #888; }
+  .queue-item.done .status { opacity: 1; color: #4caf50; }
+  .queue-item.error .status { opacity: 1; color: #f44336; }
+
+  .caption-input {
+    width: 100%;
+    border: none;
+    border-top: 1px solid #eee;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
+    color: #111;
+    background: transparent;
+  }
+  .caption-input::placeholder { color: #ccc; }
+
+  #controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  button {
+    border: 1px solid #111;
+    background: #111;
+    color: #fff;
+    padding: 10px 24px;
+    font-size: 12px;
+    font-family: inherit;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, color 0.2s;
+  }
+  button:hover { background: #333; }
+  button:disabled { background: #ccc; border-color: #ccc; cursor: default; }
+  button.secondary {
+    background: transparent;
+    color: #111;
+  }
+  button.secondary:hover { background: #f0f0f0; }
+
+  #progress-bar-wrap {
+    height: 2px;
+    background: #eee;
+    border-radius: 1px;
+    margin-bottom: 30px;
+    display: none;
+  }
+  #progress-bar {
+    height: 100%;
+    background: #111;
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 1px;
+  }
+
+  #result-section { display: none; }
+  #result-section h2 {
+    font-size: 13px; font-weight: normal; color: #888;
+    letter-spacing: 0.08em; margin-bottom: 16px;
+  }
+
+  #result-json {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 16px;
+    font-size: 11px;
+    font-family: monospace;
+    white-space: pre;
+    overflow-x: auto;
+    color: #333;
+    margin-bottom: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  #copy-btn {
+    margin-right: 8px;
+  }
+
+  .notice {
+    background: #fffbe6;
+    border: 1px solid #ffe58f;
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.8;
+    margin-bottom: 30px;
+  }
+  .notice strong { color: #111; }
+</style>
+</head>
+<body>
+
+<h1><a href="index.html">← hanalmchan</a> &nbsp;/&nbsp; 업로드</h1>
+
+<div class="notice">
+  <strong>사용법</strong><br>
+  사진을 선택하고 업로드하면 Cloudinary에 저장돼요.<br>
+  업로드 완료 후 나오는 JSON을 복사해서 <strong>posts.json</strong> 파일에 붙여넣으면 사이트에 반영돼요.
+</div>
+
+<div id="drop-area">
+  <p><strong>사진을 드래그하거나 클릭해서 선택</strong></p>
+  <p>JPG, PNG, WEBP 등 모든 이미지 포맷 지원</p>
+  <p style="font-size:11px; color:#ccc; margin-top:8px;">원본 해상도 그대로 업로드돼요</p>
+</div>
+<input type="file" id="file-input" multiple accept="image/*">
+
+<div id="queue"></div>
+
+<div id="controls">
+  <button id="upload-btn" disabled>업로드 시작</button>
+  <button class="secondary" id="clear-btn" style="display:none">초기화</button>
+</div>
+
+<div id="progress-bar-wrap">
+  <div id="progress-bar"></div>
+</div>
+
+<div id="result-section">
+  <h2>업로드 완료 — posts.json에 추가할 항목</h2>
+  <div id="result-json"></div>
+  <button id="copy-btn">JSON 복사</button>
+  <button class="secondary" id="download-btn">posts.json 다운로드</button>
+</div>
+
+<script>
+(function() {
+  var CLOUD_NAME = 'dunb80s62';
+  var UPLOAD_PRESET = 'dunb80s62';
+
+  var dropArea = document.getElementById('drop-area');
+  var fileInput = document.getElementById('file-input');
+  var queue = document.getElementById('queue');
+  var uploadBtn = document.getElementById('upload-btn');
+  var clearBtn = document.getElementById('clear-btn');
+  var progressWrap = document.getElementById('progress-bar-wrap');
+  var progressBar = document.getElementById('progress-bar');
+  var resultSection = document.getElementById('result-section');
+  var resultJson = document.getElementById('result-json');
+  var copyBtn = document.getElementById('copy-btn');
+  var downloadBtn = document.getElementById('download-btn');
+
+  var files = [];
+  var uploadedResults = [];
+
+  // 기존 posts.json 로드 (다운로드 시 병합용)
+  var existingPosts = [];
+  fetch('posts.json?v=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(d) { existingPosts = d || []; })
+    .catch(function() { existingPosts = []; });
+
+  dropArea.addEventListener('click', function() { fileInput.click(); });
+  dropArea.addEventListener('dragover', function(e) { e.preventDefault(); dropArea.classList.add('dragover'); });
+  dropArea.addEventListener('dragleave', function() { dropArea.classList.remove('dragover'); });
+  dropArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropArea.classList.remove('dragover');
+    addFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', function() { addFiles(fileInput.files); });
+
+  function addFiles(newFiles) {
+    for (var i = 0; i < newFiles.length; i++) {
+      var f = newFiles[i];
+      if (!f.type.startsWith('image/')) continue;
+      files.push({ file: f, caption: '' });
+      renderQueueItem(files.length - 1);
+    }
+    uploadBtn.disabled = files.length === 0;
+    clearBtn.style.display = files.length > 0 ? '' : 'none';
+  }
+
+  function renderQueueItem(idx) {
+    var item = files[idx];
+    var div = document.createElement('div');
+    div.className = 'queue-item';
+    div.dataset.idx = idx;
+
+    var img = document.createElement('img');
+    var reader = new FileReader();
+    reader.onload = function(e) { img.src = e.target.result; };
+    reader.readAsDataURL(item.file);
+    div.appendChild(img);
+
+    var meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = item.file.name;
+    div.appendChild(meta);
+
+    var capInput = document.createElement('input');
+    capInput.className = 'caption-input';
+    capInput.placeholder = '캡션 (선택)';
+    capInput.addEventListener('input', function() { files[idx].caption = this.value; });
+    div.appendChild(capInput);
+
+    var status = document.createElement('div');
+    status.className = 'status';
+    status.textContent = '업로드 중...';
+    div.appendChild(status);
+
+    queue.appendChild(div);
+  }
+
+  clearBtn.addEventListener('click', function() {
+    files = [];
+    uploadedResults = [];
+    queue.innerHTML = '';
+    uploadBtn.disabled = true;
+    clearBtn.style.display = 'none';
+    resultSection.style.display = 'none';
+    progressWrap.style.display = 'none';
+    progressBar.style.width = '0%';
+  });
+
+  uploadBtn.addEventListener('click', function() {
+    if (files.length === 0) return;
+    uploadBtn.disabled = true;
+    progressWrap.style.display = 'block';
+    uploadedResults = [];
+    uploadNext(0);
+  });
+
+  function uploadNext(idx) {
+    if (idx >= files.length) {
+      allDone();
+      return;
+    }
+    var item = files[idx];
+    var qItem = queue.querySelector('[data-idx="' + idx + '"]');
+    if (qItem) qItem.classList.add('uploading');
+
+    var fd = new FormData();
+    fd.append('file', item.file);
+    fd.append('upload_preset', UPLOAD_PRESET);
+
+    fetch('https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/image/upload', {
+      method: 'POST',
+      body: fd
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (qItem) {
+        qItem.classList.remove('uploading');
+        qItem.classList.add('done');
+        qItem.querySelector('.status').textContent = '✓';
+      }
+      uploadedResults.push({
+        public_id: data.public_id,
+        url: 'https://res.cloudinary.com/' + CLOUD_NAME + '/image/upload/q_auto,f_auto/' + data.public_id,
+        width: data.width,
+        height: data.height,
+        caption: item.caption || ''
+      });
+      progressBar.style.width = ((idx + 1) / files.length * 100) + '%';
+      uploadNext(idx + 1);
+    })
+    .catch(function(err) {
+      if (qItem) {
+        qItem.classList.remove('uploading');
+        qItem.classList.add('error');
+        qItem.querySelector('.status').textContent = '✗';
+      }
+      console.error('Upload error:', err);
+      uploadNext(idx + 1);
+    });
+  }
+
+  function allDone() {
+    progressBar.style.width = '100%';
+    resultSection.style.display = 'block';
+
+    // 새 항목만 보여줌
+    resultJson.textContent = JSON.stringify(uploadedResults, null, 2);
+
+    // 스크롤
+    resultSection.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  copyBtn.addEventListener('click', function() {
+    var text = resultJson.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      copyBtn.textContent = '복사됨 ✓';
+      setTimeout(function() { copyBtn.textContent = 'JSON 복사'; }, 2000);
+    });
+  });
+
+  downloadBtn.addEventListener('click', function() {
+    // 기존 posts + 새 posts 병합
+    var merged = existingPosts.concat(uploadedResults);
+    var blob = new Blob([JSON.stringify(merged, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'posts.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+})();
+</script>
+</body>
+</html>

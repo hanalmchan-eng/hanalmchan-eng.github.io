@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -60,6 +59,9 @@
     pointer-events: none;
     filter: none;
   }
+  /* 로고 이미지 로드 실패 시 깨진 아이콘(물음표) 숨김 */
+  #header img.logo:not([src]),
+  #header img.logo[src=""] { display: none; }
 
   #nav {
     position: fixed; bottom: 20px; right: 20px; z-index: 100;
@@ -116,37 +118,17 @@
   }
   #hint.hidden { opacity: 0; }
 
-  /* 로딩 인디케이터 */
   #loading {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
     z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
   }
 </style>
-
 </head>
 <body>
 
 <div id="header">
   <a href="/" id="header-link">hanalmchan</a>
 </div>
-
-<script>
-// logo.png 있으면 로고 이미지로, 없으면 텍스트로
-(function() {
-  var img = new Image();
-  img.onload = function() {
-    var a = document.getElementById('header-link');
-    a.textContent = '';
-    var logo = document.createElement('img');
-    logo.className = 'logo';
-    logo.src = 'logo.png';
-    logo.alt = 'hanalmchan';
-    a.appendChild(logo);
-  };
-  img.onerror = function() { /* 텍스트 그대로 */ };
-  img.src = 'logo.png';
-})();
-</script>
 
 <div id="nav">
   <a href="upload.html">업로드</a>
@@ -160,6 +142,26 @@
 </div>
 
 <script>
+// 로고: logo.png가 실제로 로드되면 텍스트를 이미지로 교체. 실패하면 텍스트 유지.
+(function() {
+  var probe = new Image();
+  probe.onload = function() {
+    if (probe.naturalWidth === 0) return;
+    var a = document.getElementById('header-link');
+    if (!a) return;
+    a.textContent = '';
+    var logo = document.createElement('img');
+    logo.className = 'logo';
+    logo.alt = 'hanalmchan';
+    logo.src = 'logo.png';
+    a.appendChild(logo);
+  };
+  probe.onerror = function() { /* 텍스트 그대로 둠 */ };
+  probe.src = 'logo.png';
+})();
+</script>
+
+<script>
 (function() {
   'use strict';
 
@@ -167,7 +169,6 @@
   var gap = 4;
   var planeScale = 1.875;
 
-  // roundRect 폴리필
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
       if (typeof r === 'number') r = [r, r, r, r];
@@ -245,13 +246,20 @@
     drawMinimap();
   }
 
-  // ─── 포스트 렌더링 ───
   function buildImageUrl(publicId) {
     return 'https://res.cloudinary.com/' + CLOUD_NAME + '/image/upload/q_auto,f_auto/' + publicId;
   }
 
   function renderPosts(posts) {
     plane.innerHTML = '';
+    // 유효한 항목만 (public_id 또는 정상 url 있는 것)
+    posts = (posts || []).filter(function(p) {
+      if (!p) return false;
+      if (p.public_id) return true;
+      if (p.url && p.url.indexOf('undefined') === -1) return true;
+      return false;
+    });
+
     if (posts.length === 0) {
       if (loadingEl) loadingEl.textContent = '아직 업로드된 사진이 없어요.';
       return;
@@ -265,7 +273,6 @@
 
       var img = document.createElement('img');
       img.className = 'photo';
-      // public_id가 있으면 Cloudinary URL 조합, 아니면 url 직접 사용
       img.src = post.public_id ? buildImageUrl(post.public_id) : post.url;
       img.alt = post.caption || '';
       img.draggable = false;
@@ -276,6 +283,8 @@
         if (loaded === posts.length) layoutPosts();
       });
       img.addEventListener('error', function() {
+        // 로드 실패한 이미지는 제거 (깨진 물음표 방지)
+        if (div.parentNode) div.parentNode.removeChild(div);
         loaded++;
         layoutPosts();
       });
@@ -297,7 +306,6 @@
     setTimeout(layoutPosts, 1500);
   }
 
-  // ─── posts.json 로드 ───
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(posts) { renderPosts(posts); })
@@ -305,7 +313,6 @@
       if (loadingEl) loadingEl.textContent = '포스트를 불러올 수 없어요.';
     });
 
-  // ─── 휠 ───
   function onWheel(e) {
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
     e.preventDefault();
@@ -319,7 +326,6 @@
   }
   window.addEventListener('wheel', onWheel, { passive: false, capture: true });
 
-  // ─── 드래그 ───
   var isDragging = false, didMove = false;
   var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
   var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
@@ -418,7 +424,6 @@
     if (didMove) { e.preventDefault(); e.stopPropagation(); }
   }, true);
 
-  // ─── 힌트 ───
   var hintHidden = false;
   function hideHint() {
     if (hintHidden || !hint) return;
@@ -428,7 +433,6 @@
   }
   setTimeout(hideHint, 5000);
 
-  // ─── 미니맵 ───
   var MINIMAP_W = 160, MINIMAP_H = 65, MINIMAP_PADDING = 7;
 
   var minimapEl = document.createElement('div');

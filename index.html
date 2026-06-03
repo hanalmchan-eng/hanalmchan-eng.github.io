@@ -498,7 +498,7 @@
     var s = Math.min(scaleX, scaleY);
 
     mctx.clearRect(0, 0, MINIMAP_W, MINIMAP_H);
-    mctx.fillStyle = 'rgba(0,0,0,0.04)';
+    mctx.fillStyle = 'rgba(0,0,0,0.12)';
     for (var j = 0; j < posts.length; j++) {
       var pp = posts[j];
       var rx = MINIMAP_PADDING + ((parseInt(pp.style.left) || 0) - minX) * planeScale * s;
@@ -547,14 +547,20 @@
 
     if (vpGlow > 0.01) {
       vctx.save();
-      vctx.shadowColor = 'rgba(0,0,0,' + (0.6 * vpGlow) + ')';
+      vctx.shadowColor = 'rgba(0,0,0,' + (0.5 * vpGlow) + ')';
       vctx.shadowBlur = 8 * vpGlow;
-      vctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.08 + 0.25 * vpGlow, 1) + ')';
+      vctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.18 + 0.2 * vpGlow, 0.45) + ')';
       vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
       vctx.restore();
+      vctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      vctx.lineWidth = 1.5;
+      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.stroke();
     } else {
-      vctx.fillStyle = 'rgba(0,0,0,0.08)';
+      vctx.fillStyle = 'rgba(0,0,0,0.18)';
       vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
+      vctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      vctx.lineWidth = 1.5;
+      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.stroke();
     }
   })();
 

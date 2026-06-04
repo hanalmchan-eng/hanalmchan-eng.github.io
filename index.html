@@ -74,7 +74,7 @@
   .post img.photo {
     display: block;
     width: auto;
-    height: 1300px;  /* 고정 높이 — 원하는 값으로 조정 */
+    height: auto;
     max-height: none;
     max-width: none;
     -webkit-user-drag: none;
@@ -275,18 +275,18 @@
       img.alt = post.caption || '';
       img.draggable = false;
 
-     img.addEventListener('load', function() {
-  var mp = (img.naturalWidth * img.naturalHeight) / 1000000;
-  img.style.height = Math.round(1300 * Math.sqrt(mp / 72)) + 'px';
-  loaded++;
-  layoutPosts();
-  if (loaded === posts.length) layoutPosts();
-});
-img.addEventListener('error', function() {
-  if (div.parentNode) div.parentNode.removeChild(div);
-  loaded++;
-  layoutPosts();
-});
+      img.addEventListener('load', function() {
+        var mp = (img.naturalWidth * img.naturalHeight) / 1000000;
+        img.style.height = Math.round(1300 * Math.sqrt(mp / 72)) + 'px';
+        loaded++;
+        layoutPosts();
+        if (loaded === posts.length) layoutPosts();
+      });
+      img.addEventListener('error', function() {
+        if (div.parentNode) div.parentNode.removeChild(div);
+        loaded++;
+        layoutPosts();
+      });
 
       div.appendChild(img);
 

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -73,8 +74,6 @@
 
   .post img.photo {
     display: block;
-    width: auto;
-    height: auto;
     max-height: none;
     max-width: none;
     -webkit-user-drag: none;
@@ -110,6 +109,12 @@
     padding: 10px; background: rgba(255,255,255,0.9);
   }
 
+  .mp-tag {
+    position: absolute; top: 4px; left: 4px;
+    background: red; color: #fff; font-size: 11px;
+    padding: 2px 5px; z-index: 50;
+  }
+
   #hint {
     position: fixed; bottom: 20px; left: 20px; z-index: 100;
     font-size: 11px; color: #888888; mix-blend-mode: difference;
@@ -122,6 +127,7 @@
     z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
   }
 </style>
+
 </head>
 <body>
 
@@ -277,8 +283,16 @@
 
       img.addEventListener('load', function() {
         var mp = (img.naturalWidth * img.naturalHeight) / 1000000;
-                var h = Math.max(450, Math.min(1300 * Math.sqrt(mp / 72), 1300));
+        var h = Math.max(450, Math.min(1300 * Math.sqrt(mp / 24), 1300));
+        var ratio = img.naturalWidth / img.naturalHeight;
         img.style.height = Math.round(h) + 'px';
+        img.style.width = Math.round(h * ratio) + 'px';
+
+        var tag = document.createElement('div');
+        tag.className = 'mp-tag';
+        tag.textContent = mp.toFixed(1) + 'MP / ' + Math.round(h) + 'px';
+        div.appendChild(tag);
+
         loaded++;
         layoutPosts();
         if (loaded === posts.length) layoutPosts();

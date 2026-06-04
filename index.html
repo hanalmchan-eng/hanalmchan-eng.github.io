@@ -277,7 +277,8 @@
 
       img.addEventListener('load', function() {
         var mp = (img.naturalWidth * img.naturalHeight) / 1000000;
-        img.style.height = Math.round(1300 * Math.sqrt(mp / 72)) + 'px';
+                var h = Math.max(450, Math.min(1300 * Math.sqrt(mp / 72), 1300));
+        img.style.height = Math.round(h) + 'px';
         loaded++;
         layoutPosts();
         if (loaded === posts.length) layoutPosts();

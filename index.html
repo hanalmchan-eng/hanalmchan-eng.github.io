@@ -208,7 +208,7 @@
     curImgW = imgW; curImgH = imgH;
     var scaleH = (window.innerHeight * 2) / imgH;
     var scaleW = (window.innerWidth * 2) / imgW;
-    planeScale = Math.min(scaleH, scaleW);
+    planeScale = Math.max(scaleH, scaleW);
     // 헤더 로고도 같은 비율로 키움
     var logoEl = document.querySelector('#header img.logo');
     if (logoEl) {

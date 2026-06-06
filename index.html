@@ -459,18 +459,15 @@
   }
   setTimeout(hideHint, 5000);
 
-  var MINIMAP_W = 160, MINIMAP_H = 65, MINIMAP_PADDING = 7;
+  var MINIMAP_W = 160, MINIMAP_H = 65, MINIMAP_PADDING = 0;
 
   var minimapEl = document.createElement('div');
   minimapEl.id = 'minimap';
   minimapEl.style.cssText = [
     'position:fixed', 'bottom:50px', 'right:20px',
     'width:' + MINIMAP_W + 'px', 'height:' + MINIMAP_H + 'px',
-    'z-index:200', 'border-radius:16px', 'overflow:hidden', 'pointer-events:none',
-    'background:rgba(255,255,255,0.02)',
-    'backdrop-filter:blur(8px) saturate(120%)',
-    '-webkit-backdrop-filter:blur(8px) saturate(120%)',
-    'border:1px solid rgba(0,0,0,0.06)'
+    'z-index:200', 'overflow:visible', 'pointer-events:none',
+    'background:transparent'
   ].join(';');
 
   var minimapCanvas = document.createElement('canvas');
@@ -508,6 +505,20 @@
     }
     var contentW = (maxX - minX) * planeScale;
     var contentH = (maxY - minY) * planeScale;
+
+    // 미니맵을 사진 비율에 맞춰 크기 조정 (긴 변을 160 기준)
+    var aspect = contentW / contentH;
+    var mmW, mmH;
+    if (aspect >= 1) { mmW = 160; mmH = Math.round(160 / aspect); }
+    else { mmH = 120; mmW = Math.round(120 * aspect); }
+    if (minimapCanvas.width !== mmW || minimapCanvas.height !== mmH) {
+      minimapCanvas.width = mmW; minimapCanvas.height = mmH;
+      vpCanvas.width = mmW; vpCanvas.height = mmH;
+      minimapEl.style.width = mmW + 'px';
+      minimapEl.style.height = mmH + 'px';
+    }
+    MINIMAP_W = mmW; MINIMAP_H = mmH;
+
     var scaleX = (MINIMAP_W - MINIMAP_PADDING * 2) / contentW;
     var scaleY = (MINIMAP_H - MINIMAP_PADDING * 2) / contentH;
     var s = Math.min(scaleX, scaleY);
@@ -520,11 +531,8 @@
       var ry = MINIMAP_PADDING + ((parseInt(pp.style.top) || 0) - minY) * planeScale * s;
       var rw = pp.offsetWidth * planeScale * s;
       var rh = pp.offsetHeight * planeScale * s;
-      mctx.fillStyle = 'rgba(0,0,0,0.10)';
+      mctx.fillStyle = 'rgba(0,0,0,0.12)';
       mctx.beginPath(); mctx.roundRect(rx, ry, rw, rh, 2); mctx.fill();
-      mctx.strokeStyle = 'rgba(0,0,0,0.25)';
-      mctx.lineWidth = 1;
-      mctx.beginPath(); mctx.roundRect(rx, ry, rw, rh, 2); mctx.stroke();
     }
 
     vpTarget.x = MINIMAP_PADDING + (-tx - minX * planeScale) * s;
@@ -562,11 +570,8 @@
     var w = vpCurrent.w * vpScaleX, h = vpCurrent.h * vpScaleY;
     var x = cx - w / 2, y = cy - h / 2;
 
-    vctx.fillStyle = 'rgba(0,0,0,0.14)';
+    vctx.fillStyle = 'rgba(0,0,0,0.28)';
     vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
-    vctx.strokeStyle = 'rgba(0,0,0,0.7)';
-    vctx.lineWidth = 1.5;
-    vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.stroke();
   })();
 
   updateTransform();
@@ -577,4 +582,3 @@
 
 </body>
 </html>
-

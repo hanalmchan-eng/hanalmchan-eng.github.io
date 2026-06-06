@@ -193,31 +193,43 @@
   var tx = 0, ty = 50;
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 
+  // 사진 밖으로 못 나가게: 사진이 화면보다 크면 사진 가장자리에서 멈추고,
+  // 작으면 화면 중앙 근처에 머무름.
   function updateBounds() {
     var posts = document.querySelectorAll('#plane .post');
     if (posts.length === 0) return;
     var maxX = -Infinity, maxY = -Infinity;
     for (var i = 0; i < posts.length; i++) {
       var p = posts[i];
-      var px = (parseInt(p.style.left) || 0) * planeScale;
-      var py = (parseInt(p.style.top) || 0) * planeScale;
       var pw = p.offsetWidth * planeScale;
       var ph = p.offsetHeight * planeScale;
-      if (px + pw > maxX) maxX = px + pw;
-      if (py + ph > maxY) maxY = py + ph;
+      if (pw > maxX) maxX = pw;
+      if (ph > maxY) maxY = ph;
     }
-    var marginX = window.innerWidth * 0.9;
-    var marginY = window.innerHeight * 0.9;
-    bounds.maxX = marginX;
-    bounds.maxY = marginY;
-    bounds.minX = -(maxX - window.innerWidth) - marginX;
-    bounds.minY = -(maxY - window.innerHeight) - marginY;
-    if (maxX < window.innerWidth) { bounds.minX = -marginX; bounds.maxX = marginX; }
-    if (maxY < window.innerHeight) { bounds.minY = -marginY; bounds.maxY = marginY; }
+    var W = window.innerWidth, H = window.innerHeight;
+
+    if (maxX >= W) {
+      // 사진이 화면보다 넓음: 사진 안에서만 드래그
+      bounds.maxX = 0;
+      bounds.minX = -(maxX - W);
+    } else {
+      // 사진이 화면보다 좁음: 중앙 고정
+      var cx = (W - maxX) / 2;
+      bounds.maxX = cx;
+      bounds.minX = cx;
+    }
+
+    if (maxY >= H) {
+      bounds.maxY = 0;
+      bounds.minY = -(maxY - H);
+    } else {
+      var cy = (H - maxY) / 2;
+      bounds.maxY = cy;
+      bounds.minY = cy;
+    }
   }
 
   function clampPosition() {
-    if (bounds.maxX === 0 && bounds.minX === 0) return;
     if (tx > bounds.maxX) tx = bounds.maxX;
     if (tx < bounds.minX) tx = bounds.minX;
     if (ty > bounds.maxY) ty = bounds.maxY;
@@ -257,7 +269,6 @@
     if (initialAligned) return;
     var lx = post.logoX, ly = post.logoY;
     if (typeof lx !== 'number' || typeof ly !== 'number') return;
-    // 사진 좌표(plane 내부)는 0,0에서 시작. 로고를 헤더 위치에 맞춤.
     tx = HEADER_X - lx * planeScale;
     ty = HEADER_Y - ly * planeScale;
     initialAligned = true;
@@ -456,11 +467,10 @@
     'position:fixed', 'bottom:50px', 'right:20px',
     'width:' + MINIMAP_W + 'px', 'height:' + MINIMAP_H + 'px',
     'z-index:200', 'border-radius:16px', 'overflow:hidden', 'pointer-events:none',
-    'background:rgba(255,255,255,0.10)',
-    'backdrop-filter:blur(16px) saturate(180%) brightness(1.06)',
-    '-webkit-backdrop-filter:blur(16px) saturate(180%) brightness(1.06)',
-    'border:1px solid rgba(255,255,255,0.08)',
-    'box-shadow:0 6px 24px rgba(0,0,0,0.10), inset 0 1px 1px rgba(255,255,255,0.10)'
+    'background:rgba(255,255,255,0.02)',
+    'backdrop-filter:blur(8px) saturate(120%)',
+    '-webkit-backdrop-filter:blur(8px) saturate(120%)',
+    'border:1px solid rgba(0,0,0,0.06)'
   ].join(';');
 
   var minimapCanvas = document.createElement('canvas');
@@ -473,13 +483,6 @@
   vpCanvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
   minimapEl.appendChild(vpCanvas);
 
-  var specularLayer = document.createElement('div');
-  specularLayer.style.cssText = [
-    'position:absolute', 'top:0', 'left:0', 'width:100%', 'height:100%',
-    'pointer-events:none', 'border-radius:16px',
-    'background:linear-gradient(135deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 40%)'
-  ].join(';');
-  minimapEl.appendChild(specularLayer);
   document.body.appendChild(minimapEl);
 
   var mctx = minimapCanvas.getContext('2d');
@@ -510,16 +513,18 @@
     var s = Math.min(scaleX, scaleY);
 
     mctx.clearRect(0, 0, MINIMAP_W, MINIMAP_H);
-    mctx.fillStyle = 'rgba(0,0,0,0.12)';
+    // 사진 영역 사각형 (반투명 채움 + 가는 외곽선)
     for (var j = 0; j < posts.length; j++) {
       var pp = posts[j];
       var rx = MINIMAP_PADDING + ((parseInt(pp.style.left) || 0) - minX) * planeScale * s;
       var ry = MINIMAP_PADDING + ((parseInt(pp.style.top) || 0) - minY) * planeScale * s;
       var rw = pp.offsetWidth * planeScale * s;
       var rh = pp.offsetHeight * planeScale * s;
-      mctx.beginPath();
-      mctx.roundRect(rx, ry, rw, rh, 2);
-      mctx.fill();
+      mctx.fillStyle = 'rgba(0,0,0,0.10)';
+      mctx.beginPath(); mctx.roundRect(rx, ry, rw, rh, 2); mctx.fill();
+      mctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      mctx.lineWidth = 1;
+      mctx.beginPath(); mctx.roundRect(rx, ry, rw, rh, 2); mctx.stroke();
     }
 
     vpTarget.x = MINIMAP_PADDING + (-tx - minX * planeScale) * s;
@@ -557,23 +562,11 @@
     var w = vpCurrent.w * vpScaleX, h = vpCurrent.h * vpScaleY;
     var x = cx - w / 2, y = cy - h / 2;
 
-    if (vpGlow > 0.01) {
-      vctx.save();
-      vctx.shadowColor = 'rgba(0,0,0,' + (0.5 * vpGlow) + ')';
-      vctx.shadowBlur = 8 * vpGlow;
-      vctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.18 + 0.2 * vpGlow, 0.45) + ')';
-      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
-      vctx.restore();
-      vctx.strokeStyle = 'rgba(0,0,0,0.7)';
-      vctx.lineWidth = 1.5;
-      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.stroke();
-    } else {
-      vctx.fillStyle = 'rgba(0,0,0,0.18)';
-      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
-      vctx.strokeStyle = 'rgba(0,0,0,0.7)';
-      vctx.lineWidth = 1.5;
-      vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.stroke();
-    }
+    vctx.fillStyle = 'rgba(0,0,0,0.14)';
+    vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
+    vctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    vctx.lineWidth = 1.5;
+    vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.stroke();
   })();
 
   updateTransform();
@@ -584,3 +577,4 @@
 
 </body>
 </html>
+

@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -121,7 +120,6 @@
     z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
   }
 </style>
-
 </head>
 <body>
 
@@ -165,6 +163,10 @@
   var R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
   var gap = 4;
   var planeScale = 0.2688;
+
+  // 헤더 로고 기준점 (CSS #header: left 20, top 70)
+  var HEADER_X = 20;
+  var HEADER_Y = 70;
 
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
@@ -249,6 +251,19 @@
     return R2_BASE + '/' + encodeURIComponent(filename);
   }
 
+  // 첫 화면을 사진 속 로고가 헤더에 오도록 이동
+  var initialAligned = false;
+  function alignToLogo(post) {
+    if (initialAligned) return;
+    var lx = post.logoX, ly = post.logoY;
+    if (typeof lx !== 'number' || typeof ly !== 'number') return;
+    // 사진 좌표(plane 내부)는 0,0에서 시작. 로고를 헤더 위치에 맞춤.
+    tx = HEADER_X - lx * planeScale;
+    ty = HEADER_Y - ly * planeScale;
+    initialAligned = true;
+    updateTransform();
+  }
+
   function renderPosts(posts) {
     plane.innerHTML = '';
     posts = (posts || []).filter(function(p) {
@@ -280,6 +295,7 @@
         img.style.height = img.naturalHeight + 'px';
         loaded++;
         layoutPosts();
+        alignToLogo(post);
         if (loaded === posts.length) layoutPosts();
       });
       img.addEventListener('error', function() {

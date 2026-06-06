@@ -41,7 +41,7 @@
     top: 0; left: 0;
     width: 1px; height: 1px;
     will-change: transform;
-    transform: translate3d(0, 0, 0) scale(2.156);
+    transform: translate3d(0, 0, 0) scale(0.2035);
     transform-origin: 0 0;
   }
 
@@ -164,7 +164,7 @@
 
   var R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
   var gap = 4;
-  var planeScale = 2.156;
+  var planeScale = 0.2035;
 
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
@@ -276,11 +276,8 @@
       img.draggable = false;
 
       img.addEventListener('load', function() {
-        var mp = (img.naturalWidth * img.naturalHeight) / 1000000;
-        var h = Math.max(450, Math.min(1300 * Math.sqrt(mp / 72), 1300));
-        var ratio = img.naturalWidth / img.naturalHeight;
-        img.style.height = Math.round(h) + 'px';
-        img.style.width = Math.round(h * ratio) + 'px';
+        img.style.width = img.naturalWidth + 'px';
+        img.style.height = img.naturalHeight + 'px';
         loaded++;
         layoutPosts();
         if (loaded === posts.length) layoutPosts();

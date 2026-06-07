@@ -77,6 +77,17 @@
     max-width: 625px; padding: 10px; background: rgba(255,255,255,0.9);
   }
 
+  #load-msg {
+    font-size: 11px;
+    color: #ffffff;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    white-space: nowrap;
+  }
+  #load-msg.visible { opacity: 0.7; }
+
   #hint {
     font-size: 11px; color: #888888;
     pointer-events: none; opacity: 0.7; transition: opacity 0.5s;
@@ -85,69 +96,14 @@
   }
   #hint:empty { display: none; }
   #hint.hidden { opacity: 0; }
-
-  /* ── 로딩 오버레이 ──────────────────────────── */
-  /*  HTML에 처음부터 visible 상태로 렌더링됨      */
-  #loading-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;          /* 최상단 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #ffffff;    /* 단색: 블러보다 확실히 보임 */
-    transition: opacity 0.4s ease;
-  }
-  #loading-overlay.fade-out {
-    opacity: 0;
-    pointer-events: none;
-  }
-  #loading-overlay.gone {
-    display: none;
-  }
-
-  .loader-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-  }
-
-  /* 스피너 */
-  .spinner {
-    width: 24px; height: 24px;
-    border: 2px solid #e0e0e0;
-    border-top-color: #111;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  #loader-text {
-    font-size: 12px;
-    color: #888;
-    letter-spacing: 0.06em;
-    white-space: pre-line;
-    text-align: center;
-    line-height: 1.8;
-  }
-  /* ─────────────────────────────────────────── */
 </style>
 
 </head>
 <body>
 
-<!-- 로딩 오버레이: JS 실행 전부터 화면에 표시됨 -->
-
-<div id="loading-overlay">
-  <div class="loader-inner">
-    <div class="spinner"></div>
-    <div id="loader-text">로딩 중...</div>
-  </div>
-</div>
-
 <div id="header">
   <a href="/" id="header-link">hanalmchan</a>
+  <div id="load-msg"></div>
   <div id="hint"></div>
 </div>
 
@@ -187,65 +143,40 @@
   var curImgW = 0, curImgH = 0;
   var HEADER_X = 20, HEADER_Y = 70;
 
-  var canvas      = document.getElementById('canvas');
-  var plane       = document.getElementById('plane');
-  var hint        = document.getElementById('hint');
-  var overlay     = document.getElementById('loading-overlay');
-  var loaderText  = document.getElementById('loader-text');
+  var canvas     = document.getElementById('canvas');
+  var plane      = document.getElementById('plane');
+  var hint       = document.getElementById('hint');
+  var loadMsg    = document.getElementById('load-msg');
 
-  var GUIDE_TEXT    = '스크롤·드래그로 탐색 · 로고를 누르면 다음 사진';
-  var LOADING_LINES = ['로딩 중', 'Loading', '読み込み中'];
-  var loadingDots   = 0;
-  var dotsTimer     = null;
-  var isLoading     = false;
-  var hintHidden    = false;
-
-  /* 오버레이 열기 */
-  var overlayShowTime = 0;          // 열린 시각
-  var MIN_SHOW_MS = 400;            // 최소 표시 시간
-
-  function showOverlay() {
-    if (!overlay) return;
-    overlay.classList.remove('fade-out', 'gone');
-    overlayShowTime = Date.now();
-  }
-
-  function hideOverlay() {
-    if (!overlay) return;
-    var elapsed = Date.now() - overlayShowTime;
-    var delay = Math.max(0, MIN_SHOW_MS - elapsed);
-    setTimeout(function() {
-      overlay.classList.add('fade-out');
-      setTimeout(function() { overlay.classList.add('gone'); }, 420);
-    }, delay);
-  }
-
-  /* 도트 애니메이션 */
-  function renderDots() {
-    var dots = ['.', '..', '…'][loadingDots % 3];
-    if (loaderText) loaderText.textContent = LOADING_LINES.map(function(s){ return s + dots; }).join('\n');
-  }
+  var GUIDE_TEXT = '스크롤·드래그로 탐색 · 로고를 누르면 다음 사진';
+  var isLoading  = false;
+  var hintHidden = false;
+  var loadMsgTimer = null;
 
   function startLoadingAnim() {
-    isLoading  = true;
+    isLoading = true;
     hintHidden = false;
     if (hint) { hint.textContent = ''; hint.classList.remove('hidden'); }
-
-    showOverlay();
-    loadingDots = 0;
-    renderDots();
-    if (dotsTimer) clearInterval(dotsTimer);
-    dotsTimer = setInterval(function() {
-      loadingDots = (loadingDots + 1) % 3;
-      renderDots();
-    }, 450);
+    if (loadMsg) {
+      if (loadMsgTimer) { clearTimeout(loadMsgTimer); loadMsgTimer = null; }
+      loadMsg.textContent = '용량이 크기 때문에 잠시 기다려 주세요';
+      loadMsg.classList.add('visible');
+    }
   }
 
   function stopLoadingShowGuide() {
     isLoading = false;
-    if (dotsTimer) { clearInterval(dotsTimer); dotsTimer = null; }
-    hideOverlay();
-    if (hint) { hintHidden = false; hint.classList.remove('hidden'); hint.textContent = GUIDE_TEXT; }
+    if (loadMsg) {
+      if (loadMsgTimer) clearTimeout(loadMsgTimer);
+      loadMsgTimer = setTimeout(function() {
+        loadMsg.classList.remove('visible');
+      }, 2000);
+    }
+    if (hint) {
+      hintHidden = false;
+      hint.classList.remove('hidden');
+      hint.textContent = GUIDE_TEXT;
+    }
   }
 
   /* ── 레이아웃 / 스케일 ── */
@@ -323,16 +254,16 @@
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
 
-    startLoadingAnim();   // ← 항상 오버레이 표시
+    startLoadingAnim();
     plane.innerHTML = '';
 
     var div = document.createElement('div');
     div.className = 'post post-photo';
 
     var img = new Image();
-    img.className  = 'photo';
-    img.alt        = post.caption || '';
-    img.draggable  = false;
+    img.className = 'photo';
+    img.alt       = post.caption || '';
+    img.draggable = false;
 
     img.addEventListener('load', function() {
       img.style.width  = img.naturalWidth  + 'px';
@@ -343,11 +274,10 @@
       stopLoadingShowGuide();
     });
     img.addEventListener('error', function() {
-      hideOverlay();
+      if (loadMsg) loadMsg.classList.remove('visible');
       if (div.parentNode) div.parentNode.removeChild(div);
     });
 
-    /* src는 이벤트 등록 후에 설정해야 캐시된 이미지도 load 이벤트를 받음 */
     img.src = post.file ? buildImageUrl(post.file) : post.url;
 
     div.appendChild(img);
@@ -367,7 +297,10 @@
     posts = (posts || []).filter(function(p) {
       return p && (p.file || (p.url && p.url.indexOf('undefined') === -1));
     });
-    if (!posts.length) { hideOverlay(); return; }
+    if (!posts.length) {
+      if (loadMsg) loadMsg.classList.remove('visible');
+      return;
+    }
     allPosts = posts;
     showPost(0);
   }
@@ -375,7 +308,9 @@
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(renderPosts)
-    .catch(function() { hideOverlay(); });
+    .catch(function() {
+      if (loadMsg) loadMsg.classList.remove('visible');
+    });
 
   /* ── 리사이즈 ── */
   var resizeTimer = null;
@@ -506,7 +441,6 @@
     setTimeout(function() { if (hint) hint.classList.add('hidden'); }, 1000);
   }
 
-  /* 초기 transform + 첫 로딩은 HTML 오버레이가 이미 표시 중 */
   updateTransform();
   startLoadingAnim();
 

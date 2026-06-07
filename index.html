@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -62,6 +63,28 @@
   #header img.logo:not([src]),
   #header img.logo[src=""] { display: none; }
 
+  /* hint: absolute positioning, 로고 바로 아래 */
+  #hint {
+    position: fixed;
+    left: 20px;
+    z-index: 100;
+    pointer-events: none;
+    mix-blend-mode: difference;
+    transition: opacity 0.5s;
+  }
+  #hint.hidden { opacity: 0; }
+
+  #hint-text {
+    font-size: 10px;
+    color: #ffffff;
+    opacity: 0.55;
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+    white-space: nowrap;
+    transition: opacity 0.35s;
+  }
+  #hint-text.fade { opacity: 0; }
+
   #nav {
     position: fixed; bottom: 20px; right: 20px; z-index: 100;
     font-size: 12px; mix-blend-mode: difference; color: #ffffff;
@@ -108,18 +131,12 @@
     padding: 10px; background: rgba(255,255,255,0.9);
   }
 
-  #hint {
-    position: fixed; bottom: 20px; left: 20px; z-index: 100;
-    font-size: 11px; color: #888888; mix-blend-mode: difference;
-    pointer-events: none; opacity: 0.7; transition: opacity 0.5s;
-  }
-  #hint.hidden { opacity: 0; }
-
   #loading {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
     z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
   }
 </style>
+
 </head>
 <body>
 
@@ -127,10 +144,10 @@
   <a href="/" id="header-link">hanalmchan</a>
 </div>
 
-<div id="nav">
-</div>
+<div id="hint"><div id="hint-text"></div></div>
 
-<div id="hint">스크롤·드래그로 탐색</div>
+<div id="nav"></div>
+
 <div id="loading">loading...</div>
 
 <div id="canvas">
@@ -138,6 +155,20 @@
 </div>
 
 <script>
+// hint를 로고(또는 텍스트) 바로 아래에 맞춤
+function positionHint() {
+  var header = document.getElementById('header');
+  var hint   = document.getElementById('hint');
+  if (!header || !hint) return;
+  var headerTop = 70;
+  var logoEl = header.querySelector('img.logo');
+  var logoH  = (logoEl && logoEl.offsetHeight > 0) ? logoEl.offsetHeight : 20;
+  hint.style.top = (headerTop + logoH + 8) + 'px';
+}
+window.addEventListener('resize', positionHint);
+setTimeout(positionHint, 50);
+setTimeout(positionHint, 300);
+
 (function() {
   var probe = new Image();
   probe.onload = function() {
@@ -149,9 +180,10 @@
     logo.className = 'logo';
     logo.alt = 'hanalmchan';
     logo.src = 'logo.png';
+    logo.addEventListener('load', function() { positionHint(); });
     a.appendChild(logo);
   };
-  probe.onerror = function() {};
+  probe.onerror = function() { positionHint(); };
   probe.src = 'logo.png';
 })();
 </script>
@@ -164,14 +196,11 @@
   var gap = 4;
   var planeScale = 0.2688;
 
-  // 기준값: 이 scale에서 헤더 로고가 175px일 때 사진 속 로고와 일치
   var BASE_SCALE = 0.2688;
   var BASE_LOGO_W = 175;
 
-  // 가장 최근 사진 크기 (창 리사이즈 시 재계산용)
   var curImgW = 0, curImgH = 0;
 
-  // 헤더 로고 기준점 (CSS #header: left 20, top 70)
   var HEADER_X = 20;
   var HEADER_Y = 70;
 
@@ -192,30 +221,61 @@
     };
   }
 
-  var canvas = document.getElementById('canvas');
-  var plane = document.getElementById('plane');
-  var hint = document.getElementById('hint');
+  var canvas   = document.getElementById('canvas');
+  var plane    = document.getElementById('plane');
+  var hint     = document.getElementById('hint');
+  var hintText = document.getElementById('hint-text');
   var loadingEl = document.getElementById('loading');
+
+  // ── 3개 언어 순환 힌트 ────────────────────────────────────
+  var HINTS = [
+    '끌어서 둘러보기 · 로고를 클릭하여 다음',
+    'Drag to explore · Click logo for next',
+    'ドラッグで探索 · ロゴをクリックで次へ'
+  ];
+  var hintIdx = 0;
+  var hintHidden = false;
+  var hintCycleTimer = null;
+
+  if (hintText) hintText.textContent = HINTS[0];
+
+  function cycleHint() {
+    if (hintHidden || !hintText) return;
+    hintText.classList.add('fade');
+    setTimeout(function() {
+      hintIdx = (hintIdx + 1) % HINTS.length;
+      hintText.textContent = HINTS[hintIdx];
+      hintText.classList.remove('fade');
+    }, 350);
+  }
+  hintCycleTimer = setInterval(cycleHint, 2800);
+
+  function hideHint() {
+    if (hintHidden || !hint) return;
+    hintHidden = true;
+    if (hintCycleTimer) clearInterval(hintCycleTimer);
+    hint.classList.add('hidden');
+    setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
+  }
+  setTimeout(hideHint, 9000);
+  // ─────────────────────────────────────────────────────────
 
   var tx = 0, ty = 50;
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 
-  // 사진을 화면에 맞춰 scale 계산: 가로·세로 둘 다 화면의 2배를 넘지 않게
   function fitScaleToScreen(imgW, imgH) {
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
     var scaleH = (window.innerHeight * 2) / imgH;
     var scaleW = (window.innerWidth * 2) / imgW;
     planeScale = Math.max(scaleH, scaleW);
-    // 헤더 로고도 같은 비율로 키움
     var logoEl = document.querySelector('#header img.logo');
     if (logoEl) {
       logoEl.style.width = (BASE_LOGO_W * (planeScale / BASE_SCALE)) + 'px';
+      setTimeout(positionHint, 50);
     }
   }
 
-  // 사진 밖으로 못 나가게: 사진이 화면보다 크면 사진 가장자리에서 멈추고,
-  // 작으면 화면 중앙 근처에 머무름.
   function updateBounds() {
     var posts = document.querySelectorAll('#plane .post');
     if (posts.length === 0) return;
@@ -228,26 +288,10 @@
       if (ph > maxY) maxY = ph;
     }
     var W = window.innerWidth, H = window.innerHeight;
-
-    if (maxX >= W) {
-      // 사진이 화면보다 넓음: 사진 안에서만 드래그
-      bounds.maxX = 0;
-      bounds.minX = -(maxX - W);
-    } else {
-      // 사진이 화면보다 좁음: 중앙 고정
-      var cx = (W - maxX) / 2;
-      bounds.maxX = cx;
-      bounds.minX = cx;
-    }
-
-    if (maxY >= H) {
-      bounds.maxY = 0;
-      bounds.minY = -(maxY - H);
-    } else {
-      var cy = (H - maxY) / 2;
-      bounds.maxY = cy;
-      bounds.minY = cy;
-    }
+    if (maxX >= W) { bounds.maxX = 0; bounds.minX = -(maxX - W); }
+    else { var cx = (W - maxX) / 2; bounds.maxX = cx; bounds.minX = cx; }
+    if (maxY >= H) { bounds.maxY = 0; bounds.minY = -(maxY - H); }
+    else { var cy = (H - maxY) / 2; bounds.maxY = cy; bounds.minY = cy; }
   }
 
   function clampPosition() {
@@ -282,7 +326,6 @@
     return R2_BASE + '/' + encodeURIComponent(filename);
   }
 
-  // 첫 화면을 사진 속 로고가 헤더에 오도록 이동
   var currentPost = null;
   function alignToLogo(post) {
     if (post) currentPost = post;
@@ -305,13 +348,11 @@
       if (p.url && p.url.indexOf('undefined') === -1) return true;
       return false;
     });
-
     if (posts.length === 0) {
       if (loadingEl) loadingEl.textContent = '아직 업로드된 사진이 없어요.';
       return;
     }
     if (loadingEl) loadingEl.remove();
-
     allPosts = posts;
     currentIndex = 0;
     showPost(0);
@@ -321,18 +362,14 @@
     if (allPosts.length === 0) return;
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
-
     plane.innerHTML = '';
-
     var div = document.createElement('div');
     div.className = 'post post-photo';
-
     var img = document.createElement('img');
     img.className = 'photo';
     img.src = post.file ? buildImageUrl(post.file) : post.url;
     img.alt = post.caption || '';
     img.draggable = false;
-
     img.addEventListener('load', function() {
       img.style.width = img.naturalWidth + 'px';
       img.style.height = img.naturalHeight + 'px';
@@ -343,25 +380,20 @@
     img.addEventListener('error', function() {
       if (div.parentNode) div.parentNode.removeChild(div);
     });
-
     div.appendChild(img);
-
     if (post.caption) {
       var cap = document.createElement('div');
       cap.className = 'caption';
       cap.textContent = post.caption;
       div.appendChild(cap);
     }
-
     plane.appendChild(div);
     layoutPosts();
     setTimeout(layoutPosts, 500);
     setTimeout(layoutPosts, 1500);
   }
 
-  function nextPost() {
-    showPost(currentIndex + 1);
-  }
+  function nextPost() { showPost(currentIndex + 1); }
 
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
@@ -382,7 +414,6 @@
     }, 100);
   });
 
-  // 헤더 로고 클릭 → 다음 사진 (루프)
   var headerLink = document.getElementById('header-link');
   if (headerLink) {
     headerLink.style.cursor = 'pointer';
@@ -502,15 +533,6 @@
   canvas.addEventListener('click', function(e) {
     if (didMove) { e.preventDefault(); e.stopPropagation(); }
   }, true);
-
-  var hintHidden = false;
-  function hideHint() {
-    if (hintHidden || !hint) return;
-    hintHidden = true;
-    hint.classList.add('hidden');
-    setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
-  }
-  setTimeout(hideHint, 5000);
 
   updateTransform();
 

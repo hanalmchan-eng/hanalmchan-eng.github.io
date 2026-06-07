@@ -2,230 +2,520 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>업로드 — hanalmchan</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+<title>hanalmchan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
-    background: #f8f8f8;
-    color: #111;
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 13px;
-    min-height: 100vh;
-    padding: 60px 40px;
-  }
-
-  h1 {
-    font-size: 14px;
-    font-weight: normal;
-    letter-spacing: 0.1em;
-    margin-bottom: 40px;
-    color: #888;
-  }
-  h1 a { color: #888; text-decoration: none; }
-  h1 a:hover { color: #111; }
-
-  .notice {
-    background: #fffbe6;
-    border: 1px solid #ffe58f;
-    border-radius: 4px;
-    padding: 12px 16px;
-    font-size: 12px;
-    color: #666;
-    line-height: 1.8;
-    margin-bottom: 30px;
-  }
-  .notice strong { color: #111; }
-
-  button {
-    border: 1px solid #111;
-    background: #111;
-    color: #fff;
-    padding: 12px 28px;
-    font-size: 12px;
-    font-family: inherit;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: background 0.2s;
-    margin-right: 8px;
-  }
-  button:hover { background: #333; }
-  button.secondary { background: transparent; color: #111; }
-  button.secondary:hover { background: #f0f0f0; }
-
-  #controls { margin-bottom: 30px; }
-
-  #uploaded-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 30px;
-  }
-  .uploaded-item {
-    width: 130px;
-    border: 1px solid #eee;
-    border-radius: 4px;
+  html, body {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
-    background: #fff;
+    background: #ffffff;
+    color: #111111;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
-  .uploaded-item img {
-    width: 100%;
-    height: 100px;
-    object-fit: cover;
-    display: block;
-  }
-  .uploaded-item .cap {
-    width: 100%;
-    border: none;
-    border-top: 1px solid #eee;
-    padding: 6px 8px;
-    font-size: 11px;
-    font-family: inherit;
-    outline: none;
-  }
-  .uploaded-item .cap::placeholder { color: #ccc; }
 
-  #result-section { display: none; }
-  #result-section h2 {
-    font-size: 13px; font-weight: normal; color: #888;
-    letter-spacing: 0.08em; margin-bottom: 16px;
+  #canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
   }
-  #result-json {
-    background: #fff; border: 1px solid #eee; border-radius: 4px;
-    padding: 16px; font-size: 11px; font-family: monospace;
-    white-space: pre; overflow: auto; color: #333;
-    margin-bottom: 16px; max-height: 300px;
+
+  #canvas.dragging { cursor: grabbing; }
+
+  #plane {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1px; height: 1px;
+    will-change: transform;
+    transform: translate3d(0, 0, 0) scale(0.2688);
+    transform-origin: 0 0;
+  }
+
+  #header {
+    position: fixed; top: 70px; left: 20px; z-index: 100;
+    font-size: 13px; mix-blend-mode: difference; color: #ffffff;
+  }
+  #header a { color: inherit; text-decoration: none; display: inline-block; cursor: pointer; }
+  #header a:hover { color: #888888; }
+  #header img.logo {
+    display: block;
+    width: 175px;
+    height: auto;
+    -webkit-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+    filter: none;
+  }
+  #header img.logo:not([src]),
+  #header img.logo[src=""] { display: none; }
+
+  #nav {
+    position: fixed; bottom: 20px; right: 20px; z-index: 100;
+    font-size: 12px; mix-blend-mode: difference; color: #ffffff;
+  }
+  #nav a { color: inherit; text-decoration: none; margin-left: 12px; }
+  #nav a:hover { color: #888888; }
+
+  .post { position: absolute; top: 0; left: 0; }
+
+  .post img.photo {
+    display: block;
+    max-height: none;
+    max-width: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    pointer-events: none;
+  }
+
+  .post-photo a, .post-photoset a {
+    display: block;
+    cursor: inherit;
+    pointer-events: none;
+  }
+
+  .photo-wrap {
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .post-text, .post-quote, .post-link {
+    width: 625px;
+    padding: 20px;
+  }
+
+  .caption {
+    margin-top: 10px; font-size: 12px; color: #111111;
+    max-width: 625px;
+    padding: 10px; background: rgba(255,255,255,0.9);
+  }
+
+  #hint {
+    position: fixed; bottom: 20px; left: 20px; z-index: 100;
+    font-size: 11px; color: #888888; mix-blend-mode: difference;
+    pointer-events: none; opacity: 0.7; transition: opacity 0.5s;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  #hint.hidden { opacity: 0; }
+
+  #loading {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
   }
 </style>
 </head>
 <body>
 
-<h1><a href="index.html">← hanalmchan</a> &nbsp;/&nbsp; 업로드</h1>
-
-<div class="notice">
-  <strong>사용법</strong><br>
-  1. <strong>사진 업로드</strong> 버튼으로 Cloudinary에 사진 올리기<br>
-  2. 캡션 입력 (선택)<br>
-  3. <strong>posts.json 다운로드</strong> 후 GitHub에 교체 업로드
+<div id="header">
+  <a href="/" id="header-link">hanalmchan</a>
 </div>
 
-<div id="controls">
-  <button id="open-widget">사진 업로드</button>
-  <button class="secondary" id="clear-btn" style="display:none">초기화</button>
+<div id="nav">
 </div>
 
-<div id="uploaded-grid"></div>
+<div id="hint">스크롤·드래그로 탐색 · 로고를 누르면 다음 사진</div>
+<div id="loading">loading...</div>
 
-<div id="result-section">
-  <h2>posts.json 내용 (기존 + 새 사진)</h2>
-  <div id="result-json"></div>
-  <button id="copy-btn">JSON 복사</button>
-  <button class="secondary" id="download-btn">posts.json 다운로드</button>
+<div id="canvas">
+  <div id="plane"></div>
 </div>
 
 <script>
 (function() {
-  var CLOUD_NAME = 'dunb80s62';
-  var UPLOAD_PRESET = 'hanalmchan';
+  var probe = new Image();
+  probe.onload = function() {
+    if (probe.naturalWidth === 0) return;
+    var a = document.getElementById('header-link');
+    if (!a) return;
+    a.textContent = '';
+    var logo = document.createElement('img');
+    logo.className = 'logo';
+    logo.alt = 'hanalmchan';
+    logo.src = 'logo.png';
+    a.appendChild(logo);
+  };
+  probe.onerror = function() {};
+  probe.src = 'logo.png';
+})();
+</script>
 
-  var grid = document.getElementById('uploaded-grid');
-  var clearBtn = document.getElementById('clear-btn');
-  var resultSection = document.getElementById('result-section');
-  var resultJson = document.getElementById('result-json');
-  var copyBtn = document.getElementById('copy-btn');
-  var downloadBtn = document.getElementById('download-btn');
+<script>
+(function() {
+  'use strict';
 
-  var uploaded = [];
-  var existingPosts = [];
+  var R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
+  var gap = 4;
+  var planeScale = 0.2688;
+
+  // 기준값: 이 scale에서 헤더 로고가 175px일 때 사진 속 로고와 일치
+  var BASE_SCALE = 0.2688;
+  var BASE_LOGO_W = 175;
+
+  // 가장 최근 사진 크기 (창 리사이즈 시 재계산용)
+  var curImgW = 0, curImgH = 0;
+
+  // 헤더 로고 기준점 (CSS #header: left 20, top 70)
+  var HEADER_X = 20;
+  var HEADER_Y = 70;
+
+  if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      if (typeof r === 'number') r = [r, r, r, r];
+      r = r || [0, 0, 0, 0];
+      this.moveTo(x + r[0], y);
+      this.lineTo(x + w - r[1], y);
+      this.arcTo(x + w, y, x + w, y + r[1], r[1]);
+      this.lineTo(x + w, y + h - r[2]);
+      this.arcTo(x + w, y + h, x + w - r[2], y + h, r[2]);
+      this.lineTo(x + r[3], y + h);
+      this.arcTo(x, y + h, x, y + h - r[3], r[3]);
+      this.lineTo(x, y + r[0]);
+      this.arcTo(x, y, x + r[0], y, r[0]);
+      return this;
+    };
+  }
+
+  var canvas = document.getElementById('canvas');
+  var plane = document.getElementById('plane');
+  var hint = document.getElementById('hint');
+  var loadingEl = document.getElementById('loading');
+
+  var tx = 0, ty = 50;
+  var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+
+  // 사진을 화면에 맞춰 scale 계산: 가로·세로 둘 다 화면의 2배를 넘지 않게
+  function fitScaleToScreen(imgW, imgH) {
+    if (!imgW || !imgH) return;
+    curImgW = imgW; curImgH = imgH;
+    var scaleH = (window.innerHeight * 2) / imgH;
+    var scaleW = (window.innerWidth * 2) / imgW;
+    planeScale = Math.max(scaleH, scaleW);
+    // 헤더 로고도 같은 비율로 키움
+    var logoEl = document.querySelector('#header img.logo');
+    if (logoEl) {
+      logoEl.style.width = (BASE_LOGO_W * (planeScale / BASE_SCALE)) + 'px';
+    }
+  }
+
+  // 사진 밖으로 못 나가게: 사진이 화면보다 크면 사진 가장자리에서 멈추고,
+  // 작으면 화면 중앙 근처에 머무름.
+  function updateBounds() {
+    var posts = document.querySelectorAll('#plane .post');
+    if (posts.length === 0) return;
+    var maxX = -Infinity, maxY = -Infinity;
+    for (var i = 0; i < posts.length; i++) {
+      var p = posts[i];
+      var pw = p.offsetWidth * planeScale;
+      var ph = p.offsetHeight * planeScale;
+      if (pw > maxX) maxX = pw;
+      if (ph > maxY) maxY = ph;
+    }
+    var W = window.innerWidth, H = window.innerHeight;
+
+    if (maxX >= W) {
+      // 사진이 화면보다 넓음: 사진 안에서만 드래그
+      bounds.maxX = 0;
+      bounds.minX = -(maxX - W);
+    } else {
+      // 사진이 화면보다 좁음: 중앙 고정
+      var cx = (W - maxX) / 2;
+      bounds.maxX = cx;
+      bounds.minX = cx;
+    }
+
+    if (maxY >= H) {
+      bounds.maxY = 0;
+      bounds.minY = -(maxY - H);
+    } else {
+      var cy = (H - maxY) / 2;
+      bounds.maxY = cy;
+      bounds.minY = cy;
+    }
+  }
+
+  function clampPosition() {
+    if (tx > bounds.maxX) tx = bounds.maxX;
+    if (tx < bounds.minX) tx = bounds.minX;
+    if (ty > bounds.maxY) ty = bounds.maxY;
+    if (ty < bounds.minY) ty = bounds.minY;
+  }
+
+  function updateTransform() {
+    clampPosition();
+    plane.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + planeScale + ')';
+  }
+
+  function layoutPosts() {
+    var posts = document.querySelectorAll('#plane .post');
+    if (posts.length === 0) return;
+    var x = 0;
+    for (var i = 0; i < posts.length; i++) {
+      var post = posts[i];
+      var w = post.offsetWidth;
+      var h = post.offsetHeight;
+      if (w === 0 || h === 0) continue;
+      post.style.left = x + 'px';
+      post.style.top = '0px';
+      x += w + gap;
+    }
+    updateBounds();
+  }
+
+  function buildImageUrl(filename) {
+    return R2_BASE + '/' + encodeURIComponent(filename);
+  }
+
+  // 첫 화면을 사진 속 로고가 헤더에 오도록 이동
+  var currentPost = null;
+  function alignToLogo(post) {
+    if (post) currentPost = post;
+    var p = currentPost;
+    if (!p) return;
+    var lx = p.logoX, ly = p.logoY;
+    if (typeof lx !== 'number' || typeof ly !== 'number') return;
+    tx = HEADER_X - lx * planeScale;
+    ty = HEADER_Y - ly * planeScale;
+    updateTransform();
+  }
+
+  var allPosts = [];
+  var currentIndex = 0;
+
+  function renderPosts(posts) {
+    posts = (posts || []).filter(function(p) {
+      if (!p) return false;
+      if (p.file) return true;
+      if (p.url && p.url.indexOf('undefined') === -1) return true;
+      return false;
+    });
+
+    if (posts.length === 0) {
+      if (loadingEl) loadingEl.textContent = '아직 업로드된 사진이 없어요.';
+      return;
+    }
+    if (loadingEl) loadingEl.remove();
+
+    allPosts = posts;
+    currentIndex = 0;
+    showPost(0);
+  }
+
+  function showPost(index) {
+    if (allPosts.length === 0) return;
+    currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
+    var post = allPosts[currentIndex];
+
+    plane.innerHTML = '';
+
+    var div = document.createElement('div');
+    div.className = 'post post-photo';
+
+    var img = document.createElement('img');
+    img.className = 'photo';
+    img.src = post.file ? buildImageUrl(post.file) : post.url;
+    img.alt = post.caption || '';
+    img.draggable = false;
+
+    img.addEventListener('load', function() {
+      img.style.width = img.naturalWidth + 'px';
+      img.style.height = img.naturalHeight + 'px';
+      fitScaleToScreen(img.naturalWidth, img.naturalHeight);
+      layoutPosts();
+      alignToLogo(post);
+    });
+    img.addEventListener('error', function() {
+      if (div.parentNode) div.parentNode.removeChild(div);
+    });
+
+    div.appendChild(img);
+
+    if (post.caption) {
+      var cap = document.createElement('div');
+      cap.className = 'caption';
+      cap.textContent = post.caption;
+      div.appendChild(cap);
+    }
+
+    plane.appendChild(div);
+    layoutPosts();
+    setTimeout(layoutPosts, 500);
+    setTimeout(layoutPosts, 1500);
+  }
+
+  function nextPost() {
+    showPost(currentIndex + 1);
+  }
 
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
-    .then(function(d) { existingPosts = d || []; })
-    .catch(function() { existingPosts = []; });
+    .then(function(posts) { renderPosts(posts); })
+    .catch(function() {
+      if (loadingEl) loadingEl.textContent = '포스트를 불러올 수 없어요.';
+    });
 
-  var widget = cloudinary.createUploadWidget({
-    cloudName: CLOUD_NAME,
-    uploadPreset: UPLOAD_PRESET,
-    sources: ['local', 'url', 'camera'],
-    multiple: true,
-    resourceType: 'image',
-    maxImageFileSize: 10000000,
-    maxImageWidth: 4000,
-    maxImageHeight: 4000
-  }, function(error, result) {
-    if (!error && result && result.event === 'success') {
-      var info = result.info;
-      uploaded.push({
-        public_id: info.public_id,
-        url: info.secure_url,
-        width: info.width,
-        height: info.height,
-        caption: ''
-      });
-      renderGrid();
-      updateResult();
+  var resizeTimer = null;
+  window.addEventListener('resize', function() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      if (curImgW && curImgH) {
+        fitScaleToScreen(curImgW, curImgH);
+        layoutPosts();
+        alignToLogo(null);
+      }
+    }, 100);
+  });
+
+  // 헤더 로고 클릭 → 다음 사진 (루프)
+  var headerLink = document.getElementById('header-link');
+  if (headerLink) {
+    headerLink.style.cursor = 'pointer';
+    headerLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      nextPost();
+    });
+  }
+
+  function onWheel(e) {
+    if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
+    e.preventDefault();
+    hideHint();
+    var dx = e.deltaX, dy = e.deltaY;
+    if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
+    else if (e.deltaMode === 2) { dx *= window.innerWidth; dy *= window.innerHeight; }
+    if (e.shiftKey && dx === 0) { dx = dy; dy = 0; }
+    tx -= dx; ty -= dy;
+    updateTransform();
+  }
+  window.addEventListener('wheel', onWheel, { passive: false, capture: true });
+
+  var isDragging = false, didMove = false;
+  var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
+  var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
+  var momentumRAF = null;
+
+  function stopMomentum() {
+    if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
+  }
+
+  function startDrag(clientX, clientY, target) {
+    if (target && target.closest && target.closest('button, input, textarea, video, audio, iframe')) return false;
+    stopMomentum();
+    isDragging = true; didMove = false;
+    dragStartX = clientX; dragStartY = clientY;
+    dragStartTx = tx; dragStartTy = ty;
+    lastDragX = clientX; lastDragY = clientY;
+    velX = 0; velY = 0;
+    canvas.classList.add('dragging');
+    hideHint();
+    return true;
+  }
+
+  function moveDrag(clientX, clientY) {
+    if (!isDragging) return;
+    var dx = clientX - dragStartX, dy = clientY - dragStartY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didMove = true;
+    velX = clientX - lastDragX; velY = clientY - lastDragY;
+    lastDragX = clientX; lastDragY = clientY;
+    tx = dragStartTx + dx; ty = dragStartTy + dy;
+    updateTransform();
+  }
+
+  function endDrag() {
+    if (!isDragging) return;
+    isDragging = false;
+    canvas.classList.remove('dragging');
+    if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) startMomentum();
+  }
+
+  function startMomentum() {
+    var friction = 0.93;
+    function step() {
+      velX *= friction; velY *= friction;
+      tx += velX; ty += velY;
+      var bx = tx, by = ty;
+      updateTransform();
+      if (tx === bx && Math.abs(velX) > 0.1) velX = 0;
+      if (ty === by && Math.abs(velY) > 0.1) velY = 0;
+      if (Math.abs(velX) < 0.1 && Math.abs(velY) < 0.1) { momentumRAF = null; return; }
+      momentumRAF = requestAnimationFrame(step);
     }
-  });
-
-  document.getElementById('open-widget').addEventListener('click', function() {
-    widget.open();
-  });
-
-  function renderGrid() {
-    grid.innerHTML = '';
-    clearBtn.style.display = uploaded.length > 0 ? '' : 'none';
-    uploaded.forEach(function(u, i) {
-      var div = document.createElement('div');
-      div.className = 'uploaded-item';
-      var img = document.createElement('img');
-      img.src = u.url;
-      div.appendChild(img);
-      var cap = document.createElement('input');
-      cap.className = 'cap';
-      cap.placeholder = '캡션 (선택)';
-      cap.value = u.caption;
-      cap.addEventListener('input', function() {
-        uploaded[i].caption = this.value;
-        updateResult();
-      });
-      div.appendChild(cap);
-      grid.appendChild(div);
-    });
+    momentumRAF = requestAnimationFrame(step);
   }
 
-  function updateResult() {
-    resultSection.style.display = uploaded.length > 0 ? 'block' : 'none';
-    var merged = existingPosts.concat(uploaded);
-    resultJson.textContent = JSON.stringify(merged, null, 2);
+  canvas.addEventListener('mousedown', function(e) { if (startDrag(e.clientX, e.clientY, e.target)) e.preventDefault(); });
+  canvas.addEventListener('dragstart', function(e) { if (e.target && e.target.tagName === 'IMG') e.preventDefault(); });
+  window.addEventListener('mousemove', function(e) { if (isDragging) { e.preventDefault(); moveDrag(e.clientX, e.clientY); } });
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('mouseleave', endDrag);
+
+  canvas.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) { var t = e.touches[0]; startDrag(t.clientX, t.clientY, e.target); }
+    else { e.preventDefault(); endDrag(); }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', function(e) {
+    if (e.touches.length === 1 && isDragging) { e.preventDefault(); var t = e.touches[0]; moveDrag(t.clientX, t.clientY); }
+    else if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', endDrag);
+  canvas.addEventListener('touchcancel', endDrag);
+
+  document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+  document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+  document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+  document.addEventListener('wheel', function(e) { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false, capture: true });
+
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e) {
+    var now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) { e.preventDefault(); return; }
+    var step = 100;
+    if (e.key === 'ArrowLeft')  { tx += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowRight') { tx -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowUp')    { ty += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
+  });
+
+  canvas.addEventListener('click', function(e) {
+    if (didMove) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  var hintHidden = false;
+  function hideHint() {
+    if (hintHidden || !hint) return;
+    hintHidden = true;
+    hint.classList.add('hidden');
+    setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
   }
 
-  clearBtn.addEventListener('click', function() {
-    uploaded = [];
-    renderGrid();
-    updateResult();
-  });
-
-  copyBtn.addEventListener('click', function() {
-    navigator.clipboard.writeText(resultJson.textContent).then(function() {
-      copyBtn.textContent = '복사됨 ✓';
-      setTimeout(function() { copyBtn.textContent = 'JSON 복사'; }, 2000);
-    });
-  });
-
-  downloadBtn.addEventListener('click', function() {
-    var merged = existingPosts.concat(uploaded);
-    var blob = new Blob([JSON.stringify(merged, null, 2)], { type: 'application/json' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'posts.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
+  updateTransform();
 
 })();
 </script>
+
 </body>
 </html>

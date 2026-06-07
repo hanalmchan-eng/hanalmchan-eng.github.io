@@ -247,6 +247,16 @@ setTimeout(positionHint, 300);
     hint.classList.add('hidden');
     setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
   }
+  setTimeout(hideHint, 99000);
+
+  function showLoading() {
+    if (!loadingEl || !document.body.contains(loadingEl)) {
+      loadingEl = document.createElement('div');
+      loadingEl.id = 'loading';
+      loadingEl.innerHTML = '불러오는 중...<br>loading...<br>読み込み中...';
+      document.body.appendChild(loadingEl);
+    }
+  }
 
   var tx = 0, ty = 50;
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
@@ -350,6 +360,9 @@ setTimeout(positionHint, 300);
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
     plane.innerHTML = '';
+
+    showLoading();
+
     var div = document.createElement('div');
     div.className = 'post post-photo';
     var img = document.createElement('img');

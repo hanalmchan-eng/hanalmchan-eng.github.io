@@ -77,6 +77,17 @@
     max-width: 625px; padding: 10px; background: rgba(255,255,255,0.9);
   }
 
+  #load-msg {
+    font-size: 11px;
+    color: #ffffff;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    white-space: nowrap;
+  }
+  #load-msg.visible { opacity: 0.7; }
+
   #hint {
     font-size: 11px; color: #888888;
     pointer-events: none; opacity: 0.7; transition: opacity 0.5s;
@@ -85,19 +96,6 @@
   }
   #hint:empty { display: none; }
   #hint.hidden { opacity: 0; }
-
-  /* 헤더 밖 독립 요소 — blend-mode 영향 없음 */
-  #wait-msg {
-    position: fixed;
-    top: 74px; left: 20px;
-    z-index: 101;
-    font-size: 11px;
-    color: #888888;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.25s;
-  }
-  #wait-msg.visible { opacity: 1; }
 </style>
 
 </head>
@@ -105,12 +103,9 @@
 
 <div id="header">
   <a href="/" id="header-link">hanalmchan</a>
+  <div id="load-msg"></div>
   <div id="hint"></div>
 </div>
-
-<!-- 헤더 밖 별도 배치 -->
-
-<div id="wait-msg">잠시만 기다려 주세요</div>
 
 <div id="nav"></div>
 
@@ -131,11 +126,6 @@
     logo.alt = 'hanalmchan';
     logo.src = 'logo.png';
     a.appendChild(logo);
-
-    /* 로고 너비 확정 후 wait-msg 위치 맞춤 */
-    logo.addEventListener('load', function() {
-      repositionWaitMsg();
-    });
   };
   probe.src = 'logo.png';
 })();
@@ -153,62 +143,43 @@
   var curImgW = 0, curImgH = 0;
   var HEADER_X = 20, HEADER_Y = 70;
 
-  var canvas  = document.getElementById('canvas');
-  var plane   = document.getElementById('plane');
-  var hint    = document.getElementById('hint');
-  var waitMsg = document.getElementById('wait-msg');
+  var canvas     = document.getElementById('canvas');
+  var plane      = document.getElementById('plane');
+  var hint       = document.getElementById('hint');
+  var loadMsg    = document.getElementById('load-msg');
 
   var GUIDE_TEXT = '스크롤·드래그로 탐색 · 로고를 누르면 다음 사진';
+  var isLoading  = false;
   var hintHidden = false;
-  var hintTimer  = null;
-  var waitTimer  = null;
+  var loadMsgTimer = null;
 
-  /* wait-msg를 로고 오른쪽에 정렬 */
-  function repositionWaitMsg() {
-    if (!waitMsg) return;
-    var logoEl = document.querySelector('#header img.logo');
-    if (!logoEl) {
-      /* 텍스트 'hanalmchan' 폭 기준 */
-      var link = document.getElementById('header-link');
-      var x = link ? (link.getBoundingClientRect().right + 14) : 20;
-      waitMsg.style.left = x + 'px';
-    } else {
-      var r = logoEl.getBoundingClientRect();
-      waitMsg.style.left = (r.right + 14) + 'px';
-    }
-    /* 수직: 로고 중앙에 맞춤 */
-    var header = document.getElementById('header');
-    if (header) {
-      var hr = header.getBoundingClientRect();
-      waitMsg.style.top = (hr.top + hr.height / 2 - 7) + 'px';
+  function startLoadingAnim() {
+    isLoading = true;
+    hintHidden = false;
+    if (hint) { hint.textContent = ''; hint.classList.remove('hidden'); }
+    if (loadMsg) {
+      if (loadMsgTimer) { clearTimeout(loadMsgTimer); loadMsgTimer = null; }
+      loadMsg.textContent = '용량이 크기 때문에 잠시 기다려 주세요';
+      loadMsg.classList.add('visible');
     }
   }
 
-  /* 전역 노출 (logo load 콜백에서 호출) */
-  window.repositionWaitMsg = repositionWaitMsg;
-
-  function showWaitMsg() {
-    repositionWaitMsg();
-    if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; }
-    if (waitMsg) waitMsg.classList.add('visible');
+  function stopLoadingShowGuide() {
+    isLoading = false;
+    if (loadMsg) {
+      if (loadMsgTimer) clearTimeout(loadMsgTimer);
+      loadMsgTimer = setTimeout(function() {
+        loadMsg.classList.remove('visible');
+      }, 2000);
+    }
+    if (hint) {
+      hintHidden = false;
+      hint.classList.remove('hidden');
+      hint.textContent = GUIDE_TEXT;
+    }
   }
 
-  function hideWaitMsg() {
-    if (waitMsg) waitMsg.classList.remove('visible');
-    if (waitTimer) { clearTimeout(waitTimer); waitTimer = null; }
-  }
-
-  function showGuide() {
-    if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
-    if (hint) { hintHidden = false; hint.classList.remove('hidden'); hint.textContent = GUIDE_TEXT; }
-  }
-
-  function hideHint() {
-    if (hintHidden || !hint) return;
-    hintHidden = true;
-    hintTimer = setTimeout(function() { if (hint) hint.classList.add('hidden'); }, 1000);
-  }
-
+  /* ── 레이아웃 / 스케일 ── */
   function fitScaleToScreen(imgW, imgH) {
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
@@ -266,8 +237,8 @@
 
   function buildImageUrl(f) { return R2_BASE + '/' + encodeURIComponent(f); }
 
+  /* ── 포스트 렌더링 ── */
   var allPosts = [], currentIndex = 0, currentPost = null;
-  var isFirstLoad = true;
 
   function alignToLogo(post) {
     if (post) currentPost = post;
@@ -278,18 +249,12 @@
     updateTransform();
   }
 
-  function showPost(index, fromClick) {
+  function showPost(index) {
     if (!allPosts.length) return;
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
 
-    if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
-    if (hint) { hint.textContent = ''; hint.classList.remove('hidden'); }
-    hintHidden = false;
-
-    /* 로고 클릭으로 넘길 때만 대기 메시지 표시 */
-    if (fromClick) showWaitMsg();
-
+    startLoadingAnim();
     plane.innerHTML = '';
 
     var div = document.createElement('div');
@@ -306,11 +271,10 @@
       fitScaleToScreen(img.naturalWidth, img.naturalHeight);
       layoutPosts();
       alignToLogo(post);
-      hideWaitMsg();
-      showGuide();
+      stopLoadingShowGuide();
     });
     img.addEventListener('error', function() {
-      hideWaitMsg();
+      if (loadMsg) loadMsg.classList.remove('visible');
       if (div.parentNode) div.parentNode.removeChild(div);
     });
 
@@ -333,38 +297,38 @@
     posts = (posts || []).filter(function(p) {
       return p && (p.file || (p.url && p.url.indexOf('undefined') === -1));
     });
-    if (!posts.length) return;
+    if (!posts.length) {
+      if (loadMsg) loadMsg.classList.remove('visible');
+      return;
+    }
     allPosts = posts;
-    showPost(0, false);
+    showPost(0);
   }
 
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(renderPosts)
-    .catch(function() {});
+    .catch(function() {
+      if (loadMsg) loadMsg.classList.remove('visible');
+    });
 
+  /* ── 리사이즈 ── */
   var resizeTimer = null;
   window.addEventListener('resize', function() {
     if (resizeTimer) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function() {
-      if (curImgW && curImgH) {
-        fitScaleToScreen(curImgW, curImgH);
-        layoutPosts();
-        alignToLogo(null);
-        repositionWaitMsg();
-      }
+      if (curImgW && curImgH) { fitScaleToScreen(curImgW, curImgH); layoutPosts(); alignToLogo(null); }
     }, 100);
   });
 
+  /* ── 헤더 로고 클릭 ── */
   var headerLink = document.getElementById('header-link');
   if (headerLink) {
     headerLink.style.cursor = 'pointer';
-    headerLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      showPost(currentIndex + 1, true); /* fromClick = true */
-    });
+    headerLink.addEventListener('click', function(e) { e.preventDefault(); showPost(currentIndex + 1); });
   }
 
+  /* ── 휠 ── */
   function onWheel(e) {
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
     e.preventDefault();
@@ -378,6 +342,7 @@
   }
   window.addEventListener('wheel', onWheel, { passive: false, capture: true });
 
+  /* ── 드래그 / 모멘텀 ── */
   var isDragging = false, didMove = false;
   var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
   var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
@@ -470,7 +435,14 @@
     if (didMove) { e.preventDefault(); e.stopPropagation(); }
   }, true);
 
+  function hideHint() {
+    if (hintHidden || !hint || isLoading) return;
+    hintHidden = true;
+    setTimeout(function() { if (hint) hint.classList.add('hidden'); }, 1000);
+  }
+
   updateTransform();
+  startLoadingAnim();
 
 })();
 </script>

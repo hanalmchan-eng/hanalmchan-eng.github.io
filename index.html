@@ -77,13 +77,13 @@
   #hint-text {
     font-size: 10px;
     color: #ffffff;
-    opacity: 0.55;
     letter-spacing: 0.04em;
     line-height: 1.6;
     white-space: nowrap;
-    transition: opacity 0.35s;
+    opacity: 0.55;
+    transition: opacity 0.3s ease;
   }
-  #hint-text.fade { opacity: 0; }
+  #hint-text.fade { opacity: 0 !important; }
 
   #nav {
     position: fixed; bottom: 20px; right: 20px; z-index: 100;
@@ -227,33 +227,18 @@ setTimeout(positionHint, 300);
   var hintText = document.getElementById('hint-text');
   var loadingEl = document.getElementById('loading');
 
-  // ── 3개 언어 순환 힌트 ────────────────────────────────────
-  var HINTS = [
-    '끌어서 둘러보기 · 로고를 클릭하여 다음',
-    'Drag to explore · Click logo for next',
-    'ドラッグで探索 · ロゴをクリックで次へ'
-  ];
-  var hintIdx = 0;
   var hintHidden = false;
-  var hintCycleTimer = null;
 
-  if (hintText) hintText.textContent = HINTS[0];
-
-  function cycleHint() {
-    if (hintHidden || !hintText) return;
-    hintText.classList.add('fade');
-    setTimeout(function() {
-      hintIdx = (hintIdx + 1) % HINTS.length;
-      hintText.textContent = HINTS[hintIdx];
-      hintText.classList.remove('fade');
-    }, 350);
+  if (hintText) {
+    hintText.innerHTML =
+      '끌어서 둘러보기 · 로고를 클릭하여 다음<br>' +
+      'Drag to explore · Click logo for next<br>' +
+      'ドラッグで探索 · ロゴをクリックで次へ';
   }
-  hintCycleTimer = setInterval(cycleHint, 2800);
 
   function hideHint() {
     if (hintHidden || !hint) return;
     hintHidden = true;
-    if (hintCycleTimer) clearInterval(hintCycleTimer);
     hint.classList.add('hidden');
     setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
   }

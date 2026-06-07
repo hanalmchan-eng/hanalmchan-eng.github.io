@@ -337,7 +337,7 @@ setTimeout(positionHint, 300);
       if (loadingEl) loadingEl.textContent = '아직 업로드된 사진이 없어요.';
       return;
     }
-    if (loadingEl) loadingEl.remove();
+   
     allPosts = posts;
     currentIndex = 0;
     showPost(0);
@@ -355,13 +355,14 @@ setTimeout(positionHint, 300);
     img.src = post.file ? buildImageUrl(post.file) : post.url;
     img.alt = post.caption || '';
     img.draggable = false;
-    img.addEventListener('load', function() {
-      img.style.width = img.naturalWidth + 'px';
-      img.style.height = img.naturalHeight + 'px';
-      fitScaleToScreen(img.naturalWidth, img.naturalHeight);
-      layoutPosts();
-      alignToLogo(post);
-    });
+   img.addEventListener('load', function() {
+  img.style.width = img.naturalWidth + 'px';
+  img.style.height = img.naturalHeight + 'px';
+  fitScaleToScreen(img.naturalWidth, img.naturalHeight);
+  layoutPosts();
+  alignToLogo(post);
+  if (loadingEl) loadingEl.remove(); // ← 추가
+});
     img.addEventListener('error', function() {
       if (div.parentNode) div.parentNode.removeChild(div);
     });

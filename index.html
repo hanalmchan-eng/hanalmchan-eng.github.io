@@ -63,7 +63,6 @@
   #header img.logo:not([src]),
   #header img.logo[src=""] { display: none; }
 
-  /* hint: absolute positioning, 로고 바로 아래 */
   #hint {
     position: fixed;
     left: 20px;
@@ -131,9 +130,16 @@
     padding: 10px; background: rgba(255,255,255,0.9);
   }
 
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
   #loading {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
     z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
+    text-align: center; line-height: 2;
+    animation: blink 1.2s ease-in-out infinite;
   }
 </style>
 
@@ -148,14 +154,13 @@
 
 <div id="nav"></div>
 
-<div id="loading">loading...</div>
+<div id="loading">불러오는 중...<br>loading...<br>読み込み中...</div>
 
 <div id="canvas">
   <div id="plane"></div>
 </div>
 
 <script>
-// hint를 로고(또는 텍스트) 바로 아래에 맞춤
 function positionHint() {
   var header = document.getElementById('header');
   var hint   = document.getElementById('hint');
@@ -242,8 +247,6 @@ setTimeout(positionHint, 300);
     hint.classList.add('hidden');
     setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
   }
-  setTimeout(hideHint, 99000);
-  // ─────────────────────────────────────────────────────────
 
   var tx = 0, ty = 50;
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
@@ -337,7 +340,6 @@ setTimeout(positionHint, 300);
       if (loadingEl) loadingEl.textContent = '아직 업로드된 사진이 없어요.';
       return;
     }
-   
     allPosts = posts;
     currentIndex = 0;
     showPost(0);
@@ -355,14 +357,14 @@ setTimeout(positionHint, 300);
     img.src = post.file ? buildImageUrl(post.file) : post.url;
     img.alt = post.caption || '';
     img.draggable = false;
-   img.addEventListener('load', function() {
-  img.style.width = img.naturalWidth + 'px';
-  img.style.height = img.naturalHeight + 'px';
-  fitScaleToScreen(img.naturalWidth, img.naturalHeight);
-  layoutPosts();
-  alignToLogo(post);
-  if (loadingEl) loadingEl.remove(); // ← 추가
-});
+    img.addEventListener('load', function() {
+      img.style.width = img.naturalWidth + 'px';
+      img.style.height = img.naturalHeight + 'px';
+      fitScaleToScreen(img.naturalWidth, img.naturalHeight);
+      layoutPosts();
+      alignToLogo(post);
+      if (loadingEl) loadingEl.remove();
+    });
     img.addEventListener('error', function() {
       if (div.parentNode) div.parentNode.removeChild(div);
     });

@@ -260,7 +260,6 @@
   function updateTransform() {
     clampPosition();
     plane.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + planeScale + ')';
-    drawMinimap();
   }
 
   function layoutPosts() {
@@ -277,7 +276,6 @@
       x += w + gap;
     }
     updateBounds();
-    drawMinimap();
   }
 
   function buildImageUrl(filename) {
@@ -514,135 +512,7 @@
   }
   setTimeout(hideHint, 5000);
 
-  var MINIMAP_W = 160, MINIMAP_H = 65, MINIMAP_PADDING = 0;
-
-  var minimapEl = document.createElement('div');
-  minimapEl.id = 'minimap';
-  minimapEl.style.cssText = [
-    'position:fixed', 'bottom:50px', 'right:20px',
-    'width:' + MINIMAP_W + 'px', 'height:' + MINIMAP_H + 'px',
-    'z-index:200', 'border-radius:14px', 'overflow:hidden', 'pointer-events:none',
-    'background:rgba(255,255,255,0.06)',
-    'backdrop-filter:blur(14px) saturate(180%) brightness(1.08)',
-    '-webkit-backdrop-filter:blur(14px) saturate(180%) brightness(1.08)',
-    'border:1px solid rgba(255,255,255,0.18)',
-    'box-shadow:0 4px 18px rgba(0,0,0,0.08), inset 0 1px 1px rgba(255,255,255,0.30)'
-  ].join(';');
-
-  var minimapCanvas = document.createElement('canvas');
-  minimapCanvas.width = MINIMAP_W; minimapCanvas.height = MINIMAP_H;
-  minimapCanvas.style.cssText = 'position:absolute;top:0;left:0;';
-  minimapEl.appendChild(minimapCanvas);
-
-  var vpCanvas = document.createElement('canvas');
-  vpCanvas.width = MINIMAP_W; vpCanvas.height = MINIMAP_H;
-  vpCanvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
-  minimapEl.appendChild(vpCanvas);
-
-  var specularLayer = document.createElement('div');
-  specularLayer.style.cssText = [
-    'position:absolute', 'top:0', 'left:0', 'width:100%', 'height:100%',
-    'pointer-events:none', 'border-radius:14px',
-    'background:linear-gradient(135deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0) 45%)'
-  ].join(';');
-  minimapEl.appendChild(specularLayer);
-
-  document.body.appendChild(minimapEl);
-
-  var mctx = minimapCanvas.getContext('2d');
-  var vctx = vpCanvas.getContext('2d');
-  var vpTarget = { x:0, y:0, w:0, h:0 };
-  var vpCurrent = { x:0, y:0, w:0, h:0 };
-  var vpInited = false;
-  var vpScaleX = 1, vpScaleY = 1, vpGlow = 0;
-
-  function drawMinimap() {
-    var posts = document.querySelectorAll('#plane .post');
-    if (posts.length === 0) return;
-    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (var i = 0; i < posts.length; i++) {
-      var p = posts[i];
-      var px = parseInt(p.style.left) || 0;
-      var py = parseInt(p.style.top) || 0;
-      var pw = p.offsetWidth, ph = p.offsetHeight;
-      if (px < minX) minX = px;
-      if (py < minY) minY = py;
-      if (px + pw > maxX) maxX = px + pw;
-      if (py + ph > maxY) maxY = py + ph;
-    }
-    var contentW = (maxX - minX) * planeScale;
-    var contentH = (maxY - minY) * planeScale;
-
-    // 미니맵을 사진 비율에 맞춰 크기 조정 (긴 변을 160 기준)
-    var aspect = contentW / contentH;
-    var mmW, mmH;
-    if (aspect >= 1) { mmW = 160; mmH = Math.round(160 / aspect); }
-    else { mmH = 120; mmW = Math.round(120 * aspect); }
-    if (minimapCanvas.width !== mmW || minimapCanvas.height !== mmH) {
-      minimapCanvas.width = mmW; minimapCanvas.height = mmH;
-      vpCanvas.width = mmW; vpCanvas.height = mmH;
-      minimapEl.style.width = mmW + 'px';
-      minimapEl.style.height = mmH + 'px';
-    }
-    MINIMAP_W = mmW; MINIMAP_H = mmH;
-
-    var scaleX = (MINIMAP_W - MINIMAP_PADDING * 2) / contentW;
-    var scaleY = (MINIMAP_H - MINIMAP_PADDING * 2) / contentH;
-    var s = Math.min(scaleX, scaleY);
-
-    mctx.clearRect(0, 0, MINIMAP_W, MINIMAP_H);
-    // 사진 영역 사각형 (반투명 채움 + 가는 외곽선)
-    for (var j = 0; j < posts.length; j++) {
-      var pp = posts[j];
-      var rx = MINIMAP_PADDING + ((parseInt(pp.style.left) || 0) - minX) * planeScale * s;
-      var ry = MINIMAP_PADDING + ((parseInt(pp.style.top) || 0) - minY) * planeScale * s;
-      var rw = pp.offsetWidth * planeScale * s;
-      var rh = pp.offsetHeight * planeScale * s;
-      mctx.fillStyle = 'rgba(0,0,0,0.04)';
-      mctx.beginPath(); mctx.roundRect(rx, ry, rw, rh, 2); mctx.fill();
-    }
-
-    vpTarget.x = MINIMAP_PADDING + (-tx - minX * planeScale) * s;
-    vpTarget.y = MINIMAP_PADDING + (-ty - minY * planeScale) * s;
-    vpTarget.w = window.innerWidth * s;
-    vpTarget.h = window.innerHeight * s;
-    if (!vpInited) {
-      vpCurrent.x = vpTarget.x; vpCurrent.y = vpTarget.y;
-      vpCurrent.w = vpTarget.w; vpCurrent.h = vpTarget.h;
-      vpInited = true;
-    }
-  }
-
-  (function animateViewport() {
-    requestAnimationFrame(animateViewport);
-    if (!vpInited) return;
-    var ease = 0.18;
-    var dx = vpTarget.x - vpCurrent.x, dy = vpTarget.y - vpCurrent.y;
-    vpCurrent.x += dx * ease; vpCurrent.y += dy * ease;
-    vpCurrent.w += (vpTarget.w - vpCurrent.w) * ease;
-    vpCurrent.h += (vpTarget.h - vpCurrent.h) * ease;
-    var speed = Math.sqrt(dx * dx + dy * dy);
-    var stretch = Math.min(speed * 0.012, 0.35);
-    var ang = Math.atan2(dy, dx);
-    var targetSX = 1 + Math.abs(Math.cos(ang)) * stretch;
-    var targetSY = 1 + Math.abs(Math.sin(ang)) * stretch;
-    vpScaleX += (targetSX - vpScaleX) * 0.25;
-    vpScaleY += (targetSY - vpScaleY) * 0.25;
-    var targetGlow = Math.min(speed * 0.08, 1);
-    vpGlow += (targetGlow - vpGlow) * 0.15;
-
-    vctx.clearRect(0, 0, MINIMAP_W, MINIMAP_H);
-    var cx = vpCurrent.x + vpCurrent.w / 2;
-    var cy = vpCurrent.y + vpCurrent.h / 2;
-    var w = vpCurrent.w * vpScaleX, h = vpCurrent.h * vpScaleY;
-    var x = cx - w / 2, y = cy - h / 2;
-
-    vctx.fillStyle = 'rgba(0,0,0,0.12)';
-    vctx.beginPath(); vctx.roundRect(x, y, w, h, 3); vctx.fill();
-  })();
-
   updateTransform();
-  setTimeout(drawMinimap, 2000);
 
 })();
 </script>

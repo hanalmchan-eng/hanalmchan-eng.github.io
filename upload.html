@@ -113,12 +113,14 @@
     font-size: 11px; color: #888888; mix-blend-mode: difference;
     pointer-events: none; opacity: 0.7; transition: opacity 0.5s;
     text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    white-space: pre-line; line-height: 1.6;
   }
   #hint.hidden { opacity: 0; }
 
   #loading {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
     z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
+    display: none;
   }
 </style>
 </head>
@@ -131,7 +133,7 @@
 <div id="nav">
 </div>
 
-<div id="hint">스크롤·드래그로 탐색 · 로고를 누르면 다음 사진</div>
+<div id="hint"></div>
 <div id="loading">loading...</div>
 
 <div id="canvas">
@@ -197,6 +199,35 @@
   var plane = document.getElementById('plane');
   var hint = document.getElementById('hint');
   var loadingEl = document.getElementById('loading');
+
+  // 안내/로딩 문구
+  var GUIDE_TEXT = '스크롤·드래그로 탐색 · 로고를 누르면 다음 사진';
+  var LOADING_LINES = ['로딩 중', 'Loading', '読み込み中'];
+  var loadingDots = 0;       // 0:'.' 1:'..' 2:'…'
+  var loadingTimer = null;
+  var isLoading = true;
+  var hintHidden = false;
+
+  function renderLoadingText() {
+    var dots = ['.', '..', '…'][loadingDots % 3];
+    if (hint) hint.textContent = LOADING_LINES.map(function(s){ return s + dots; }).join('\n');
+  }
+  function startLoadingAnim() {
+    isLoading = true;
+    hintHidden = false;
+    if (hint) { hint.classList.remove('hidden'); }
+    renderLoadingText();
+    if (loadingTimer) clearInterval(loadingTimer);
+    loadingTimer = setInterval(function() {
+      loadingDots = (loadingDots + 1) % 3;
+      renderLoadingText();
+    }, 450);
+  }
+  function stopLoadingShowGuide() {
+    isLoading = false;
+    if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null; }
+    if (hint) hint.textContent = GUIDE_TEXT;
+  }
 
   var tx = 0, ty = 50;
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
@@ -323,6 +354,7 @@
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
 
+    startLoadingAnim();
     plane.innerHTML = '';
 
     var div = document.createElement('div');
@@ -340,6 +372,8 @@
       fitScaleToScreen(img.naturalWidth, img.naturalHeight);
       layoutPosts();
       alignToLogo(post);
+      hintHidden = false;
+      stopLoadingShowGuide();
     });
     img.addEventListener('error', function() {
       if (div.parentNode) div.parentNode.removeChild(div);
@@ -504,15 +538,17 @@
     if (didMove) { e.preventDefault(); e.stopPropagation(); }
   }, true);
 
-  var hintHidden = false;
   function hideHint() {
     if (hintHidden || !hint) return;
+    if (isLoading) return;            // 로딩 중엔 사라지지 않음
     hintHidden = true;
-    hint.classList.add('hidden');
-    setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
+    setTimeout(function() {           // 움직이기 시작하고 1초 뒤
+      if (hint) hint.classList.add('hidden');
+    }, 1000);
   }
 
   updateTransform();
+  startLoadingAnim();                 // 첫 로딩 애니메이션 시작
 
 })();
 </script>

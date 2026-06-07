@@ -33,7 +33,6 @@
     cursor: grab;
     touch-action: none;
   }
-
   #canvas.dragging { cursor: grabbing; }
 
   #plane {
@@ -53,13 +52,8 @@
   #header a { color: inherit; text-decoration: none; display: inline-block; cursor: pointer; }
   #header a:hover { color: #888888; }
   #header img.logo {
-    display: block;
-    width: 175px;
-    height: auto;
-    -webkit-user-drag: none;
-    user-drag: none;
-    pointer-events: none;
-    filter: none;
+    display: block; width: 175px; height: auto;
+    -webkit-user-drag: none; user-drag: none; pointer-events: none;
   }
   #header img.logo:not([src]),
   #header img.logo[src=""] { display: none; }
@@ -72,42 +66,15 @@
   #nav a:hover { color: #888888; }
 
   .post { position: absolute; top: 0; left: 0; }
-
   .post img.photo {
-    display: block;
-    max-height: none;
-    max-width: none;
-    -webkit-user-drag: none;
-    -khtml-user-drag: none;
-    -moz-user-drag: none;
-    -o-user-drag: none;
-    user-drag: none;
-    pointer-events: none;
+    display: block; max-height: none; max-width: none;
+    -webkit-user-drag: none; user-drag: none; pointer-events: none;
   }
-
-  .post-photo a, .post-photoset a {
-    display: block;
-    cursor: inherit;
-    pointer-events: none;
-  }
-
-  .photo-wrap {
-    display: block;
-    pointer-events: none;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-  }
-
-  .post-text, .post-quote, .post-link {
-    width: 625px;
-    padding: 20px;
-  }
-
+  .post-photo a, .post-photoset a { display: block; cursor: inherit; pointer-events: none; }
+  .post-text, .post-quote, .post-link { width: 625px; padding: 20px; }
   .caption {
     margin-top: 10px; font-size: 12px; color: #111111;
-    max-width: 625px;
-    padding: 10px; background: rgba(255,255,255,0.9);
+    max-width: 625px; padding: 10px; background: rgba(255,255,255,0.9);
   }
 
   #hint {
@@ -119,78 +86,72 @@
   #hint:empty { display: none; }
   #hint.hidden { opacity: 0; }
 
-  /* ── 로딩 오버레이 (새로 추가) ── */
+  /* ── 로딩 오버레이 ──────────────────────────── */
+  /*  HTML에 처음부터 visible 상태로 렌더링됨      */
   #loading-overlay {
     position: fixed;
     inset: 0;
-    z-index: 200;
+    z-index: 9999;          /* 최상단 */
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    opacity: 1;
-    transition: opacity 0.35s ease;
-    pointer-events: none;
+    background: #ffffff;    /* 단색: 블러보다 확실히 보임 */
+    transition: opacity 0.4s ease;
   }
-  #loading-overlay.hidden {
+  #loading-overlay.fade-out {
     opacity: 0;
+    pointer-events: none;
   }
   #loading-overlay.gone {
     display: none;
   }
-  #loading-overlay .loader-inner {
+
+  .loader-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
   }
+
   /* 스피너 */
-  #loading-overlay .spinner {
-    width: 28px;
-    height: 28px;
-    border: 2px solid rgba(0,0,0,0.12);
+  .spinner {
+    width: 24px; height: 24px;
+    border: 2px solid #e0e0e0;
     border-top-color: #111;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  #loading-overlay .loader-text {
+  #loader-text {
     font-size: 12px;
-    color: #555;
-    letter-spacing: 0.08em;
+    color: #888;
+    letter-spacing: 0.06em;
     white-space: pre-line;
     text-align: center;
-    line-height: 1.7;
+    line-height: 1.8;
   }
-
-  /* 기존 #loading 제거 (호환 유지용 숨김) */
-  #loading { display: none !important; }
+  /* ─────────────────────────────────────────── */
 </style>
 
 </head>
 <body>
+
+<!-- 로딩 오버레이: JS 실행 전부터 화면에 표시됨 -->
+
+<div id="loading-overlay">
+  <div class="loader-inner">
+    <div class="spinner"></div>
+    <div id="loader-text">로딩 중...</div>
+  </div>
+</div>
 
 <div id="header">
   <a href="/" id="header-link">hanalmchan</a>
   <div id="hint"></div>
 </div>
 
-<div id="nav">
-</div>
-
-<!-- 로딩 오버레이 -->
-
-<div id="loading-overlay">
-  <div class="loader-inner">
-    <div class="spinner"></div>
-    <div class="loader-text" id="loader-text">로딩 중...</div>
-  </div>
-</div>
-
-<div id="loading">loading...</div>
+<div id="nav"></div>
 
 <div id="canvas">
   <div id="plane"></div>
@@ -210,7 +171,6 @@
     logo.src = 'logo.png';
     a.appendChild(logo);
   };
-  probe.onerror = function() {};
   probe.src = 'logo.png';
 })();
 </script>
@@ -222,146 +182,101 @@
   var R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
   var gap = 4;
   var planeScale = 0.2688;
-
   var BASE_SCALE = 0.2688;
   var BASE_LOGO_W = 175;
-
   var curImgW = 0, curImgH = 0;
+  var HEADER_X = 20, HEADER_Y = 70;
 
-  var HEADER_X = 20;
-  var HEADER_Y = 70;
+  var canvas      = document.getElementById('canvas');
+  var plane       = document.getElementById('plane');
+  var hint        = document.getElementById('hint');
+  var overlay     = document.getElementById('loading-overlay');
+  var loaderText  = document.getElementById('loader-text');
 
-  if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
-    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-      if (typeof r === 'number') r = [r, r, r, r];
-      r = r || [0, 0, 0, 0];
-      this.moveTo(x + r[0], y);
-      this.lineTo(x + w - r[1], y);
-      this.arcTo(x + w, y, x + w, y + r[1], r[1]);
-      this.lineTo(x + w, y + h - r[2]);
-      this.arcTo(x + w, y + h, x + w - r[2], y + h, r[2]);
-      this.lineTo(x + r[3], y + h);
-      this.arcTo(x, y + h, x, y + h - r[3], r[3]);
-      this.lineTo(x, y + r[0]);
-      this.arcTo(x, y, x + r[0], y, r[0]);
-      return this;
-    };
+  var GUIDE_TEXT    = '스크롤·드래그로 탐색 · 로고를 누르면 다음 사진';
+  var LOADING_LINES = ['로딩 중', 'Loading', '読み込み中'];
+  var loadingDots   = 0;
+  var dotsTimer     = null;
+  var isLoading     = false;
+  var hintHidden    = false;
+
+  /* 오버레이 열기 */
+  var overlayShowTime = 0;          // 열린 시각
+  var MIN_SHOW_MS = 400;            // 최소 표시 시간
+
+  function showOverlay() {
+    if (!overlay) return;
+    overlay.classList.remove('fade-out', 'gone');
+    overlayShowTime = Date.now();
   }
 
-  var canvas = document.getElementById('canvas');
-  var plane = document.getElementById('plane');
-  var hint = document.getElementById('hint');
+  function hideOverlay() {
+    if (!overlay) return;
+    var elapsed = Date.now() - overlayShowTime;
+    var delay = Math.max(0, MIN_SHOW_MS - elapsed);
+    setTimeout(function() {
+      overlay.classList.add('fade-out');
+      setTimeout(function() { overlay.classList.add('gone'); }, 420);
+    }, delay);
+  }
 
-  // ── 로딩 오버레이 관련 ──────────────────────────────
-  var loadingOverlay = document.getElementById('loading-overlay');
-  var loaderText     = document.getElementById('loader-text');
-  var overlayHideTimer = null;
-
-  var LOADING_LINES = ['로딩 중', 'Loading', '読み込み中'];
-  var loadingDots = 0;
-  var loadingTimer = null;
-  var isLoading = false;
-
-  function renderLoadingText() {
+  /* 도트 애니메이션 */
+  function renderDots() {
     var dots = ['.', '..', '…'][loadingDots % 3];
     if (loaderText) loaderText.textContent = LOADING_LINES.map(function(s){ return s + dots; }).join('\n');
   }
 
-  function showLoadingOverlay() {
-    if (!loadingOverlay) return;
-    // 혹시 진행 중인 hide 타이머 취소
-    if (overlayHideTimer) { clearTimeout(overlayHideTimer); overlayHideTimer = null; }
-    loadingOverlay.classList.remove('hidden', 'gone');
-  }
-
-  function hideLoadingOverlay() {
-    if (!loadingOverlay) return;
-    loadingOverlay.classList.add('hidden');
-    overlayHideTimer = setTimeout(function() {
-      loadingOverlay.classList.add('gone');
-    }, 400); // transition 완료 후 gone
-  }
-
   function startLoadingAnim() {
-    isLoading = true;
+    isLoading  = true;
+    hintHidden = false;
+    if (hint) { hint.textContent = ''; hint.classList.remove('hidden'); }
+
+    showOverlay();
     loadingDots = 0;
-    showLoadingOverlay();
-    renderLoadingText();
-    if (loadingTimer) clearInterval(loadingTimer);
-    loadingTimer = setInterval(function() {
+    renderDots();
+    if (dotsTimer) clearInterval(dotsTimer);
+    dotsTimer = setInterval(function() {
       loadingDots = (loadingDots + 1) % 3;
-      renderLoadingText();
+      renderDots();
     }, 450);
-
-    // hint 초기화 (이전 '가이드' 텍스트 숨김)
-    if (hint) {
-      hint.textContent = '';
-      hint.classList.remove('hidden');
-    }
   }
-
-  var GUIDE_TEXT = '스크롤·드래그로 탐색 · 로고를 누르면 다음 사진';
-  var hintHidden = false;
 
   function stopLoadingShowGuide() {
     isLoading = false;
-    if (loadingTimer) { clearInterval(loadingTimer); loadingTimer = null; }
-    hideLoadingOverlay();
-    // hint에 안내 문구 표시
-    if (hint) {
-      hintHidden = false;
-      hint.classList.remove('hidden');
-      hint.textContent = GUIDE_TEXT;
-    }
+    if (dotsTimer) { clearInterval(dotsTimer); dotsTimer = null; }
+    hideOverlay();
+    if (hint) { hintHidden = false; hint.classList.remove('hidden'); hint.textContent = GUIDE_TEXT; }
   }
-  // ────────────────────────────────────────────────────
 
-  var tx = 0, ty = 50;
-  var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
-
+  /* ── 레이아웃 / 스케일 ── */
   function fitScaleToScreen(imgW, imgH) {
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
-    var scaleH = (window.innerHeight * 2) / imgH;
-    var scaleW = (window.innerWidth * 2) / imgW;
-    planeScale = Math.max(scaleH, scaleW);
+    planeScale = Math.max((window.innerHeight * 2) / imgH, (window.innerWidth * 2) / imgW);
     var logoEl = document.querySelector('#header img.logo');
-    if (logoEl) {
-      logoEl.style.width = (BASE_LOGO_W * (planeScale / BASE_SCALE)) + 'px';
-    }
+    if (logoEl) logoEl.style.width = (BASE_LOGO_W * (planeScale / BASE_SCALE)) + 'px';
   }
+
+  var bounds = { minX:0, maxX:0, minY:0, maxY:0 };
 
   function updateBounds() {
     var posts = document.querySelectorAll('#plane .post');
-    if (posts.length === 0) return;
+    if (!posts.length) return;
     var maxX = -Infinity, maxY = -Infinity;
     for (var i = 0; i < posts.length; i++) {
-      var p = posts[i];
-      var pw = p.offsetWidth * planeScale;
-      var ph = p.offsetHeight * planeScale;
+      var pw = posts[i].offsetWidth  * planeScale;
+      var ph = posts[i].offsetHeight * planeScale;
       if (pw > maxX) maxX = pw;
       if (ph > maxY) maxY = ph;
     }
     var W = window.innerWidth, H = window.innerHeight;
-
-    if (maxX >= W) {
-      bounds.maxX = 0;
-      bounds.minX = -(maxX - W);
-    } else {
-      var cx = (W - maxX) / 2;
-      bounds.maxX = cx;
-      bounds.minX = cx;
-    }
-
-    if (maxY >= H) {
-      bounds.maxY = 0;
-      bounds.minY = -(maxY - H);
-    } else {
-      var cy = (H - maxY) / 2;
-      bounds.maxY = cy;
-      bounds.minY = cy;
-    }
+    bounds.maxX = maxX >= W ? 0           : (W - maxX) / 2;
+    bounds.minX = maxX >= W ? -(maxX - W) : (W - maxX) / 2;
+    bounds.maxY = maxY >= H ? 0           : (H - maxY) / 2;
+    bounds.minY = maxY >= H ? -(maxY - H) : (H - maxY) / 2;
   }
+
+  var tx = 0, ty = 50;
 
   function clampPosition() {
     if (tx > bounds.maxX) tx = bounds.maxX;
@@ -372,141 +287,113 @@
 
   function updateTransform() {
     clampPosition();
-    plane.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + planeScale + ')';
+    plane.style.transform = 'translate3d(' + tx + 'px,' + ty + 'px,0) scale(' + planeScale + ')';
   }
 
   function layoutPosts() {
     var posts = document.querySelectorAll('#plane .post');
-    if (posts.length === 0) return;
+    if (!posts.length) return;
     var x = 0;
     for (var i = 0; i < posts.length; i++) {
-      var post = posts[i];
-      var w = post.offsetWidth;
-      var h = post.offsetHeight;
-      if (w === 0 || h === 0) continue;
-      post.style.left = x + 'px';
-      post.style.top = '0px';
+      var w = posts[i].offsetWidth, h = posts[i].offsetHeight;
+      if (!w || !h) continue;
+      posts[i].style.left = x + 'px';
+      posts[i].style.top  = '0px';
       x += w + gap;
     }
     updateBounds();
   }
 
-  function buildImageUrl(filename) {
-    return R2_BASE + '/' + encodeURIComponent(filename);
-  }
+  function buildImageUrl(f) { return R2_BASE + '/' + encodeURIComponent(f); }
 
-  var currentPost = null;
+  /* ── 포스트 렌더링 ── */
+  var allPosts = [], currentIndex = 0, currentPost = null;
+
   function alignToLogo(post) {
     if (post) currentPost = post;
     var p = currentPost;
-    if (!p) return;
-    var lx = p.logoX, ly = p.logoY;
-    if (typeof lx !== 'number' || typeof ly !== 'number') return;
-    tx = HEADER_X - lx * planeScale;
-    ty = HEADER_Y - ly * planeScale;
+    if (!p || typeof p.logoX !== 'number') return;
+    tx = HEADER_X - p.logoX * planeScale;
+    ty = HEADER_Y - p.logoY * planeScale;
     updateTransform();
   }
 
-  var allPosts = [];
-  var currentIndex = 0;
-
-  function renderPosts(posts) {
-    posts = (posts || []).filter(function(p) {
-      if (!p) return false;
-      if (p.file) return true;
-      if (p.url && p.url.indexOf('undefined') === -1) return true;
-      return false;
-    });
-
-    if (posts.length === 0) {
-      hideLoadingOverlay();
-      if (loaderText) loaderText.textContent = '아직 업로드된 사진이 없어요.';
-      return;
-    }
-
-    allPosts = posts;
-    currentIndex = 0;
-    showPost(0);
-  }
-
   function showPost(index) {
-    if (allPosts.length === 0) return;
+    if (!allPosts.length) return;
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
 
-    startLoadingAnim();   // ← 로고 클릭 때도 오버레이 다시 표시
+    startLoadingAnim();   // ← 항상 오버레이 표시
     plane.innerHTML = '';
 
     var div = document.createElement('div');
     div.className = 'post post-photo';
 
-    var img = document.createElement('img');
-    img.className = 'photo';
-    img.src = post.file ? buildImageUrl(post.file) : post.url;
-    img.alt = post.caption || '';
-    img.draggable = false;
+    var img = new Image();
+    img.className  = 'photo';
+    img.alt        = post.caption || '';
+    img.draggable  = false;
 
     img.addEventListener('load', function() {
-      img.style.width = img.naturalWidth + 'px';
+      img.style.width  = img.naturalWidth  + 'px';
       img.style.height = img.naturalHeight + 'px';
       fitScaleToScreen(img.naturalWidth, img.naturalHeight);
       layoutPosts();
       alignToLogo(post);
-      stopLoadingShowGuide();   // 로드 완료 → 오버레이 숨김 + 안내 문구
+      stopLoadingShowGuide();
     });
     img.addEventListener('error', function() {
-      hideLoadingOverlay();
+      hideOverlay();
       if (div.parentNode) div.parentNode.removeChild(div);
     });
 
-    div.appendChild(img);
+    /* src는 이벤트 등록 후에 설정해야 캐시된 이미지도 load 이벤트를 받음 */
+    img.src = post.file ? buildImageUrl(post.file) : post.url;
 
+    div.appendChild(img);
     if (post.caption) {
       var cap = document.createElement('div');
       cap.className = 'caption';
       cap.textContent = post.caption;
       div.appendChild(cap);
     }
-
     plane.appendChild(div);
     layoutPosts();
     setTimeout(layoutPosts, 500);
     setTimeout(layoutPosts, 1500);
   }
 
-  function nextPost() {
-    showPost(currentIndex + 1);
+  function renderPosts(posts) {
+    posts = (posts || []).filter(function(p) {
+      return p && (p.file || (p.url && p.url.indexOf('undefined') === -1));
+    });
+    if (!posts.length) { hideOverlay(); return; }
+    allPosts = posts;
+    showPost(0);
   }
 
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
-    .then(function(posts) { renderPosts(posts); })
-    .catch(function() {
-      hideLoadingOverlay();
-      if (loaderText) loaderText.textContent = '포스트를 불러올 수 없어요.';
-    });
+    .then(renderPosts)
+    .catch(function() { hideOverlay(); });
 
+  /* ── 리사이즈 ── */
   var resizeTimer = null;
   window.addEventListener('resize', function() {
     if (resizeTimer) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function() {
-      if (curImgW && curImgH) {
-        fitScaleToScreen(curImgW, curImgH);
-        layoutPosts();
-        alignToLogo(null);
-      }
+      if (curImgW && curImgH) { fitScaleToScreen(curImgW, curImgH); layoutPosts(); alignToLogo(null); }
     }, 100);
   });
 
+  /* ── 헤더 로고 클릭 ── */
   var headerLink = document.getElementById('header-link');
   if (headerLink) {
     headerLink.style.cursor = 'pointer';
-    headerLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      nextPost();
-    });
+    headerLink.addEventListener('click', function(e) { e.preventDefault(); showPost(currentIndex + 1); });
   }
 
+  /* ── 휠 ── */
   function onWheel(e) {
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
     e.preventDefault();
@@ -520,34 +407,31 @@
   }
   window.addEventListener('wheel', onWheel, { passive: false, capture: true });
 
+  /* ── 드래그 / 모멘텀 ── */
   var isDragging = false, didMove = false;
   var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
   var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
   var momentumRAF = null;
 
-  function stopMomentum() {
-    if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
-  }
+  function stopMomentum() { if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; } }
 
-  function startDrag(clientX, clientY, target) {
-    if (target && target.closest && target.closest('button, input, textarea, video, audio, iframe')) return false;
+  function startDrag(cx, cy, target) {
+    if (target && target.closest && target.closest('button,input,textarea,video,audio,iframe')) return false;
     stopMomentum();
     isDragging = true; didMove = false;
-    dragStartX = clientX; dragStartY = clientY;
-    dragStartTx = tx; dragStartTy = ty;
-    lastDragX = clientX; lastDragY = clientY;
-    velX = 0; velY = 0;
+    dragStartX = cx; dragStartY = cy; dragStartTx = tx; dragStartTy = ty;
+    lastDragX = cx; lastDragY = cy; velX = 0; velY = 0;
     canvas.classList.add('dragging');
     hideHint();
     return true;
   }
 
-  function moveDrag(clientX, clientY) {
+  function moveDrag(cx, cy) {
     if (!isDragging) return;
-    var dx = clientX - dragStartX, dy = clientY - dragStartY;
+    var dx = cx - dragStartX, dy = cy - dragStartY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didMove = true;
-    velX = clientX - lastDragX; velY = clientY - lastDragY;
-    lastDragX = clientX; lastDragY = clientY;
+    velX = cx - lastDragX; velY = cy - lastDragY;
+    lastDragX = cx; lastDragY = cy;
     tx = dragStartTx + dx; ty = dragStartTy + dy;
     updateTransform();
   }
@@ -560,9 +444,9 @@
   }
 
   function startMomentum() {
-    var friction = 0.93;
+    var f = 0.93;
     function step() {
-      velX *= friction; velY *= friction;
+      velX *= f; velY *= f;
       tx += velX; ty += velY;
       var bx = tx, by = ty;
       updateTransform();
@@ -575,7 +459,7 @@
   }
 
   canvas.addEventListener('mousedown', function(e) { if (startDrag(e.clientX, e.clientY, e.target)) e.preventDefault(); });
-  canvas.addEventListener('dragstart', function(e) { if (e.target && e.target.tagName === 'IMG') e.preventDefault(); });
+  canvas.addEventListener('dragstart', function(e) { if (e.target.tagName === 'IMG') e.preventDefault(); });
   window.addEventListener('mousemove', function(e) { if (isDragging) { e.preventDefault(); moveDrag(e.clientX, e.clientY); } });
   window.addEventListener('mouseup', endDrag);
   window.addEventListener('mouseleave', endDrag);
@@ -584,18 +468,16 @@
     if (e.touches.length === 1) { var t = e.touches[0]; startDrag(t.clientX, t.clientY, e.target); }
     else { e.preventDefault(); endDrag(); }
   }, { passive: false });
-
   canvas.addEventListener('touchmove', function(e) {
     if (e.touches.length === 1 && isDragging) { e.preventDefault(); var t = e.touches[0]; moveDrag(t.clientX, t.clientY); }
     else if (e.touches.length > 1) e.preventDefault();
   }, { passive: false });
-
   canvas.addEventListener('touchend', endDrag);
   canvas.addEventListener('touchcancel', endDrag);
 
-  document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+  document.addEventListener('gesturestart',  function(e) { e.preventDefault(); });
   document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
-  document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+  document.addEventListener('gestureend',    function(e) { e.preventDefault(); });
   document.addEventListener('wheel', function(e) { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false, capture: true });
 
   var lastTouchEnd = 0;
@@ -606,12 +488,12 @@
   }, { passive: false });
 
   document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) { e.preventDefault(); return; }
-    var step = 100;
-    if (e.key === 'ArrowLeft')  { tx += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowRight') { tx -= step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowUp')    { ty += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key==='+' || e.key==='-' || e.key==='=' || e.key==='0')) { e.preventDefault(); return; }
+    var s = 100;
+    if (e.key==='ArrowLeft')  { tx += s; updateTransform(); hideHint(); }
+    if (e.key==='ArrowRight') { tx -= s; updateTransform(); hideHint(); }
+    if (e.key==='ArrowUp')    { ty += s; updateTransform(); hideHint(); }
+    if (e.key==='ArrowDown')  { ty -= s; updateTransform(); hideHint(); }
   });
 
   canvas.addEventListener('click', function(e) {
@@ -619,14 +501,12 @@
   }, true);
 
   function hideHint() {
-    if (hintHidden || !hint) return;
-    if (isLoading) return;
+    if (hintHidden || !hint || isLoading) return;
     hintHidden = true;
-    setTimeout(function() {
-      if (hint) hint.classList.add('hidden');
-    }, 1000);
+    setTimeout(function() { if (hint) hint.classList.add('hidden'); }, 1000);
   }
 
+  /* 초기 transform + 첫 로딩은 HTML 오버레이가 이미 표시 중 */
   updateTransform();
   startLoadingAnim();
 

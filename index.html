@@ -203,6 +203,7 @@ setTimeout(positionHint, 300);
 
   var BASE_SCALE = 0.2688;
   var BASE_LOGO_W = 175;
+  var SCALE_BOOST = 1.2;
 
   var curImgW = 0, curImgH = 0;
 
@@ -266,7 +267,7 @@ setTimeout(positionHint, 300);
     curImgW = imgW; curImgH = imgH;
     var scaleH = (window.innerHeight * 2) / imgH;
     var scaleW = (window.innerWidth * 2) / imgW;
-    planeScale = Math.max(scaleH, scaleW);
+    planeScale = Math.max(scaleH, scaleW) * SCALE_BOOST;
     var logoEl = document.querySelector('#header img.logo');
     if (logoEl) {
       logoEl.style.width = (BASE_LOGO_W * (planeScale / BASE_SCALE)) + 'px';

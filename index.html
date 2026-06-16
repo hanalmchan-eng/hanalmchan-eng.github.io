@@ -494,8 +494,10 @@ setTimeout(positionHint, 300);
   // 꾹 누르기 상태
   var holdTimer = null;
   var holding = false;
+  var holdCancelled = false;  // 큰 움직임으로 원본 보기가 취소됐는지
 
   function clearHold() {
+    holdCancelled = true;
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
     if (holding) { holding = false; hideBefore(); }
   }
@@ -515,11 +517,12 @@ setTimeout(positionHint, 300);
     canvas.classList.add('dragging');
     hideHint();
 
-    // 가만히 누르고 있으면 원본 표시 (움직이면 취소됨)
+    // 가만히 누르고 있으면 원본 표시 (크게 움직이면 취소됨, 작은 흔들림은 허용)
     if (hasBefore) {
+      holdCancelled = false;
       if (holdTimer) clearTimeout(holdTimer);
       holdTimer = setTimeout(function() {
-        if (isDragging && !didMove) {
+        if (isDragging && !holdCancelled) {
           holding = true;
           showBefore();
         }
@@ -528,12 +531,30 @@ setTimeout(positionHint, 300);
     return true;
   }
 
+  var HOLD_CANCEL_DIST = 15;  // 이 거리 이상 움직여야 원본 보기 취소
+
   function moveDrag(clientX, clientY) {
     if (!isDragging) return;
     var dx = clientX - dragStartX, dy = clientY - dragStartY;
+    var dist = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
+
+    // 원본을 보는 중이면, 작은 흔들림은 무시(사진 안 움직임). 크게 움직이면 취소하고 드래그로.
+    if (holding) {
+      if (dist > HOLD_CANCEL_DIST) {
+        didMove = true;
+        clearHold();
+        // 취소된 지점부터 드래그가 자연스럽게 이어지도록 기준 갱신
+        dragStartX = clientX; dragStartY = clientY;
+        dragStartTx = tx; dragStartTy = ty;
+        lastDragX = clientX; lastDragY = clientY;
+      }
+      return; // holding 중엔 사진을 움직이지 않음
+    }
+
+    // hold 대기 중(아직 원본 안 뜸)이면, 작은 흔들림은 타이머 유지, 크면 취소
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
       didMove = true;
-      clearHold();   // 움직이면 원본 보기 취소, 드래그 우선
+      if (dist > HOLD_CANCEL_DIST) clearHold();
     }
     velX = clientX - lastDragX; velY = clientY - lastDragY;
     lastDragX = clientX; lastDragY = clientY;

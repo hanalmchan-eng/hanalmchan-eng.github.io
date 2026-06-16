@@ -219,8 +219,8 @@ setTimeout(positionHint, 300);
   var HEADER_X = 20;
   var HEADER_Y = 70;
 
-  // 꾹 누르면 원본 보기: 가만히 누른 지 이 시간(ms) 뒤 원본 표시
-  var HOLD_DELAY = 300;
+  // 꾹 누르면 원본 보기 (숨은 기능): 가만히 누른 지 이 시간(ms) 뒤 원본 표시
+  var HOLD_DELAY = 450;
 
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
@@ -249,9 +249,9 @@ setTimeout(positionHint, 300);
 
   if (hintText) {
     hintText.innerHTML =
-      '끌어서 둘러보기 · 로고를 클릭하여 다음 · 꾹 누르면 원본<br>' +
-      'Drag to explore · Click logo for next · Hold to see original<br>' +
-      'ドラッグで探索 · ロゴをクリックで次へ · 長押しで元画像';
+      '끌어서 둘러보기 · 로고를 클릭하여 다음<br>' +
+      'Drag to explore · Click logo for next<br>' +
+      'ドラッグで探索 · ロゴをクリックで次へ';
   }
 
   function hideHint() {

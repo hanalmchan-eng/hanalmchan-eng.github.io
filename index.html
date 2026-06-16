@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -104,6 +103,16 @@
     user-drag: none;
     pointer-events: none;
   }
+
+  /* before(원본) 이미지: 보정본 위에 정확히 겹침, 기본 숨김 */
+  .post img.photo-before {
+    position: absolute;
+    top: 0; left: 0;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    z-index: 2;
+  }
+  .post.show-before img.photo-before { opacity: 1; }
 
   .post-photo a, .post-photoset a {
     display: block;
@@ -210,6 +219,9 @@ setTimeout(positionHint, 300);
   var HEADER_X = 20;
   var HEADER_Y = 70;
 
+  // 꾹 누르면 원본 보기: 가만히 누른 지 이 시간(ms) 뒤 원본 표시
+  var HOLD_DELAY = 300;
+
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
       if (typeof r === 'number') r = [r, r, r, r];
@@ -237,9 +249,9 @@ setTimeout(positionHint, 300);
 
   if (hintText) {
     hintText.innerHTML =
-      '끌어서 둘러보기 · 로고를 클릭하여 다음<br>' +
-      'Drag to explore · Click logo for next<br>' +
-      'ドラッグで探索 · ロゴをクリックで次へ';
+      '끌어서 둘러보기 · 로고를 클릭하여 다음 · 꾹 누르면 원본<br>' +
+      'Drag to explore · Click logo for next · Hold to see original<br>' +
+      'ドラッグで探索 · ロゴをクリックで次へ · 長押しで元画像';
   }
 
   function hideHint() {
@@ -339,6 +351,8 @@ setTimeout(positionHint, 300);
 
   var allPosts = [];
   var currentIndex = 0;
+  var currentPostEl = null;   // 현재 .post DOM (원본 토글용)
+  var hasBefore = false;      // 현재 사진에 before가 있는지
 
   function renderPosts(posts) {
     posts = (posts || []).filter(function(p) {
@@ -361,6 +375,8 @@ setTimeout(positionHint, 300);
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
     plane.innerHTML = '';
+    currentPostEl = null;
+    hasBefore = false;
 
     showLoading();
 
@@ -372,9 +388,15 @@ setTimeout(positionHint, 300);
     img.alt = post.caption || '';
     img.draggable = false;
     img.addEventListener('load', function() {
-      img.style.width = img.naturalWidth + 'px';
-      img.style.height = img.naturalHeight + 'px';
-      fitScaleToScreen(img.naturalWidth, img.naturalHeight);
+      var w = img.naturalWidth, h = img.naturalHeight;
+      img.style.width = w + 'px';
+      img.style.height = h + 'px';
+      // before(원본) 이미지도 같은 크기로 맞춤
+      if (beforeImg) {
+        beforeImg.style.width = w + 'px';
+        beforeImg.style.height = h + 'px';
+      }
+      fitScaleToScreen(w, h);
       layoutPosts();
       alignToLogo(post);
       if (loadingEl) loadingEl.remove();
@@ -383,6 +405,19 @@ setTimeout(positionHint, 300);
       if (div.parentNode) div.parentNode.removeChild(div);
     });
     div.appendChild(img);
+
+    // 보정 전(원본) 이미지: before 필드가 있을 때만
+    var beforeImg = null;
+    if (post.before) {
+      beforeImg = document.createElement('img');
+      beforeImg.className = 'photo photo-before';
+      beforeImg.src = buildImageUrl(post.before);
+      beforeImg.alt = '';
+      beforeImg.draggable = false;
+      div.appendChild(beforeImg);
+      hasBefore = true;
+    }
+
     if (post.caption) {
       var cap = document.createElement('div');
       cap.className = 'caption';
@@ -390,12 +425,21 @@ setTimeout(positionHint, 300);
       div.appendChild(cap);
     }
     plane.appendChild(div);
+    currentPostEl = div;
     layoutPosts();
     setTimeout(layoutPosts, 500);
     setTimeout(layoutPosts, 1500);
   }
 
   function nextPost() { showPost(currentIndex + 1); }
+
+  // 원본 표시 토글
+  function showBefore() {
+    if (hasBefore && currentPostEl) currentPostEl.classList.add('show-before');
+  }
+  function hideBefore() {
+    if (currentPostEl) currentPostEl.classList.remove('show-before');
+  }
 
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
@@ -443,6 +487,15 @@ setTimeout(positionHint, 300);
   var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
   var momentumRAF = null;
 
+  // 꾹 누르기 상태
+  var holdTimer = null;
+  var holding = false;
+
+  function clearHold() {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    if (holding) { holding = false; hideBefore(); }
+  }
+
   function stopMomentum() {
     if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
   }
@@ -457,13 +510,27 @@ setTimeout(positionHint, 300);
     velX = 0; velY = 0;
     canvas.classList.add('dragging');
     hideHint();
+
+    // 가만히 누르고 있으면 원본 표시 (움직이면 취소됨)
+    if (hasBefore) {
+      if (holdTimer) clearTimeout(holdTimer);
+      holdTimer = setTimeout(function() {
+        if (isDragging && !didMove) {
+          holding = true;
+          showBefore();
+        }
+      }, HOLD_DELAY);
+    }
     return true;
   }
 
   function moveDrag(clientX, clientY) {
     if (!isDragging) return;
     var dx = clientX - dragStartX, dy = clientY - dragStartY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didMove = true;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      didMove = true;
+      clearHold();   // 움직이면 원본 보기 취소, 드래그 우선
+    }
     velX = clientX - lastDragX; velY = clientY - lastDragY;
     lastDragX = clientX; lastDragY = clientY;
     tx = dragStartTx + dx; ty = dragStartTy + dy;
@@ -474,6 +541,7 @@ setTimeout(positionHint, 300);
     if (!isDragging) return;
     isDragging = false;
     canvas.classList.remove('dragging');
+    clearHold();
     if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) startMomentum();
   }
 

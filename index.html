@@ -220,7 +220,7 @@ setTimeout(positionHint, 300);
   var HEADER_Y = 70;
 
   // 꾹 누르면 원본 보기 (숨은 기능): 가만히 누른 지 이 시간(ms) 뒤 원본 표시
-  var HOLD_DELAY = 1450;
+  var HOLD_DELAY = 2000;
 
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
@@ -257,8 +257,10 @@ setTimeout(positionHint, 300);
   function hideHint() {
     if (hintHidden || !hint) return;
     hintHidden = true;
-    hint.classList.add('hidden');
-    setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
+    setTimeout(function() {
+      if (hint) hint.classList.add('hidden');
+      setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
+    }, 1500);
   }
   setTimeout(hideHint, 99000);
 

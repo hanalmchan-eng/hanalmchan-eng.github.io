@@ -300,26 +300,16 @@ setTimeout(positionHint, 300);
 
   function applyMode() {
     var logoEl = document.querySelector('#header img.logo');
+    if (header) header.style.mixBlendMode = 'difference';
+    if (logoEl) logoEl.style.filter = 'none';
     if (viewMode === 'zoom') {
       planeScale = zoomScale;
-      if (header) {
-        header.style.mixBlendMode = 'difference';
-      }
-      if (logoEl) {
-        logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
-        logoEl.style.filter = 'none';
-      }
+      if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
       setTimeout(positionHint, 50);
     } else {
       planeScale = fitScale;
-      // 전체 보기: 로고 고정 175px, 반전 효과 끔, 로고 자체를 검정으로 반전
-      if (header) {
-        header.style.mixBlendMode = 'normal';
-      }
-      if (logoEl) {
-        logoEl.style.width = BASE_LOGO_W + 'px';
-        logoEl.style.filter = 'invert(1)';
-      }
+      // 전체 보기: 로고 고정 175px (반전 효과는 difference 유지)
+      if (logoEl) logoEl.style.width = BASE_LOGO_W + 'px';
       setTimeout(positionHint, 50);
     }
   }

@@ -305,15 +305,21 @@ setTimeout(positionHint, 300);
       if (header) {
         header.style.mixBlendMode = 'difference';
       }
-      if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
+      if (logoEl) {
+        logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
+        logoEl.style.filter = 'none';
+      }
       setTimeout(positionHint, 50);
     } else {
       planeScale = fitScale;
-      // 전체 보기: 로고 고정 175px, 반전 효과 끔
+      // 전체 보기: 로고 고정 175px, 반전 효과 끔, 로고 자체를 검정으로 반전
       if (header) {
         header.style.mixBlendMode = 'normal';
       }
-      if (logoEl) logoEl.style.width = BASE_LOGO_W + 'px';
+      if (logoEl) {
+        logoEl.style.width = BASE_LOGO_W + 'px';
+        logoEl.style.filter = 'invert(1)';
+      }
       setTimeout(positionHint, 50);
     }
   }
@@ -332,8 +338,14 @@ setTimeout(positionHint, 300);
     var W = window.innerWidth, H = window.innerHeight;
     if (maxX >= W) { bounds.maxX = 0; bounds.minX = -(maxX - W); }
     else { var cx = (W - maxX) / 2; bounds.maxX = cx; bounds.minX = cx; }
-    if (maxY >= H) { bounds.maxY = 0; bounds.minY = -(maxY - H); }
-    else { var cy = (H - maxY) / 2; bounds.maxY = cy; bounds.minY = cy; }
+    if (maxY >= H) {
+      bounds.maxY = 0; bounds.minY = -(maxY - H);
+    } else if (viewMode === 'fit') {
+      // 전체 보기: 세로가 화면보다 작아도 위에 붙임 (위아래 여백 제거)
+      bounds.maxY = 0; bounds.minY = 0;
+    } else {
+      var cy = (H - maxY) / 2; bounds.maxY = cy; bounds.minY = cy;
+    }
   }
 
   function clampPosition() {

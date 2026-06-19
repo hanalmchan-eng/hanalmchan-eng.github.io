@@ -47,7 +47,9 @@
   #header {
     position: fixed; top: 70px; left: 20px; z-index: 100;
     font-size: 13px; mix-blend-mode: difference; color: #ffffff;
+    transition: opacity 0.3s ease;
   }
+  #header.hidden-logo { opacity: 0; pointer-events: none; }
   #header a { color: inherit; text-decoration: none; display: inline-block; cursor: pointer; }
   #header a:hover { color: #888888; }
   #header img.logo {
@@ -104,7 +106,6 @@
     pointer-events: none;
   }
 
-  /* before(원본) 이미지: 보정본 위에 정확히 겹침, 기본 숨김 */
   .post img.photo-before {
     position: absolute;
     top: 0; left: 0;
@@ -221,8 +222,14 @@ setTimeout(positionHint, 300);
   var HEADER_X = 20;
   var HEADER_Y = 70;
 
-  // 꾹 누르면 원본 보기 (숨은 기능): 가만히 누른 지 이 시간(ms) 뒤 원본 표시
   var HOLD_DELAY = 2000;
+
+  // ===== 보기 모드 =====
+  // 'fit'  : 전체 보기 (가로를 화면에 맞춤, 세로 스크롤, 로고 숨김)
+  // 'zoom' : 확대 보기 (로고가 헤더에 맞는 배율, 로고 표시)
+  var viewMode = 'fit';
+  var fitScale = 0.2688;   // 전체 보기 배율 (사진 로드 시 계산)
+  var zoomScale = 0.2688;  // 확대 보기 배율 (사진 로드 시 계산)
 
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
@@ -243,6 +250,7 @@ setTimeout(positionHint, 300);
 
   var canvas   = document.getElementById('canvas');
   var plane    = document.getElementById('plane');
+  var header   = document.getElementById('header');
   var hint     = document.getElementById('hint');
   var hintText = document.getElementById('hint-text');
   var loadingEl = document.getElementById('loading');
@@ -251,9 +259,9 @@ setTimeout(positionHint, 300);
 
   if (hintText) {
     hintText.innerHTML =
-      '끌어서 둘러보기 · 로고를 클릭하여 다음<br>' +
-      'Drag to explore · Click logo for next<br>' +
-      'ドラッグで探索 · ロゴをクリックで次へ';
+      '끌어서 둘러보기 · 로고를 클릭하여 다음 · 확대하여 자세히<br>' +
+      'Drag to explore · Click logo for next · Pinch to zoom<br>' +
+      'ドラッグで探索 · ロゴをクリックで次へ · ピンチで拡大';
   }
 
   function hideHint() {
@@ -278,16 +286,29 @@ setTimeout(positionHint, 300);
   var tx = 0, ty = 50;
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 
-  function fitScaleToScreen(imgW, imgH) {
+  // 두 배율을 계산: zoom(로고 맞춤) / fit(가로 맞춤)
+  function computeScales(imgW, imgH) {
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
+    // 확대 배율 (기존 로직)
     var scaleH = (window.innerHeight * 2) / imgH;
     var scaleW = (window.innerWidth * 2) / imgW;
-    planeScale = Math.max(scaleH, scaleW) * SCALE_BOOST;
-    var logoEl = document.querySelector('#header img.logo');
-    if (logoEl) {
-      logoEl.style.width = (BASE_LOGO_W * (planeScale / BASE_SCALE)) + 'px';
+    zoomScale = Math.max(scaleH, scaleW) * SCALE_BOOST;
+    // 전체 보기 배율: 사진 가로를 화면 가로에 딱 맞춤
+    fitScale = window.innerWidth / imgW;
+  }
+
+  function applyMode() {
+    if (viewMode === 'zoom') {
+      planeScale = zoomScale;
+      if (header) header.classList.remove('hidden-logo');
+      // 로고를 zoom 배율에 맞게 키움
+      var logoEl = document.querySelector('#header img.logo');
+      if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
       setTimeout(positionHint, 50);
+    } else {
+      planeScale = fitScale;
+      if (header) header.classList.add('hidden-logo'); // 전체 보기: 로고 숨김
     }
   }
 
@@ -355,8 +376,8 @@ setTimeout(positionHint, 300);
 
   var allPosts = [];
   var currentIndex = 0;
-  var currentPostEl = null;   // 현재 .post DOM (원본 토글용)
-  var hasBefore = false;      // 현재 사진에 before가 있는지
+  var currentPostEl = null;
+  var hasBefore = false;
 
   function renderPosts(posts) {
     posts = (posts || []).filter(function(p) {
@@ -374,6 +395,18 @@ setTimeout(positionHint, 300);
     showPost(0);
   }
 
+  function positionForMode() {
+    if (viewMode === 'zoom') {
+      alignToLogo(null);
+    } else {
+      // 전체 보기: 가로 중앙, 위 정렬
+      var W = window.innerWidth;
+      tx = (W - curImgW * planeScale) / 2;
+      ty = 0;
+      updateTransform();
+    }
+  }
+
   function showPost(index) {
     if (allPosts.length === 0) return;
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
@@ -381,6 +414,7 @@ setTimeout(positionHint, 300);
     plane.innerHTML = '';
     currentPostEl = null;
     hasBefore = false;
+    viewMode = 'fit';   // 새 사진은 전체 보기로 시작
 
     showLoading();
 
@@ -395,14 +429,14 @@ setTimeout(positionHint, 300);
       var w = img.naturalWidth, h = img.naturalHeight;
       img.style.width = w + 'px';
       img.style.height = h + 'px';
-      // before(원본) 이미지도 같은 크기로 맞춤
       if (beforeImg) {
         beforeImg.style.width = w + 'px';
         beforeImg.style.height = h + 'px';
       }
-      fitScaleToScreen(w, h);
+      computeScales(w, h);
+      applyMode();
       layoutPosts();
-      alignToLogo(post);
+      positionForMode();
       if (loadingEl) loadingEl.remove();
     });
     img.addEventListener('error', function() {
@@ -410,7 +444,6 @@ setTimeout(positionHint, 300);
     });
     div.appendChild(img);
 
-    // 보정 전(원본) 이미지: before 필드가 있을 때만
     var beforeImg = null;
     if (post.before) {
       beforeImg = document.createElement('img');
@@ -431,13 +464,31 @@ setTimeout(positionHint, 300);
     plane.appendChild(div);
     currentPostEl = div;
     layoutPosts();
-    setTimeout(layoutPosts, 500);
-    setTimeout(layoutPosts, 1500);
+    setTimeout(function(){ layoutPosts(); positionForMode(); }, 500);
+    setTimeout(function(){ layoutPosts(); positionForMode(); }, 1500);
   }
 
   function nextPost() { showPost(currentIndex + 1); }
 
-  // 원본 표시 토글
+  // 모드 전환
+  function enterZoom() {
+    if (viewMode === 'zoom') return;
+    viewMode = 'zoom';
+    applyMode();
+    layoutPosts();
+    positionForMode();
+  }
+  function enterFit() {
+    if (viewMode === 'fit') return;
+    viewMode = 'fit';
+    applyMode();
+    layoutPosts();
+    positionForMode();
+  }
+  function toggleMode() {
+    if (viewMode === 'fit') enterZoom(); else enterFit();
+  }
+
   function showBefore() {
     if (hasBefore && currentPostEl) currentPostEl.classList.add('show-before');
   }
@@ -457,9 +508,10 @@ setTimeout(positionHint, 300);
     if (resizeTimer) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function() {
       if (curImgW && curImgH) {
-        fitScaleToScreen(curImgW, curImgH);
+        computeScales(curImgW, curImgH);
+        applyMode();
         layoutPosts();
-        alignToLogo(null);
+        positionForMode();
       }
     }, 100);
   });
@@ -491,10 +543,9 @@ setTimeout(positionHint, 300);
   var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
   var momentumRAF = null;
 
-  // 꾹 누르기 상태
   var holdTimer = null;
   var holding = false;
-  var holdCancelled = false;  // 큰 움직임으로 원본 보기가 취소됐는지
+  var holdCancelled = false;
 
   function clearHold() {
     holdCancelled = true;
@@ -517,7 +568,6 @@ setTimeout(positionHint, 300);
     canvas.classList.add('dragging');
     hideHint();
 
-    // 가만히 누르고 있으면 원본 표시 (크게 움직이면 취소됨, 작은 흔들림은 허용)
     if (hasBefore) {
       holdCancelled = false;
       if (holdTimer) clearTimeout(holdTimer);
@@ -531,27 +581,24 @@ setTimeout(positionHint, 300);
     return true;
   }
 
-  var HOLD_CANCEL_DIST = 15;  // 이 거리 이상 움직여야 원본 보기 취소
+  var HOLD_CANCEL_DIST = 15;
 
   function moveDrag(clientX, clientY) {
     if (!isDragging) return;
     var dx = clientX - dragStartX, dy = clientY - dragStartY;
     var dist = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
 
-    // 원본을 보는 중이면, 작은 흔들림은 무시(사진 안 움직임). 크게 움직이면 취소하고 드래그로.
     if (holding) {
       if (dist > HOLD_CANCEL_DIST) {
         didMove = true;
         clearHold();
-        // 취소된 지점부터 드래그가 자연스럽게 이어지도록 기준 갱신
         dragStartX = clientX; dragStartY = clientY;
         dragStartTx = tx; dragStartTy = ty;
         lastDragX = clientX; lastDragY = clientY;
       }
-      return; // holding 중엔 사진을 움직이지 않음
+      return;
     }
 
-    // hold 대기 중(아직 원본 안 뜸)이면, 작은 흔들림은 타이머 유지, 크면 취소
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
       didMove = true;
       if (dist > HOLD_CANCEL_DIST) clearHold();
@@ -591,18 +638,55 @@ setTimeout(positionHint, 300);
   window.addEventListener('mouseup', endDrag);
   window.addEventListener('mouseleave', endDrag);
 
+  // 더블클릭으로 확대/축소 토글 (데스크톱)
+  canvas.addEventListener('dblclick', function(e) {
+    e.preventDefault();
+    toggleMode();
+  });
+
+  // ===== 터치: 1손가락 드래그 / 2손가락 핀치 =====
+  var pinching = false;
+  var pinchStartDist = 0;
+
+  function touchDist(t1, t2) {
+    var dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
   canvas.addEventListener('touchstart', function(e) {
-    if (e.touches.length === 1) { var t = e.touches[0]; startDrag(t.clientX, t.clientY, e.target); }
-    else { e.preventDefault(); endDrag(); }
+    if (e.touches.length === 1) {
+      pinching = false;
+      var t = e.touches[0]; startDrag(t.clientX, t.clientY, e.target);
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      endDrag();
+      pinching = true;
+      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+    }
   }, { passive: false });
 
   canvas.addEventListener('touchmove', function(e) {
-    if (e.touches.length === 1 && isDragging) { e.preventDefault(); var t = e.touches[0]; moveDrag(t.clientX, t.clientY); }
-    else if (e.touches.length > 1) e.preventDefault();
+    if (pinching && e.touches.length === 2) {
+      e.preventDefault();
+      var d = touchDist(e.touches[0], e.touches[1]);
+      var ratio = d / (pinchStartDist || d);
+      // 핀치 아웃(벌리기) → 확대, 핀치 인(오므리기) → 전체
+      if (ratio > 1.18) { enterZoom(); pinching = false; }
+      else if (ratio < 0.85) { enterFit(); pinching = false; }
+      return;
+    }
+    if (e.touches.length === 1 && isDragging) {
+      e.preventDefault(); var t = e.touches[0]; moveDrag(t.clientX, t.clientY);
+    } else if (e.touches.length > 1) {
+      e.preventDefault();
+    }
   }, { passive: false });
 
-  canvas.addEventListener('touchend', endDrag);
-  canvas.addEventListener('touchcancel', endDrag);
+  canvas.addEventListener('touchend', function(e) {
+    if (e.touches.length === 0) { pinching = false; }
+    endDrag();
+  });
+  canvas.addEventListener('touchcancel', function(){ pinching = false; endDrag(); });
 
   document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
   document.addEventListener('gesturechange', function(e) { e.preventDefault(); });

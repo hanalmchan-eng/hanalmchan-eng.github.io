@@ -257,22 +257,20 @@ setTimeout(positionHint, 300);
 
   var hintHidden = false;
 
-  if (hintText) {
-    hintText.innerHTML =
-      '끌어서 둘러보기 · 로고를 클릭하여 다음 · 확대하여 자세히<br>' +
-      'Drag to explore · Click logo for next · Pinch to zoom<br>' +
-      'ドラッグで探索 · ロゴをクリックで次へ · ピンチで拡大';
-  }
-
   function hideHint() {
     if (hintHidden || !hint) return;
     hintHidden = true;
     setTimeout(function() {
       if (hint) hint.classList.add('hidden');
-      setTimeout(function() { if (hint && hint.parentNode) hint.remove(); }, 600);
     }, 2000);
   }
   setTimeout(hideHint, 99000);
+
+  function showHintAgain() {
+    if (!hint) return;
+    hint.classList.remove('hidden');
+    hintHidden = false;
+  }
 
   function showLoading() {
     if (!loadingEl || !document.body.contains(loadingEl)) {
@@ -298,18 +296,42 @@ setTimeout(positionHint, 300);
     fitScale = window.innerWidth / imgW;
   }
 
+  function setHintText(mode) {
+    if (!hintText) return;
+    if (mode === 'zoom') {
+      hintText.innerHTML =
+        '끌어서 둘러보기 · 로고를 클릭하여 다음<br>' +
+        'Drag to explore · Click logo for next<br>' +
+        'ドラッグで探索 · ロゴをクリックで次へ';
+    } else {
+      hintText.innerHTML =
+        '확대하여 자세히 보기<br>' +
+        'Pinch to zoom in<br>' +
+        'ピンチで拡大';
+    }
+  }
+
   function applyMode() {
     var logoEl = document.querySelector('#header img.logo');
-    if (header) header.style.mixBlendMode = 'difference';
     if (logoEl) logoEl.style.filter = 'none';
     if (viewMode === 'zoom') {
       planeScale = zoomScale;
+      if (header) {
+        header.classList.remove('hidden-logo');
+        header.style.mixBlendMode = 'difference';
+      }
       if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
+      setHintText('zoom');
       setTimeout(positionHint, 50);
     } else {
       planeScale = fitScale;
-      // 전체 보기: 로고 고정 175px (반전 효과는 difference 유지)
+      // 전체 보기: 로고 숨김
+      if (header) {
+        header.classList.add('hidden-logo');
+        header.style.mixBlendMode = 'difference';
+      }
       if (logoEl) logoEl.style.width = BASE_LOGO_W + 'px';
+      setHintText('fit');
       setTimeout(positionHint, 50);
     }
   }
@@ -487,6 +509,7 @@ setTimeout(positionHint, 300);
     layoutPosts();
     alignToLogo(currentPost);   // 확대 시 항상 로고 겹침 위치로
     updateTransform();
+    showHintAgain();
   }
   function enterFit() {
     if (viewMode === 'fit') return;
@@ -494,6 +517,7 @@ setTimeout(positionHint, 300);
     applyMode();
     layoutPosts();
     positionForMode();
+    showHintAgain();
   }
   function toggleMode() {
     if (viewMode === 'fit') enterZoom(); else enterFit();

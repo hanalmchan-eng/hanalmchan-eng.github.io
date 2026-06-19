@@ -299,16 +299,22 @@ setTimeout(positionHint, 300);
   }
 
   function applyMode() {
+    var logoEl = document.querySelector('#header img.logo');
     if (viewMode === 'zoom') {
       planeScale = zoomScale;
-      if (header) header.classList.remove('hidden-logo');
-      // 로고를 zoom 배율에 맞게 키움
-      var logoEl = document.querySelector('#header img.logo');
+      if (header) {
+        header.style.mixBlendMode = 'difference';
+      }
       if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
       setTimeout(positionHint, 50);
     } else {
       planeScale = fitScale;
-      if (header) header.classList.add('hidden-logo'); // 전체 보기: 로고 숨김
+      // 전체 보기: 로고 고정 175px, 반전 효과 끔
+      if (header) {
+        header.style.mixBlendMode = 'normal';
+      }
+      if (logoEl) logoEl.style.width = BASE_LOGO_W + 'px';
+      setTimeout(positionHint, 50);
     }
   }
 
@@ -411,6 +417,7 @@ setTimeout(positionHint, 300);
     if (allPosts.length === 0) return;
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
+    currentPost = post;
     plane.innerHTML = '';
     currentPostEl = null;
     hasBefore = false;
@@ -476,7 +483,8 @@ setTimeout(positionHint, 300);
     viewMode = 'zoom';
     applyMode();
     layoutPosts();
-    positionForMode();
+    alignToLogo(currentPost);   // 확대 시 항상 로고 겹침 위치로
+    updateTransform();
   }
   function enterFit() {
     if (viewMode === 'fit') return;

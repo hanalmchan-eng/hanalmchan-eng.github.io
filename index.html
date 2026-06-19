@@ -257,10 +257,12 @@ setTimeout(positionHint, 300);
 
   var hintHidden = false;
 
+  var hideTimer = null;
   function hideHint() {
     if (hintHidden || !hint) return;
     hintHidden = true;
-    setTimeout(function() {
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(function() {
       if (hint) hint.classList.add('hidden');
     }, 2000);
   }
@@ -268,6 +270,7 @@ setTimeout(positionHint, 300);
 
   function showHintAgain() {
     if (!hint) return;
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     hint.classList.remove('hidden');
     hintHidden = false;
   }

@@ -227,7 +227,7 @@ setTimeout(positionHint, 300);
   // ===== 보기 모드 =====
   // 'fit'  : 전체 보기 (가로를 화면에 맞춤, 세로 스크롤, 로고 숨김)
   // 'zoom' : 확대 보기 (로고가 헤더에 맞는 배율, 로고 표시)
-  var viewMode = 'fit';
+  var viewMode = 'zoom';
   var fitScale = 0.2688;   // 전체 보기 배율 (사진 로드 시 계산)
   var zoomScale = 0.2688;  // 확대 보기 배율 (사진 로드 시 계산)
 
@@ -303,9 +303,9 @@ setTimeout(positionHint, 300);
     if (!hintText) return;
     if (mode === 'zoom') {
       hintText.innerHTML =
-        '끌어서 둘러보기 · 로고를 클릭하여 다음<br>' +
-        'Drag to explore · Click logo for next<br>' +
-        'ドラッグで探索 · ロゴをクリックで次へ';
+        '끌어서 둘러보기 · 로고를 클릭하여 다음 · 축소하면 전체<br>' +
+        'Drag to explore · Click logo for next · Pinch out for full<br>' +
+        'ドラッグで探索 · ロゴをクリックで次へ · ピンチで全体表示';
     } else {
       hintText.innerHTML =
         '확대하여 자세히 보기<br>' +
@@ -448,7 +448,7 @@ setTimeout(positionHint, 300);
     plane.innerHTML = '';
     currentPostEl = null;
     hasBefore = false;
-    viewMode = 'fit';   // 새 사진은 전체 보기로 시작
+    viewMode = 'zoom';   // 새 사진은 확대 보기로 시작 (로고 표시)
 
     showLoading();
 

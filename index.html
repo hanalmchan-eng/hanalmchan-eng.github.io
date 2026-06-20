@@ -328,7 +328,7 @@ setTimeout(positionHint, 300);
         header.classList.remove('hidden-logo');
         header.style.mixBlendMode = 'difference';
       }
-      if (logoEl) logoEl.style.width = (window.innerWidth * LOGO_TARGET_RATIO) + 'px';
+      if (logoEl) logoEl.style.width = (curImgW * LOGO_RATIO * zoomScale) + 'px';
       setHintText('zoom');
       setTimeout(positionHint, 50);
     } else {

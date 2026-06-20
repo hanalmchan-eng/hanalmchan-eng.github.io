@@ -303,14 +303,14 @@ setTimeout(positionHint, 300);
     if (!hintText) return;
     if (mode === 'zoom') {
       hintText.innerHTML =
-        '끌어서 둘러보기 · 로고를 클릭하여 다음 · 축소하면 전체<br>' +
-        'Drag to explore · Click logo for next · Pinch out for full<br>' +
-        'ドラッグで探索 · ロゴをクリックで次へ · ピンチで全体表示';
+        '끌어서 둘러보기 · 로고를 클릭하여 다음 · 두 번 클릭 또는 축소 제스처로 전체<br>' +
+        'Drag to explore · Click logo for next · Double-click or pinch out for full<br>' +
+        'ドラッグで探索 · ロゴをクリックで次へ · ダブルクリックまたはピンチで全体表示';
     } else {
       hintText.innerHTML =
-        '확대하여 자세히 보기<br>' +
-        'Pinch to zoom in<br>' +
-        'ピンチで拡大';
+        '두 번 클릭 또는 확대 제스처로 자세히<br>' +
+        'Double-click or pinch in to zoom<br>' +
+        'ダブルクリックまたはピンチで拡大';
     }
   }
 

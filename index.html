@@ -291,10 +291,8 @@ setTimeout(positionHint, 300);
   function computeScales(imgW, imgH) {
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
-    // 확대 배율 (기존 로직)
-    var scaleH = (window.innerHeight * 2) / imgH;
-    var scaleW = (window.innerWidth * 2) / imgW;
-    zoomScale = Math.max(scaleH, scaleW) * SCALE_BOOST;
+    // 확대 배율: 사진 가로 기준으로 통일 (모든 비율에서 로고 크기 일관)
+    zoomScale = (window.innerWidth * 2) / imgW * SCALE_BOOST;
     // 전체 보기 배율: 사진 가로를 화면 가로에 딱 맞춤
     fitScale = window.innerWidth / imgW;
   }

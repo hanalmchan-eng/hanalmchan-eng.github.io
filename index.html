@@ -287,12 +287,19 @@ setTimeout(positionHint, 300);
   var tx = 0, ty = 50;
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 
-  // 두 배율을 계산: zoom(로고 맞춤) / fit(가로 맞춤)
+  // 합성 로고는 사진 가로의 약 9.36% (651/6960)
+  var LOGO_RATIO = 0.0936;
+  // 로고를 화면에서 항상 이 비율(화면 가로 대비)로 보이게
+  var LOGO_TARGET_RATIO = 0.187;
+
+  // 두 배율을 계산: zoom(로고 일정) / fit(가로 맞춤)
   function computeScales(imgW, imgH) {
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
-    // 확대 배율: 사진 가로 기준으로 통일 (모든 비율에서 로고 크기 일관)
-    zoomScale = (window.innerWidth * 2) / imgW * SCALE_BOOST;
+    // 확대 배율: 합성 로고가 화면에서 항상 같은 크기가 되도록
+    var logoOrigPx = imgW * LOGO_RATIO;           // 이 사진의 합성 로고 원본 px
+    var logoTargetPx = window.innerWidth * LOGO_TARGET_RATIO;  // 목표 화면 px
+    zoomScale = logoTargetPx / logoOrigPx;
     // 전체 보기 배율: 사진 가로를 화면 가로에 딱 맞춤
     fitScale = window.innerWidth / imgW;
   }
@@ -321,7 +328,7 @@ setTimeout(positionHint, 300);
         header.classList.remove('hidden-logo');
         header.style.mixBlendMode = 'difference';
       }
-      if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
+      if (logoEl) logoEl.style.width = (window.innerWidth * LOGO_TARGET_RATIO) + 'px';
       setHintText('zoom');
       setTimeout(positionHint, 50);
     } else {

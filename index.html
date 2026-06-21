@@ -676,11 +676,32 @@ setTimeout(positionHint, 300);
   window.addEventListener('mouseup', endDrag);
   window.addEventListener('mouseleave', endDrag);
 
-  // 더블클릭으로 확대/축소 토글 (데스크톱)
-  canvas.addEventListener('dblclick', function(e) {
+  // 더블클릭으로 확대/축소 토글 (데스크톱, 어디서나)
+  document.addEventListener('dblclick', function(e) {
     e.preventDefault();
     toggleMode();
   });
+
+  // 터치 더블탭으로 확대/축소 토글 (아이패드 등, 어디서나)
+  var lastTapTime = 0;
+  var lastTapX = 0, lastTapY = 0;
+  document.addEventListener('touchend', function(e) {
+    if (didMove) { lastTapTime = 0; return; }   // 드래그한 경우 탭 아님
+    if (e.changedTouches && e.changedTouches.length === 1) {
+      var t = e.changedTouches[0];
+      var now = Date.now();
+      var dt = now - lastTapTime;
+      var dx = Math.abs(t.clientX - lastTapX);
+      var dy = Math.abs(t.clientY - lastTapY);
+      if (dt < 300 && dx < 30 && dy < 30) {
+        toggleMode();
+        lastTapTime = 0;
+      } else {
+        lastTapTime = now;
+        lastTapX = t.clientX; lastTapY = t.clientY;
+      }
+    }
+  }, { passive: true });
 
   // ===== 터치: 1손가락 드래그 / 2손가락 핀치 =====
   var pinching = false;

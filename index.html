@@ -170,6 +170,8 @@
   <div id="plane"></div>
 </div>
 
+<div id="logo-hit" style="position:fixed; z-index:90; display:none; cursor:pointer;"></div>
+
 <script>
 function positionHint() {
   var header = document.getElementById('header');
@@ -254,6 +256,12 @@ setTimeout(positionHint, 300);
   var hint     = document.getElementById('hint');
   var hintText = document.getElementById('hint-text');
   var loadingEl = document.getElementById('loading');
+  var logoHit  = document.getElementById('logo-hit');
+
+  // 사진 속 합성 로고 비율
+  var LOGO_W_RATIO = 0.0936;          // 로고 너비 / 사진 너비
+  var LOGO_HW_RATIO = 801 / 1429;     // 로고 높이 / 로고 너비 (로고 이미지 비율)
+  var HIT_PAD = 1.6;                  // 클릭 영역 여유 (로고보다 크게)
 
   var hintHidden = false;
 
@@ -373,6 +381,32 @@ setTimeout(positionHint, 300);
   function updateTransform() {
     clampPosition();
     plane.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + planeScale + ')';
+    updateLogoHit();
+  }
+
+  // 전체화면(fit)에서만, 사진 속 로고 위치에 클릭 영역 배치
+  function updateLogoHit() {
+    if (!logoHit) return;
+    if (viewMode !== 'fit' || !currentPost ||
+        typeof currentPost.logoX !== 'number' || typeof currentPost.logoY !== 'number') {
+      logoHit.style.display = 'none';
+      return;
+    }
+    var lw = curImgW * LOGO_W_RATIO;          // 로고 원본 너비(px)
+    var lh = lw * LOGO_HW_RATIO;              // 로고 원본 높이(px)
+    // 화면 좌표 = tx/ty + 원본좌표 * scale
+    var sx = tx + currentPost.logoX * planeScale;
+    var sy = ty + currentPost.logoY * planeScale;
+    var sw = lw * planeScale;
+    var sh = lh * planeScale;
+    // 여유를 둬서 키움 (중심 기준 확대)
+    var padW = sw * (HIT_PAD - 1) / 2;
+    var padH = sh * (HIT_PAD - 1) / 2;
+    logoHit.style.display = 'block';
+    logoHit.style.left = (sx - padW) + 'px';
+    logoHit.style.top = (sy - padH) + 'px';
+    logoHit.style.width = (sw * HIT_PAD) + 'px';
+    logoHit.style.height = (sh * HIT_PAD) + 'px';
   }
 
   function layoutPosts() {
@@ -561,6 +595,18 @@ setTimeout(positionHint, 300);
       e.preventDefault();
       nextPost();
     });
+  }
+
+  // 전체화면 로고 클릭 영역 → 다음 사진
+  if (logoHit) {
+    logoHit.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      nextPost();
+    });
+    logoHit.addEventListener('touchend', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      nextPost();
+    }, { passive: false });
   }
 
   function onWheel(e) {

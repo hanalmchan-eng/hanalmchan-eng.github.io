@@ -163,10 +163,9 @@
   }
   #info-popup.show { display: flex; opacity: 1; }
   #info-card {
+    position: relative;
     max-width: 420px; width: 100%;
-    background: rgba(255,255,255,0.10);
-    backdrop-filter: blur(22px) saturate(160%);
-    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    background: transparent;
     color: #ffffff;
     border-radius: 20px;
     border: none;
@@ -175,6 +174,26 @@
     font-size: 13px; line-height: 1.7;
     transform: translateY(8px); transition: transform 0.25s ease;
     text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    overflow: hidden;
+  }
+  /* 블러 유리 레이어: 로고 모양만 제외하고 전체에 블러 */
+  #info-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    /* 로고 모양을 구멍으로: 전체 불투명에서 로고 부분만 투명 */
+    -webkit-mask:
+      linear-gradient(#000 0 0),
+      url('logo_mask.png') no-repeat right 22px bottom 20px / 30px 28px;
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0),
+      url('logo_mask.png') no-repeat right 22px bottom 20px / 30px 28px;
+    mask-composite: exclude;
+    z-index: -1;
   }
   #info-popup.show #info-card { transform: translateY(0); }
   #info-card .info-lead { margin-bottom: 14px; color: #ffffff; }
@@ -184,6 +203,7 @@
   #info-card .info-price-label { flex: 0 0 auto; font-weight: 600; color: #ffffff; min-width: 36px; }
   #info-card .info-price-val { color: rgba(255,255,255,0.92); letter-spacing: 0.02em; }
   #info-card .info-price-val em { font-style: normal; color: rgba(255,255,255,0.6); font-size: 11px; }
+
 </style>
 
 </head>

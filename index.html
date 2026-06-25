@@ -351,13 +351,11 @@ setTimeout(positionHint, 300);
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     hint.classList.remove('hidden');
     hintHidden = false;
-    // autoHideMs가 주어지면, 움직이지 않아도 그 시간 뒤 자동으로 사라짐
-    if (autoHideMs) {
-      hideTimer = setTimeout(function() {
-        if (hint) hint.classList.add('hidden');
-        hintHidden = true;
-      }, autoHideMs);
-    }
+    var ms = (typeof autoHideMs === 'number') ? autoHideMs : 4000;
+    hideTimer = setTimeout(function() {
+      if (hint) hint.classList.add('hidden');
+      hintHidden = true;
+    }, ms);
   }
 
   function showLoading() {
@@ -582,7 +580,7 @@ setTimeout(positionHint, 300);
       applyMode();
       layoutPosts();
       positionForMode();
-      showHintAgain(3000);
+      showHintAgain();
       if (loadingEl) loadingEl.remove();
     });
     img.addEventListener('error', function() {

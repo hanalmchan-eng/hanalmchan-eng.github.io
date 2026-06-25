@@ -346,11 +346,18 @@ setTimeout(positionHint, 300);
   }
   setTimeout(hideHint, 99000);
 
-  function showHintAgain() {
+  function showHintAgain(autoHideMs) {
     if (!hint) return;
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     hint.classList.remove('hidden');
     hintHidden = false;
+    // autoHideMs가 주어지면, 움직이지 않아도 그 시간 뒤 자동으로 사라짐
+    if (autoHideMs) {
+      hideTimer = setTimeout(function() {
+        if (hint) hint.classList.add('hidden');
+        hintHidden = true;
+      }, autoHideMs);
+    }
   }
 
   function showLoading() {
@@ -575,7 +582,7 @@ setTimeout(positionHint, 300);
       applyMode();
       layoutPosts();
       positionForMode();
-      showHintAgain();
+      showHintAgain(3000);
       if (loadingEl) loadingEl.remove();
     });
     img.addEventListener('error', function() {

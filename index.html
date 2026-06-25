@@ -248,6 +248,11 @@ function positionHint() {
   var hint   = document.getElementById('hint');
   if (!header || !hint) return;
   var headerTop = 70;
+  // 전체화면(로고 숨김)이면 문구를 로고 자리(헤더 위치)로 올림
+  if (header.classList.contains('hidden-logo')) {
+    hint.style.top = headerTop + 'px';
+    return;
+  }
   var logoEl = header.querySelector('img.logo');
   var logoH  = (logoEl && logoEl.offsetHeight > 0) ? logoEl.offsetHeight : 20;
   hint.style.top = (headerTop + logoH + 8) + 'px';
@@ -580,7 +585,7 @@ setTimeout(positionHint, 300);
       applyMode();
       layoutPosts();
       positionForMode();
-      showHintAgain();
+      showHintAgain(2000);
       if (loadingEl) loadingEl.remove();
     });
     img.addEventListener('error', function() {

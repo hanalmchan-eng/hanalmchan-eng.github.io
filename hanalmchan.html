@@ -45,7 +45,7 @@
   }
 
   #header {
-    position: fixed; top: -30px; left: 20px; z-index: 100;
+    position: fixed; top: 20px; left: 20px; z-index: 100;
     font-size: 13px; mix-blend-mode: difference; color: #ffffff;
     transition: opacity 0.3s ease;
   }
@@ -247,7 +247,7 @@ function positionHint() {
   var header = document.getElementById('header');
   var hint   = document.getElementById('hint');
   if (!header || !hint) return;
-  var headerTop = -30;
+  var headerTop = 20;
   // 전체화면(로고 숨김)이면 문구를 로고 자리(헤더 위치)로 올림
   if (header.classList.contains('hidden-logo')) {
     hint.style.top = headerTop + 'px';
@@ -297,7 +297,7 @@ setTimeout(positionHint, 300);
   var curImgW = 0, curImgH = 0;
 
   var HEADER_X = 20;
-  var HEADER_Y = -30;
+  var HEADER_Y = 20;
 
   var HOLD_DELAY = 3000;
 
@@ -377,7 +377,7 @@ setTimeout(positionHint, 300);
 
   // 두 배율을 계산: zoom(로고 맞춤) / fit(가로 맞춤)
   // 확대 배율 기준: 픽셀 1:1(=1.0)의 몇 배로 볼지. 0.5 = 절반 크기
-  var ZOOM_K = 1.3;
+  var ZOOM_K = 0.65;
   // 페이지 로드 시점의 밀도를 고정 (창 크기 조절에 영향받지 않음)
   var BASE_DPR = window.devicePixelRatio || 1;
 

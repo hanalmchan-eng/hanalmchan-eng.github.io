@@ -125,13 +125,9 @@
     background:linear-gradient(90deg, rgba(20,20,20,0), var(--ink-10));
   }
 
-  .rule{ position:absolute; left:18%; right:18%; height:1px; background:var(--ink-16); }
-  .rule--top{ top:10%; }
-  .rule--bottom{ bottom:20%; }
-
   .spine-mark{
-    position:absolute; left:50%; top:45%;
-    width:calc(var(--spine-h) * 0.46);
+    position:absolute; left:50%; top:22%;
+    width:calc(var(--spine-h) * 0.34);
     height:calc(var(--spine-w) * 0.7);
     transform:translate(-50%,-50%) rotate(-90deg);
     display:flex; align-items:center; justify-content:center;
@@ -139,13 +135,8 @@
   .spine-mark-text{
     font-family:'LMCHan', Georgia, 'Times New Roman', serif;
     font-weight:400;
-    font-size:14px; letter-spacing:.14em;
+    font-size:14px; letter-spacing:0;
     color:var(--ink); white-space:nowrap; text-transform:lowercase;
-  }
-
-  .spine-number{
-    position:absolute; left:0; right:0; bottom:7%; text-align:center;
-    font-size:8px; letter-spacing:.16em; color:var(--ink-35); text-transform:uppercase;
   }
 
   #site-label{
@@ -155,11 +146,6 @@
 
   #hint{ position:fixed; left:20px; bottom:22px; z-index:50; pointer-events:none; transition:opacity .5s; }
   #hint-text{ font-size:10px; color:var(--ink-60); letter-spacing:.04em; line-height:1.6; white-space:nowrap; }
-
-  #count-label{
-    position:fixed; right:20px; bottom:22px; z-index:50;
-    font-size:11px; letter-spacing:.1em; color:var(--ink-60);
-  }
 
   #veil{ position:fixed; inset:0; background:var(--paper); opacity:0; pointer-events:none; z-index:200; transition:opacity .38s ease; }
   #veil.show{ opacity:1; }
@@ -175,7 +161,6 @@
   <div id="site-label">서가</div>
 
   <div id="hint"><div id="hint-text"></div></div>
-  <div id="count-label">vol. 01</div>
 
   <div id="scene">
     <div id="shelf-shadow"></div>
@@ -187,12 +172,9 @@
 
     <button class="book" id="book" type="button" aria-label="hanalmchan — 당겨서 열기">
       <span class="spine">
-        <span class="rule rule--top" aria-hidden="true"></span>
         <span class="spine-mark">
           <span class="spine-mark-text">hanalmchan</span>
         </span>
-        <span class="rule rule--bottom" aria-hidden="true"></span>
-        <span class="spine-number">no. 01</span>
         <span class="spine-edge" aria-hidden="true"></span>
       </span>
     </button>

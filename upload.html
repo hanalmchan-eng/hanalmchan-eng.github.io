@@ -376,16 +376,17 @@ setTimeout(positionHint, 300);
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 
   // 두 배율을 계산: zoom(로고 맞춤) / fit(가로 맞춤)
+  // 확대 배율 기준: 픽셀 1:1(=1.0)의 몇 배로 볼지. 0.5 = 절반 크기
+  var ZOOM_K = 0.5;
+  // 페이지 로드 시점의 밀도를 고정 (창 크기 조절에 영향받지 않음)
+  var BASE_DPR = window.devicePixelRatio || 1;
+
   function computeScales(imgW, imgH) {
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
-    // 확대 배율 (기존 로직)
-    var scaleH = (window.innerHeight * 2) / imgH;
-    var scaleW = (window.innerWidth * 2) / imgW;
-    // 화면 픽셀 밀도 보정: 고밀도(레티나)일수록 덜 확대, 저밀도일수록 더 확대
-    // dpr 1 -> 100%, dpr 2 -> 약 71%, dpr 3 -> 약 58%
-    var dpr = window.devicePixelRatio || 1;
-    zoomScale = Math.max(scaleH, scaleW) * SCALE_BOOST / Math.sqrt(dpr);
+    // 확대 배율: 오직 화면 픽셀 밀도만 기준. 창 크기와 무관하게 일정하게 유지.
+    // dpr 1 -> 0.50, dpr 2 -> 0.25, dpr 3 -> 0.17
+    zoomScale = ZOOM_K / BASE_DPR;
     // 전체 보기 배율: 사진 가로를 화면 가로에 딱 맞춤
     fitScale = window.innerWidth / imgW;
   }

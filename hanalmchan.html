@@ -46,7 +46,7 @@
 
   #header {
     position: fixed; top: 20px; left: 20px; z-index: 100;
-    font-size: 13px; mix-blend-mode: difference; color: #ffffff;
+    font-size: 13px; color: #111111;
     transition: opacity 0.3s ease;
   }
   #header.hidden-logo { opacity: 0; pointer-events: none; }
@@ -413,7 +413,6 @@ setTimeout(positionHint, 300);
       planeScale = zoomScale;
       if (header) {
         header.classList.remove('hidden-logo');
-        header.style.mixBlendMode = 'difference';
       }
       if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
       setHintText('zoom');
@@ -423,7 +422,6 @@ setTimeout(positionHint, 300);
       // 전체 보기: 로고 숨김
       if (header) {
         header.classList.add('hidden-logo');
-        header.style.mixBlendMode = 'difference';
       }
       if (logoEl) logoEl.style.width = BASE_LOGO_W + 'px';
       setHintText('fit');

@@ -45,7 +45,7 @@
   }
 
   #header {
-    position: fixed; top: 20px; left: 20px; z-index: 100;
+    position: fixed; top: -30px; left: 20px; z-index: 100;
     font-size: 13px; mix-blend-mode: difference; color: #ffffff;
     transition: opacity 0.3s ease;
   }
@@ -247,7 +247,7 @@ function positionHint() {
   var header = document.getElementById('header');
   var hint   = document.getElementById('hint');
   if (!header || !hint) return;
-  var headerTop = 20;
+  var headerTop = -30;
   // 전체화면(로고 숨김)이면 문구를 로고 자리(헤더 위치)로 올림
   if (header.classList.contains('hidden-logo')) {
     hint.style.top = headerTop + 'px';
@@ -297,7 +297,7 @@ setTimeout(positionHint, 300);
   var curImgW = 0, curImgH = 0;
 
   var HEADER_X = 20;
-  var HEADER_Y = 20;
+  var HEADER_Y = -30;
 
   var HOLD_DELAY = 3000;
 

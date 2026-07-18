@@ -26,9 +26,9 @@
     --spine-bg-b:#f4f3f0;
     --spine-shadow:rgba(20,20,20,.20);
 
-    --shelf-y:100%;
+    --shelf-y:calc(100% - 48px);
     --book-left:calc(100% - (var(--spine-w) / 2) - (var(--spine-h) * 0.122) - 3px);
-    --spine-w:clamp(20px,2.8vw,30px);
+    --spine-w:clamp(30px,3.8vw,48px);
     /* 책 상단이 화면 세로의 4/5 지점(위에서 20% 아래)에 오도록: 높이를 화면의 80%로 */
     --spine-h:clamp(320px,80vh,900px);
     --tilt:7deg;
@@ -150,14 +150,15 @@
   .spine-mark{
     position:absolute; left:50%; top:22%;
     width:calc(var(--spine-h) * 0.34);
-    height:calc(var(--spine-w) * 1.05);
+    height:calc(var(--spine-w) * 1.3);
     transform:translate(-50%,-50%) rotate(-90deg);
     display:flex; align-items:center; justify-content:center;
   }
   .spine-mark-text{
     font-family:'LMCHan', Georgia, 'Times New Roman', serif;
     font-weight:400;
-    font-size:14px; letter-spacing:0;
+    font-size:calc(var(--spine-w) * 0.58);
+    letter-spacing:0;
     color:var(--ink); white-space:nowrap; text-transform:lowercase;
   }
 

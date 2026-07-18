@@ -44,25 +44,6 @@
     transform-origin: 0 0;
   }
 
-  #header {
-    position: fixed; top: 20px; left: 20px; z-index: 100;
-    font-size: 13px; color: #111111;
-    transition: opacity 0.3s ease;
-  }
-  #header.hidden-logo { opacity: 0; pointer-events: none; }
-  #header a { color: inherit; text-decoration: none; display: inline-block; cursor: pointer; }
-  #header a:hover { color: #888888; }
-  #header img.logo {
-    display: block;
-    width: 175px;
-    height: auto;
-    -webkit-user-drag: none;
-    user-drag: none;
-    pointer-events: none;
-    filter: none;
-  }
-  #header img.logo:not([src]),
-  #header img.logo[src=""] { display: none; }
 
   #hint {
     position: fixed;
@@ -209,10 +190,6 @@
 </head>
 <body>
 
-<div id="header">
-  <a href="/" id="header-link">hanalmchan</a>
-</div>
-
 <div id="hint"><div id="hint-text"></div></div>
 
 <div id="nav"></div>
@@ -242,45 +219,6 @@
   </div>
 </div>
 
-<script>
-function positionHint() {
-  var header = document.getElementById('header');
-  var hint   = document.getElementById('hint');
-  if (!header || !hint) return;
-  var headerTop = 20;
-  // 전체화면(로고 숨김)이면 문구를 로고 자리(헤더 위치)로 올림
-  if (header.classList.contains('hidden-logo')) {
-    hint.style.top = headerTop + 'px';
-    return;
-  }
-  var logoEl = header.querySelector('img.logo');
-  var logoH  = (logoEl && logoEl.offsetHeight > 0) ? logoEl.offsetHeight : 20;
-  hint.style.top = (headerTop + logoH + 8) + 'px';
-}
-window.addEventListener('resize', positionHint);
-setTimeout(positionHint, 50);
-setTimeout(positionHint, 300);
-
-(function() {
-  var probe = new Image();
-  probe.onload = function() {
-    if (probe.naturalWidth === 0) return;
-    var a = document.getElementById('header-link');
-    if (!a) return;
-    a.textContent = '';
-    var logo = document.createElement('img');
-    logo.className = 'logo';
-    logo.alt = 'hanalmchan';
-    logo.style.width = '175px';
-    logo.style.height = 'auto';
-    logo.src = 'logo.png';
-    logo.addEventListener('load', function() { positionHint(); });
-    a.appendChild(logo);
-  };
-  probe.onerror = function() { positionHint(); };
-  probe.src = 'logo.png';
-})();
-</script>
 
 <script>
 (function() {
@@ -289,10 +227,6 @@ setTimeout(positionHint, 300);
   var R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
   var gap = 4;
   var planeScale = 0.2688;
-
-  var BASE_SCALE = 0.2688;
-  var BASE_LOGO_W = 175;
-  var SCALE_BOOST = 1.2;
 
   var curImgW = 0, curImgH = 0;
 
@@ -327,7 +261,6 @@ setTimeout(positionHint, 300);
 
   var canvas   = document.getElementById('canvas');
   var plane    = document.getElementById('plane');
-  var header   = document.getElementById('header');
   var hint     = document.getElementById('hint');
   var hintText = document.getElementById('hint-text');
   var loadingEl = document.getElementById('loading');
@@ -337,6 +270,20 @@ setTimeout(positionHint, 300);
   var LOGO_W_RATIO = 0.0936;          // 로고 너비 / 사진 너비
   var LOGO_HW_RATIO = 801 / 1429;     // 로고 높이 / 로고 너비 (로고 이미지 비율)
   var HIT_PAD = 1.6;                  // 클릭 영역 여유 (로고보다 크게)
+
+  // 안내 문구 위치: 확대 모드에서는 (로고가 있던 자리, 즉) 사진 속 로고의
+  // 실제 화면상 아래쪽에, 전체화면 모드에서는 고정 위치(20px)에 둔다.
+  function positionHint() {
+    if (!hint) return;
+    if (viewMode === 'zoom' && curImgW) {
+      var logoW = curImgW * LOGO_W_RATIO * planeScale;
+      var logoH = logoW * LOGO_HW_RATIO;
+      hint.style.top = (HEADER_Y + logoH + 8) + 'px';
+    } else {
+      hint.style.top = HEADER_Y + 'px';
+    }
+  }
+  window.addEventListener('resize', positionHint);
 
   var hintHidden = false;
 
@@ -407,23 +354,12 @@ setTimeout(positionHint, 300);
   }
 
   function applyMode() {
-    var logoEl = document.querySelector('#header img.logo');
-    if (logoEl) logoEl.style.filter = 'none';
     if (viewMode === 'zoom') {
       planeScale = zoomScale;
-      if (header) {
-        header.classList.remove('hidden-logo');
-      }
-      if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
       setHintText('zoom');
       setTimeout(positionHint, 50);
     } else {
       planeScale = fitScale;
-      // 전체 보기: 로고 숨김
-      if (header) {
-        header.classList.add('hidden-logo');
-      }
-      if (logoEl) logoEl.style.width = BASE_LOGO_W + 'px';
       setHintText('fit');
       setTimeout(positionHint, 50);
     }
@@ -469,7 +405,7 @@ setTimeout(positionHint, 300);
   // 전체화면(fit)에서만, 사진 속 로고 위치에 클릭 영역 배치
   function updateLogoHit() {
     if (!logoHit) return;
-    if (viewMode !== 'fit' || !currentPost ||
+    if (!currentPost ||
         typeof currentPost.logoX !== 'number' || typeof currentPost.logoY !== 'number') {
       logoHit.style.display = 'none';
       return;
@@ -698,10 +634,9 @@ setTimeout(positionHint, 300);
     if (isPopupOpen() && (e.key === 'Escape' || e.key === 'Esc')) { closePopup(); }
   });
 
-  // 헤더 로고: 짧게 누르면 다음, 길게 누르면 팝업
-  var headerLink = document.getElementById('header-link');
-  if (headerLink) {
-    headerLink.style.cursor = 'pointer';
+  // 사진 속 로고 클릭 영역(전체화면 모드): 짧게 누르면 다음, 길게 누르면 팝업
+  if (logoHit) {
+    logoHit.style.cursor = 'pointer';
     var logoHoldTimer = null;
     var logoHeld = false;
 
@@ -718,34 +653,22 @@ setTimeout(positionHint, 300);
       if (logoHeld) { e.preventDefault(); return; }  // 팝업 떴으면 다음 사진 안 함
     }
 
-    headerLink.addEventListener('mousedown', logoPressStart);
-    headerLink.addEventListener('mouseup', logoPressEnd);
-    headerLink.addEventListener('mouseleave', function(){ if (logoHoldTimer){ clearTimeout(logoHoldTimer); logoHoldTimer=null; } });
-    headerLink.addEventListener('touchstart', function(e){ logoPressStart(e); }, { passive: true });
-    headerLink.addEventListener('touchend', function(e){
+    logoHit.addEventListener('mousedown', logoPressStart);
+    logoHit.addEventListener('mouseup', logoPressEnd);
+    logoHit.addEventListener('mouseleave', function(){ if (logoHoldTimer){ clearTimeout(logoHoldTimer); logoHoldTimer=null; } });
+    logoHit.addEventListener('touchstart', function(e){ logoPressStart(e); }, { passive: true });
+    logoHit.addEventListener('touchend', function(e){
       if (logoHoldTimer) { clearTimeout(logoHoldTimer); logoHoldTimer = null; }
       if (logoHeld) { e.preventDefault(); e.stopPropagation(); return; }
       e.preventDefault(); e.stopPropagation();
       nextPost();
     }, { passive: false });
 
-    headerLink.addEventListener('click', function(e) {
+    logoHit.addEventListener('click', function(e) {
       e.preventDefault();
       if (logoHeld) { logoHeld = false; return; }  // 길게여서 팝업 떴으면 다음 안 함
       nextPost();
     });
-  }
-
-  // 전체화면 로고 클릭 영역 → 다음 사진
-  if (logoHit) {
-    logoHit.addEventListener('click', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      nextPost();
-    });
-    logoHit.addEventListener('touchend', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      nextPost();
-    }, { passive: false });
   }
 
   function onWheel(e) {

@@ -23,8 +23,8 @@
     --ink-16:rgba(20,20,20,.14);
     --ink-10:rgba(20,20,20,.10);
 
-    --shelf-y:64%;
-    --book-left:66%;
+    --shelf-y:100%;
+    --book-left:calc(100% - (var(--spine-w) / 2) - (var(--spine-h) * 0.122) - 3px);
     --spine-w:clamp(18px,2.4vw,24px);
     --spine-h:clamp(240px,44vh,380px);
     --tilt:7deg;

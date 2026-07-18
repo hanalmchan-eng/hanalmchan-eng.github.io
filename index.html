@@ -38,6 +38,8 @@
     --shadow-angle:0deg;
     --shadow-length:56px;
     --shadow-opacity:.4;
+    --shadow-rgb:0,0,0;
+    --shadow-blend:multiply;
   }
 
   /* ── 다크모드: 시스템 설정을 그대로 따름 ── */
@@ -53,6 +55,9 @@
       --spine-bg-a:#1c1c1e;
       --spine-bg-b:#141416;
       --spine-shadow:rgba(0,0,0,.55);
+      /* 어두운 배경에서는 그림자가 아니라 달빛처럼 은은히 밝아지는 쪽으로 반전 */
+      --shadow-rgb:255,255,255;
+      --shadow-blend:screen;
     }
   }
 
@@ -90,8 +95,13 @@
   .ghost-slot.g2{ left:55.5%; width:calc(var(--spine-w) * 0.84); height:calc(var(--spine-h) * 0.86); }
 
   /* 바닥/선반 면은 따로 그리지 않는다 — 이 그림자 하나만으로 책이 놓여 있음을
-     암시한다. 길이·기울기·농도는 보고 있는 사람의 지금 이 순간, 실제 태양의
-     고도와 방위각에서 계산되어 시시각각 바뀐다 */
+     암시한다. top/left는 JS가 붙기 전(또는 실패했을 때)을 위한 기본값일 뿐이고,
+     실제로는 매 프레임 책의 렌더링된 좌표(getBoundingClientRect)를 읽어
+     transform으로 그 밑점에 그림자를 붙인다 — 기울어짐·들어올림·흔들림 등
+     책의 모든 움직임을 그대로, 지연 없이 따라간다.
+     길이·기울기·농도는 보고 있는 사람의 지금 이 순간, 실제 태양의 고도에서
+     계산된다. 색은 --shadow-rgb/--shadow-blend로 빼두어 다크모드에서는
+     그림자 대신 달빛처럼 밝아지는 쪽으로 자동 반전된다. */
   .sun-shadow{
     position:absolute; top:var(--shelf-y); left:var(--book-left);
     width:calc(var(--spine-w) * 1.5);
@@ -99,12 +109,11 @@
     transform-origin:50% 0%;
     transform:translate(-50%,0) rotate(var(--shadow-angle));
     border-radius:50%;
-    background:linear-gradient(to bottom, rgba(0,0,0,.9), rgba(0,0,0,0) 100%);
-    mix-blend-mode:multiply;
+    background:linear-gradient(to bottom, rgba(var(--shadow-rgb),.9), rgba(var(--shadow-rgb),0) 100%);
+    mix-blend-mode:var(--shadow-blend);
     filter:blur(7px);
     opacity:var(--shadow-opacity);
     pointer-events:none;
-    transition:height .6s ease, transform .6s ease, opacity .45s ease;
     will-change:transform,opacity,height;
   }
 
@@ -177,7 +186,6 @@
   @media (prefers-reduced-motion:reduce){
     .book{ animation:none; }
     .book, .book.settling, .book.opening{ transition-duration:.15s; }
-    .sun-shadow{ transition:none; }
   }
 </style>
 </head>
@@ -213,7 +221,9 @@
   var NEXT_URL = 'hanalmchan.html'; // 이 책을 열었을 때 이동할 갤러리 페이지
   // ===========================================================
 
+  var scene      = document.getElementById('scene');
   var book       = document.getElementById('book');
+  var shadowEl   = document.querySelector('.sun-shadow');
   var veil       = document.getElementById('veil');
   var hint       = document.getElementById('hint');
   var hintText   = document.getElementById('hint-text');
@@ -234,20 +244,13 @@
   }
 
   // ---- 태양 위치 기반 그림자 ----
-  // sun.angle/length/opacity 는 실제 고도·방위각에서 계산된 "기준값"이고,
-  // sun.lift 는 드래그·호버로 책이 들려 있는 정도(0~1)를 나타낸다.
-  // 두 값을 곱해 최종 CSS 변수로 반영한다.
-  var sun = { lat:null, lon:null, angle:0, length:56, opacity:.4, lift:0 };
+  // sun.angle/length/opacity 는 "지금 이 순간의 태양"에서 계산된 목표값이고,
+  // disp.* 는 그 목표값을 향해 매 프레임 조금씩 다가가는 표시값(부드러운 보간용)이다.
+  // 위도는 권한 요청 없이 서울(37.5°N) 고정값을 쓰고, 시각은 방문자의 로컬 시계를 그대로 쓴다.
+  var sun  = { lat: 37.5665, lon: 126.9780, angle: 0, length: 56, opacity: .4 };
+  var disp = { angle: 0, length: 56, opacity: .4 };
 
-  function applyShadow(){
-    var t = sun.lift;
-    var len = sun.length * (1 - t * 0.55);
-    var op  = sun.opacity * (1 - t * 0.75);
-    var root = document.documentElement.style;
-    root.setProperty('--shadow-length', Math.max(16, len).toFixed(1) + 'px');
-    root.setProperty('--shadow-opacity', Math.max(0, op).toFixed(2));
-    root.setProperty('--shadow-angle', sun.angle.toFixed(1) + 'deg');
-  }
+  function lerp(a, b, t){ return a + (b - a) * t; }
 
   // NOAA 근사식 기반 태양 고도(altitude)·방위각(azimuth) 계산 (도 단위 반환)
   function solarPosition(date, lat, lon, tzHours){
@@ -297,17 +300,15 @@
   }
 
   function updateSunShadow(){
-    if (sun.lat === null || sun.lon === null) return;
-
     var now = new Date();
     var tzHours = -now.getTimezoneOffset() / 60;
     var pos = solarPosition(now, sun.lat, sun.lon, tzHours);
 
     if (pos.altitude <= 0){
-      // 해가 진 시간 — 방향은 마지막 값을 유지한 채, 그림자를 옅고 짧게
-      sun.length = 40;
-      sun.opacity = 0.16;
-      applyShadow();
+      // 해가 진 시간 — 방향성 그림자는 사라지고, 은은한 접지 그림자만 남는다
+      sun.angle   = 0;
+      sun.length  = 34;
+      sun.opacity = 0.14;
       return;
     }
 
@@ -316,27 +317,46 @@
 
     var rawLength = 42 / Math.tan(altRad);
     sun.length  = Math.max(30, Math.min(rawLength, 260));
-    sun.angle   = Math.sin(azRad) * 34; // 태양의 방위에 따른 좌우 기울기
+    sun.angle   = Math.sin(azRad) * 34; // 태양의 방위에 따른 좌우 기울기 — 오전엔 왼쪽, 오후엔 오른쪽
     sun.opacity = Math.max(0.18, Math.min(0.48, 0.52 - pos.altitude / 180));
+  }
 
-    applyShadow();
+  // 책의 실제 렌더링 좌표를 매 프레임 읽어, 그 밑점에 그림자를 붙인다.
+  // 기울어짐·들어올림(호버/드래그)·idle 흔들림 등 book.style/CSS가 만드는
+  // 모든 움직임이 CSS 변수 복제 없이 자동으로 그대로 반영된다.
+  function trackShadow(){
+    disp.angle   = lerp(disp.angle,   sun.angle,   0.04);
+    disp.length  = lerp(disp.length,  sun.length,  0.04);
+    disp.opacity = lerp(disp.opacity, sun.opacity, 0.04);
+
+    var bookRect  = book.getBoundingClientRect();
+    var sceneRect = scene.getBoundingClientRect();
+    var anchorX = bookRect.left + bookRect.width / 2 - sceneRect.left;
+    var anchorY = bookRect.bottom - sceneRect.top;
+
+    var floorY = sceneRect.height - 48; // 눈에 보이지 않는 바닥 — --shelf-y와 같은 여백
+    var liftPx = Math.max(0, floorY - anchorY); // 책이 바닥에서 얼마나 떠 있는지, 측정값에서 바로 나옴
+    var t = Math.min(liftPx / 140, 1);
+
+    var len = Math.max(16, disp.length * (1 - t * 0.55));
+    var op  = Math.max(0, disp.opacity * (1 - t * 0.75));
+
+    shadowEl.style.transform =
+      'translate3d(' + anchorX.toFixed(1) + 'px,' + anchorY.toFixed(1) + 'px,0) ' +
+      'translate(-50%,0) rotate(' + disp.angle.toFixed(2) + 'deg)';
+    shadowEl.style.height = len.toFixed(1) + 'px';
+    shadowEl.style.opacity = op.toFixed(2);
+
+    requestAnimationFrame(trackShadow);
   }
 
   function initSun(){
-    // 위치 권한을 허용하지 않아도 그림자가 뜨도록 서울 좌표를 기본값으로 사용
-    sun.lat = 37.5665;
-    sun.lon = 126.9780;
+    shadowEl.style.top = '0px';
+    shadowEl.style.left = '0px';
+
     updateSunShadow();
-
-    if ('geolocation' in navigator){
-      navigator.geolocation.getCurrentPosition(function(pos){
-        sun.lat = pos.coords.latitude;
-        sun.lon = pos.coords.longitude;
-        updateSunShadow();
-      }, function(){ /* 권한 거부 시 기본 좌표 유지 */ }, { timeout: 4000, maximumAge: 600000 });
-    }
-
     setInterval(updateSunShadow, 5 * 60 * 1000);
+    requestAnimationFrame(trackShadow);
   }
 
   // ---- 드래그로 책 꺼내기 ----
@@ -352,12 +372,6 @@
   var opened = false;
   var suppressNextClick = false; // 포인터 제스처가 이미 처리한 뒤 이어지는 합성 click 무시용
 
-  function setShadow(dy){
-    var lift = Math.max(0, dy);
-    sun.lift = Math.min(lift / 140, 1);
-    applyShadow();
-  }
-
   function applyDrag(dy, dx){
     var clampedDy = Math.max(-14, Math.min(dy, 220));
     var lift = Math.max(0, clampedDy) * 0.92;
@@ -369,7 +383,7 @@
     book.style.transform =
       'translate(calc(-50% + ' + sway + 'px), calc(-100% - ' + lift + 'px)) ' +
       'rotate(' + tilt + 'deg) scale(' + scale + ')';
-    setShadow(clampedDy);
+    // 그림자는 trackShadow()가 다음 프레임에 book의 실제 위치를 읽어 알아서 따라온다
   }
 
   function resetInlineStyles(){
@@ -380,8 +394,6 @@
     book.classList.remove('dragging');
     book.classList.add('settling');
     resetInlineStyles();
-    sun.lift = 0;
-    applyShadow();
     var done = function(){
       book.classList.remove('settling');
       book.removeEventListener('transitionend', done);
@@ -403,7 +415,6 @@
     }
 
     book.style.transform = 'translate(-50%, calc(-100% - 210px)) rotate(-2deg) scale(1.08)';
-    document.documentElement.style.setProperty('--shadow-opacity', '0');
     setTimeout(function(){ veil.classList.add('show'); }, 190);
     setTimeout(function(){ window.location.href = NEXT_URL; }, 560);
   }
@@ -464,13 +475,6 @@
   book.addEventListener('pointermove', onPointerMove);
   book.addEventListener('pointerup', onPointerUp);
   book.addEventListener('pointercancel', onPointerCancel);
-
-  book.addEventListener('mouseenter', function(){
-    if (!dragging){ sun.lift = 0.4; applyShadow(); }
-  });
-  book.addEventListener('mouseleave', function(){
-    if (!dragging){ sun.lift = 0; applyShadow(); }
-  });
 
   // 키보드(Enter/Space) 또는 트랙패드 등 포인터 제스처 없이 들어오는 click만 처리
   book.addEventListener('click', function(e){

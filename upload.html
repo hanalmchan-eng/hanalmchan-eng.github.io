@@ -2,965 +2,378 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>hanalmchan</title>
+<title>hanalmchan — 서가</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root{
+    --paper:#ffffff;
+    --ink:#111111;
 
-  html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #ffffff;
-    color: #111111;
-    font-family: Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    overscroll-behavior: none;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
+    --spine:#15130f;
+    --spine-deep:#070604;
+    --spine-sheen:#2b2419;
+    --foil:#b6975f;
+    --foil-dim:rgba(182,151,95,.55);
+    --mark:#efe9dc;
+    --shadow:rgba(15,13,10,.24);
+
+    --shelf-y:64%;
+    --book-left:66%;
+    --spine-w:clamp(58px,8vw,92px);
+    --spine-h:clamp(220px,40vh,360px);
+    --tilt:7deg;
   }
 
-  #canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    cursor: grab;
-    touch-action: none;
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html, body{
+    width:100%; height:100%; overflow:hidden;
+    background:var(--paper); color:var(--ink);
+    font-family:Helvetica, Arial, sans-serif;
+    -webkit-user-select:none; user-select:none;
+    -webkit-touch-callout:none;
+    overscroll-behavior:none;
   }
 
-  #canvas.dragging { cursor: grabbing; }
+  #scene{ position:fixed; inset:0; overflow:hidden; }
 
-  #plane {
-    position: absolute;
-    top: 0; left: 0;
-    width: 1px; height: 1px;
-    will-change: transform;
-    transform: translate3d(0, 0, 0) scale(0.2688);
-    transform-origin: 0 0;
+  #shelf-shadow{
+    position:absolute; left:0; right:0; top:var(--shelf-y); height:44px;
+    background:linear-gradient(to bottom, rgba(17,17,17,.08), rgba(17,17,17,0) 100%);
+    pointer-events:none;
   }
-
-  #header {
-    position: fixed; top: 70px; left: 20px; z-index: 100;
-    font-size: 13px; mix-blend-mode: difference; color: #ffffff;
-    transition: opacity 0.3s ease;
-  }
-  #header.hidden-logo { opacity: 0; pointer-events: none; }
-  #header a { color: inherit; text-decoration: none; display: inline-block; cursor: pointer; }
-  #header a:hover { color: #888888; }
-  #header img.logo {
-    display: block;
-    width: 175px;
-    height: auto;
-    -webkit-user-drag: none;
-    user-drag: none;
-    pointer-events: none;
-    filter: none;
-  }
-  #header img.logo:not([src]),
-  #header img.logo[src=""] { display: none; }
-
-  #hint {
-    position: fixed;
-    left: 20px;
-    z-index: 100;
-    pointer-events: none;
-    mix-blend-mode: difference;
-    transition: opacity 0.5s;
-  }
-  #hint.hidden { opacity: 0; }
-
-  #hint-text {
-    font-size: 10px;
-    color: #ffffff;
-    letter-spacing: 0.04em;
-    line-height: 1.6;
-    white-space: nowrap;
-    opacity: 1;
-    transition: opacity 0.3s ease;
-  }
-  #hint-text.fade { opacity: 0 !important; }
-
-  #nav {
-    position: fixed; bottom: 20px; right: 20px; z-index: 100;
-    font-size: 12px; mix-blend-mode: difference; color: #ffffff;
-  }
-  #nav a { color: inherit; text-decoration: none; margin-left: 12px; }
-  #nav a:hover { color: #888888; }
-
-  .post { position: absolute; top: 0; left: 0; }
-
-  .post img.photo {
-    display: block;
-    max-height: none;
-    max-width: none;
-    -webkit-user-drag: none;
-    -khtml-user-drag: none;
-    -moz-user-drag: none;
-    -o-user-drag: none;
-    user-drag: none;
-    pointer-events: none;
+  #shelf-line{
+    position:absolute; left:0; right:0; top:var(--shelf-y); height:1px;
+    background:rgba(17,17,17,.22); pointer-events:none;
   }
 
-  .post img.photo-before {
-    position: absolute;
-    top: 0; left: 0;
-    opacity: 0;
-    transition: opacity 0.18s ease;
-    z-index: 2;
-  }
-  .post.show-before img.photo-before { opacity: 1; }
-
-  .post-photo a, .post-photoset a {
-    display: block;
-    cursor: inherit;
-    pointer-events: none;
+  /* 책이 기대는 얇은 칸막이(서가의 측판). 7deg 기울기 기준으로 맞춘 위치입니다 */
+  .divider{
+    position:absolute; top:var(--shelf-y);
+    left:calc(var(--book-left) + (var(--spine-w) / 2) + (var(--spine-h) * 0.122) + 3px);
+    width:2px; height:calc(var(--spine-h) * 0.97);
+    transform:translate(0,-100%);
+    background:linear-gradient(to top, rgba(17,17,17,.30), rgba(17,17,17,.14) 85%, rgba(17,17,17,0));
+    pointer-events:none;
   }
 
-  .photo-wrap {
-    display: block;
-    pointer-events: none;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
+  /* 아직 채워지지 않은 자리 — 앞으로 늘어날 책들의 자리를 점선으로 예고 */
+  .ghost-slot{
+    position:absolute; top:var(--shelf-y); transform:translate(-50%,-100%);
+    border:1px dashed rgba(17,17,17,.12);
+    pointer-events:none;
+  }
+  .ghost-slot.g1{ left:45%; width:calc(var(--spine-w) * 0.92); height:calc(var(--spine-h) * 0.94); }
+  .ghost-slot.g2{ left:55.5%; width:calc(var(--spine-w) * 0.84); height:calc(var(--spine-h) * 0.86); }
+
+  .book-shadow{
+    position:absolute; top:var(--shelf-y); left:var(--book-left);
+    width:calc(var(--spine-w) * 2.3); height:20px;
+    transform:translate(-50%,-50%) scale(1,1);
+    border-radius:50%; opacity:.6;
+    background:radial-gradient(closest-side, var(--shadow), rgba(0,0,0,0) 72%);
+    pointer-events:none; will-change:transform,opacity;
+  }
+  #scene:has(.book:hover) .book-shadow,
+  #scene:has(.book:focus-visible) .book-shadow{
+    transform:translate(-50%,-50%) scale(1.08,.86);
+    opacity:.42;
   }
 
-  .post-text, .post-quote, .post-link {
-    width: 625px;
-    padding: 20px;
+  .book{
+    position:absolute; top:var(--shelf-y); left:var(--book-left);
+    width:var(--spine-w); height:var(--spine-h);
+    transform:translate(-50%,-100%) rotate(var(--tilt));
+    transform-origin:bottom center;
+    background:none; border:0; padding:0; -webkit-appearance:none; appearance:none;
+    cursor:grab; touch-action:none; -webkit-tap-highlight-color:transparent;
+    transition:transform .5s cubic-bezier(.22,1,.36,1);
+    animation:idleSway 7s ease-in-out infinite;
+  }
+  .book:hover, .book:focus-visible{
+    transform:translate(-50%, calc(-100% - 8px)) rotate(calc(var(--tilt) - 3deg));
+  }
+  .book:focus-visible{ outline:2px solid var(--ink); outline-offset:10px; }
+  .book:hover, .book:focus-visible, .book.dragging, .book.settling, .book.opening{
+    animation-play-state:paused;
+  }
+  .book.dragging{ transition:none; cursor:grabbing; }
+  .book.settling{ transition:transform .55s cubic-bezier(.34,1.56,.64,1); }
+  .book.opening{ transition:transform .55s cubic-bezier(.16,1,.3,1); }
+
+  @keyframes idleSway{
+    0%,100%{ transform:translate(-50%,-100%) rotate(var(--tilt)); }
+    50%{ transform:translate(-50%,-100%) rotate(calc(var(--tilt) - .6deg)); }
   }
 
-  .caption {
-    margin-top: 10px; font-size: 12px; color: #111111;
-    max-width: 625px;
-    padding: 10px; background: rgba(255,255,255,0.9);
+  .spine{
+    position:relative; display:block; width:100%; height:100%;
+    overflow:hidden;
+    background:linear-gradient(100deg, var(--spine-sheen) 0%, var(--spine) 14%, var(--spine) 86%, var(--spine-deep) 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 16px 28px -12px var(--shadow);
+  }
+  .spine-edge{
+    position:absolute; top:0; right:0; width:5px; height:100%;
+    background:linear-gradient(90deg, rgba(0,0,0,0), var(--spine-deep));
+    opacity:.85;
   }
 
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
+  .foil-rule{ position:absolute; left:15%; right:15%; height:1px; background:var(--foil-dim); }
+  .foil-rule--top{ top:11%; }
+  .foil-rule--bottom{ bottom:21%; }
+
+  .spine-mark{
+    position:absolute; left:50%; top:45%;
+    width:calc(var(--spine-h) * 0.48);
+    height:calc(var(--spine-w) * 0.62);
+    transform:translate(-50%,-50%) rotate(-90deg);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .spine-mark img{
+    max-width:100%; max-height:100%; object-fit:contain;
+    display:block; opacity:.95;
+    filter:invert(1); /* 로고가 이미 밝은 색이면 이 줄을 지우세요 */
+  }
+  .spine-mark-fallback{
+    font-family:Helvetica, Arial, sans-serif;
+    font-size:15px; letter-spacing:.28em; font-weight:400;
+    color:var(--mark); white-space:nowrap; text-transform:lowercase;
   }
 
-  #loading {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    z-index: 300; font-size: 12px; color: #888; letter-spacing: 0.1em;
-    text-align: center; line-height: 2;
-    animation: blink 1.2s ease-in-out infinite;
+  .spine-number{
+    position:absolute; left:0; right:0; bottom:8%; text-align:center;
+    font-size:8px; letter-spacing:.16em; color:var(--foil-dim); text-transform:uppercase;
   }
 
-  #info-popup {
-    position: fixed; inset: 0; z-index: 400;
-    display: none;
-    align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-    opacity: 0; transition: opacity 0.25s ease;
-    padding: 24px;
+  #site-label{
+    position:fixed; top:24px; left:20px; z-index:50;
+    font-size:12px; letter-spacing:.08em; color:#fff; mix-blend-mode:difference;
   }
-  #info-popup.show { display: flex; opacity: 1; }
-  #info-card {
-    position: relative;
-    max-width: 420px; width: 100%;
-    background: transparent;
-    color: #ffffff;
-    border-radius: 20px;
-    border: none;
-    padding: 30px 28px;
-    box-shadow: 0 12px 50px rgba(0,0,0,0.30);
-    font-size: 13px; line-height: 1.7;
-    transform: translateY(8px); transition: transform 0.25s ease;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.35);
-    overflow: hidden;
-  }
-  /* 블러 유리 레이어: 로고 모양만 제외하고 전체에 블러 */
-  #info-card::before {
-    content: '';
-    position: absolute; inset: 0;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.10);
-    backdrop-filter: blur(22px) saturate(160%);
-    -webkit-backdrop-filter: blur(22px) saturate(160%);
-    /* 로고 모양을 구멍으로: 전체 불투명에서 로고 부분만 투명 */
-    -webkit-mask:
-      linear-gradient(#000 0 0),
-      url('logo_mask.png') no-repeat right 22px bottom 20px / 45px 42px;
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0),
-      url('logo_mask.png') no-repeat right 22px bottom 20px / 45px 42px;
-    mask-composite: exclude;
-    z-index: -1;
-  }
-  #info-popup.show #info-card { transform: translateY(0); }
-  #info-card .info-lead { margin-bottom: 14px; color: #ffffff; }
-  #info-card .info-lead:last-of-type { margin-bottom: 0; }
-  #info-card .info-price { border-top: 1px solid rgba(255,255,255,0.22); margin-top: 18px; padding-top: 16px; }
-  #info-card .info-price-row { display: flex; align-items: baseline; gap: 12px; margin: 8px 0; }
-  #info-card .info-price-label { flex: 0 0 auto; font-weight: 600; color: #ffffff; min-width: 36px; }
-  #info-card .info-price-val { color: rgba(255,255,255,0.92); letter-spacing: 0.02em; }
-  #info-card .info-price-val em { font-style: normal; color: rgba(255,255,255,0.6); font-size: 11px; }
 
+  #hint{ position:fixed; left:20px; bottom:22px; z-index:50; mix-blend-mode:difference; pointer-events:none; transition:opacity .5s; }
+  #hint-text{ font-size:10px; color:#fff; letter-spacing:.04em; line-height:1.6; white-space:nowrap; }
+
+  #count-label{
+    position:fixed; right:20px; bottom:22px; z-index:50;
+    font-size:11px; letter-spacing:.1em; color:#fff; mix-blend-mode:difference;
+  }
+
+  #veil{ position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:200; transition:opacity .38s ease; }
+  #veil.show{ opacity:1; }
+
+  @media (prefers-reduced-motion:reduce){
+    .book{ animation:none; }
+    .book, .book.settling, .book.opening{ transition-duration:.15s; }
+  }
 </style>
-
 </head>
 <body>
 
-<div id="header">
-  <a href="/" id="header-link">hanalmchan</a>
-</div>
+  <div id="site-label">서가</div>
 
-<div id="hint"><div id="hint-text"></div></div>
+  <div id="hint"><div id="hint-text"></div></div>
+  <div id="count-label">vol. 01</div>
 
-<div id="nav"></div>
+  <div id="scene">
+    <div id="shelf-shadow"></div>
+    <div id="shelf-line"></div>
+    <div class="ghost-slot g1" aria-hidden="true"></div>
+    <div class="ghost-slot g2" aria-hidden="true"></div>
+    <div class="divider" aria-hidden="true"></div>
+    <div class="book-shadow" aria-hidden="true"></div>
 
-<div id="loading">불러오는 중...<br>loading...<br>読み込み中...</div>
-
-<div id="canvas">
-  <div id="plane"></div>
-</div>
-
-<div id="logo-hit" style="position:fixed; z-index:90; display:none; cursor:pointer;"></div>
-
-<div id="info-popup">
-  <div id="info-card">
-    <p class="info-lead">아름다움 한 아름. 인연이 닿아 현 삶의 단계의 모습을 기록으로 남기게 되어 영광입니다.</p>
-    <p class="info-lead">사진 제공은 업로드 허용을 조건으로 하며, 보정본 1장, 그리고 전체 압축본을 기본으로 제공해 드립니다.</p>
-    <div class="info-price">
-      <div class="info-price-row">
-        <span class="info-price-label">원본</span>
-        <span class="info-price-val">10장 당 5만원 <em>(전체 15만원)</em></span>
-      </div>
-      <div class="info-price-row">
-        <span class="info-price-label">보정</span>
-        <span class="info-price-val">장당 2만원 <em>(인쇄·포스터용 고해상도 장당 3만원)</em></span>
-      </div>
-    </div>
+    <button class="book" id="book" type="button" aria-label="hanalmchan — 당겨서 열기">
+      <span class="spine">
+        <span class="foil-rule foil-rule--top" aria-hidden="true"></span>
+        <span class="spine-mark">
+          <img id="spine-logo-img" alt="" draggable="false">
+          <span class="spine-mark-fallback" id="spine-mark-fallback">hanalmchan</span>
+        </span>
+        <span class="foil-rule foil-rule--bottom" aria-hidden="true"></span>
+        <span class="spine-number">no. 01</span>
+        <span class="spine-edge" aria-hidden="true"></span>
+      </span>
+    </button>
   </div>
-</div>
+
+  <div id="veil"></div>
 
 <script>
-function positionHint() {
-  var header = document.getElementById('header');
-  var hint   = document.getElementById('hint');
-  if (!header || !hint) return;
-  var headerTop = 70;
-  // 전체화면(로고 숨김)이면 문구를 로고 자리(헤더 위치)로 올림
-  if (header.classList.contains('hidden-logo')) {
-    hint.style.top = headerTop + 'px';
-    return;
-  }
-  var logoEl = header.querySelector('img.logo');
-  var logoH  = (logoEl && logoEl.offsetHeight > 0) ? logoEl.offsetHeight : 20;
-  hint.style.top = (headerTop + logoH + 8) + 'px';
-}
-window.addEventListener('resize', positionHint);
-setTimeout(positionHint, 50);
-setTimeout(positionHint, 300);
-
-(function() {
-  var probe = new Image();
-  probe.onload = function() {
-    if (probe.naturalWidth === 0) return;
-    var a = document.getElementById('header-link');
-    if (!a) return;
-    a.textContent = '';
-    var logo = document.createElement('img');
-    logo.className = 'logo';
-    logo.alt = 'hanalmchan';
-    logo.style.width = '175px';
-    logo.style.height = 'auto';
-    logo.src = 'logo.png';
-    logo.addEventListener('load', function() { positionHint(); });
-    a.appendChild(logo);
-  };
-  probe.onerror = function() { positionHint(); };
-  probe.src = 'logo.png';
-})();
-</script>
-
-<script>
-(function() {
+(function(){
   'use strict';
 
-  var R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
-  var gap = 4;
-  var planeScale = 0.2688;
+  // ====== 설정: 실제 배포 시 이 두 값만 맞춰주면 됩니다 ======
+  var LOGO_SRC = 'logo.png';        // 책등 로고 이미지 경로 (가로형 원본)
+  var NEXT_URL = 'hanalmchan.html'; // 이 책을 열었을 때 이동할 갤러리 페이지
+  // ===========================================================
 
-  var BASE_SCALE = 0.2688;
-  var BASE_LOGO_W = 175;
-  var SCALE_BOOST = 1.2;
+  var book       = document.getElementById('book');
+  var shadowEl   = document.querySelector('.book-shadow');
+  var veil       = document.getElementById('veil');
+  var hint       = document.getElementById('hint');
+  var hintText   = document.getElementById('hint-text');
+  var logoImg    = document.getElementById('spine-logo-img');
+  var fallback   = document.getElementById('spine-mark-fallback');
 
-  var curImgW = 0, curImgH = 0;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  var HEADER_X = 20;
-  var HEADER_Y = 70;
-
-  var HOLD_DELAY = 3000;
-
-  // ===== 보기 모드 =====
-  // 'fit'  : 전체 보기 (가로를 화면에 맞춤, 세로 스크롤, 로고 숨김)
-  // 'zoom' : 확대 보기 (로고가 헤더에 맞는 배율, 로고 표시)
-  var viewMode = 'zoom';
-  var fitScale = 0.2688;   // 전체 보기 배율 (사진 로드 시 계산)
-  var zoomScale = 0.2688;  // 확대 보기 배율 (사진 로드 시 계산)
-
-  if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
-    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-      if (typeof r === 'number') r = [r, r, r, r];
-      r = r || [0, 0, 0, 0];
-      this.moveTo(x + r[0], y);
-      this.lineTo(x + w - r[1], y);
-      this.arcTo(x + w, y, x + w, y + r[1], r[1]);
-      this.lineTo(x + w, y + h - r[2]);
-      this.arcTo(x + w, y + h, x + w - r[2], y + h, r[2]);
-      this.lineTo(x + r[3], y + h);
-      this.arcTo(x, y + h, x, y + h - r[3], r[3]);
-      this.lineTo(x, y + r[0]);
-      this.arcTo(x, y, x + r[0], y, r[0]);
-      return this;
+  // ---- 로고 로드 시도, 실패하면 텍스트로 대체 ----
+  (function loadLogo(){
+    var probe = new Image();
+    probe.onload = function(){
+      if (probe.naturalWidth === 0) return;
+      logoImg.src = LOGO_SRC;
+      fallback.style.display = 'none';
     };
+    probe.onerror = function(){ /* 로고 없으면 fallback 텍스트 유지 */ };
+    probe.src = LOGO_SRC;
+  })();
+
+  // ---- 안내문구 ----
+  hintText.innerHTML =
+    '당겨서 꺼내기 · 또는 클릭해서 열기<br>' +
+    'Drag to pull it out · or click to open<br>' +
+    '引いて取り出す · またはクリックで開く';
+
+  var hideTimer = setTimeout(function(){ hint.style.opacity = '0'; }, 6000);
+  function wakeHint(){
+    clearTimeout(hideTimer);
+    hint.style.opacity = '1';
+    hideTimer = setTimeout(function(){ hint.style.opacity = '0'; }, 4000);
   }
 
-  var canvas   = document.getElementById('canvas');
-  var plane    = document.getElementById('plane');
-  var header   = document.getElementById('header');
-  var hint     = document.getElementById('hint');
-  var hintText = document.getElementById('hint-text');
-  var loadingEl = document.getElementById('loading');
-  var logoHit  = document.getElementById('logo-hit');
+  // ---- 드래그로 책 꺼내기 ----
+  var TILT_DEG   = 7;
+  var OPEN_PX    = 90;   // 이만큼 위로 당기면 완전히 빠져나옴
+  var TAP_PX     = 8;    // 이보다 적게 움직이면 '클릭'으로 간주
 
-  // 사진 속 합성 로고 비율
-  var LOGO_W_RATIO = 0.0936;          // 로고 너비 / 사진 너비
-  var LOGO_HW_RATIO = 801 / 1429;     // 로고 높이 / 로고 너비 (로고 이미지 비율)
-  var HIT_PAD = 1.6;                  // 클릭 영역 여유 (로고보다 크게)
+  var dragging = false;
+  var activePointerId = null;
+  var startX = 0, startY = 0;
+  var maxMove = 0;
+  var currentDy = 0;
+  var opened = false;
+  var suppressNextClick = false; // 포인터 제스처가 이미 처리한 뒤 이어지는 합성 click 무시용
 
-  var hintHidden = false;
-
-  var hideTimer = null;
-  function hideHint() {
-    if (hintHidden || !hint) return;
-    hintHidden = true;
-    if (hideTimer) clearTimeout(hideTimer);
-    hideTimer = setTimeout(function() {
-      if (hint) hint.classList.add('hidden');
-    }, 6000);
-  }
-  setTimeout(hideHint, 99000);
-
-  function showHintAgain(autoHideMs) {
-    if (!hint) return;
-    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-    hint.classList.remove('hidden');
-    hintHidden = false;
-    var ms = (typeof autoHideMs === 'number') ? autoHideMs : 4000;
-    hideTimer = setTimeout(function() {
-      if (hint) hint.classList.add('hidden');
-      hintHidden = true;
-    }, ms);
+  function setShadow(dy){
+    var lift = Math.max(0, dy);
+    var t = Math.min(lift / 140, 1);
+    var scaleX = 1 + t * 0.15;
+    var scaleY = 1 - t * 0.55;
+    var ty = Math.min(lift * 0.22, 16);
+    var opacity = 0.6 - t * 0.42;
+    shadowEl.style.transform = 'translate(-50%, calc(-50% + ' + ty + 'px)) scale(' + scaleX + ',' + scaleY + ')';
+    shadowEl.style.opacity = String(Math.max(0.12, opacity));
   }
 
-  function showLoading() {
-    if (!loadingEl || !document.body.contains(loadingEl)) {
-      loadingEl = document.createElement('div');
-      loadingEl.id = 'loading';
-      loadingEl.innerHTML = '불러오는 중...<br>loading...<br>読み込み中...';
-      document.body.appendChild(loadingEl);
-    }
+  function applyDrag(dy, dx){
+    var clampedDy = Math.max(-14, Math.min(dy, 220));
+    var lift = Math.max(0, clampedDy) * 0.92;
+    var tiltProgress = Math.min(Math.max(clampedDy, 0), 150) / 150;
+    var tilt = TILT_DEG - tiltProgress * (TILT_DEG + 2.5);
+    if (clampedDy < 0) tilt = TILT_DEG - clampedDy * 0.12; // 살짝 눌렀을 때 미세한 저항감
+    var scale = 1 + Math.min(Math.max(clampedDy, 0), 220) * 0.0007;
+    var sway = Math.max(-6, Math.min(dx * 0.06, 6));
+    book.style.transform =
+      'translate(calc(-50% + ' + sway + 'px), calc(-100% - ' + lift + 'px)) ' +
+      'rotate(' + tilt + 'deg) scale(' + scale + ')';
+    setShadow(clampedDy);
   }
 
-  var tx = 0, ty = 50;
-  var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
-
-  // 두 배율을 계산: zoom(로고 맞춤) / fit(가로 맞춤)
-  // 확대 배율 기준: 픽셀 1:1(=1.0)의 몇 배로 볼지. 0.5 = 절반 크기
-  var ZOOM_K = 0.5;
-  // 페이지 로드 시점의 밀도를 고정 (창 크기 조절에 영향받지 않음)
-  var BASE_DPR = window.devicePixelRatio || 1;
-
-  function computeScales(imgW, imgH) {
-    if (!imgW || !imgH) return;
-    curImgW = imgW; curImgH = imgH;
-    // 확대 배율: 오직 화면 픽셀 밀도만 기준. 창 크기와 무관하게 일정하게 유지.
-    // dpr 1 -> 0.50, dpr 2 -> 0.25, dpr 3 -> 0.17
-    zoomScale = ZOOM_K / BASE_DPR;
-    // 전체 보기 배율: 사진 가로를 화면 가로에 딱 맞춤
-    fitScale = window.innerWidth / imgW;
+  function resetInlineStyles(){
+    book.style.transform = '';
   }
 
-  function setHintText(mode) {
-    if (!hintText) return;
-    if (mode === 'zoom') {
-      hintText.innerHTML =
-        '끌어서 둘러보기 · 로고를 클릭하여 다음 · 두 번 클릭 또는 축소 제스처로 전체<br>' +
-        'Drag to explore · Click logo for next · Double-click or pinch out for full<br>' +
-        'ドラッグで探索 · ロゴをクリックで次へ · ダブルクリックまたはピンチで全体表示';
-    } else {
-      hintText.innerHTML =
-        '로고를 눌러 다음 · 두 번 클릭 또는 확대 제스처로 자세히<br>' +
-        'Tap logo for next · Double-click or pinch in to zoom<br>' +
-        'ロゴをタップで次へ · ダブルクリックまたはピンチで拡大';
-    }
+  function springBack(){
+    book.classList.remove('dragging');
+    book.classList.add('settling');
+    resetInlineStyles();
+    shadowEl.style.transform = '';
+    shadowEl.style.opacity = '';
+    var done = function(){
+      book.classList.remove('settling');
+      book.removeEventListener('transitionend', done);
+    };
+    book.addEventListener('transitionend', done);
   }
 
-  function applyMode() {
-    var logoEl = document.querySelector('#header img.logo');
-    if (logoEl) logoEl.style.filter = 'none';
-    if (viewMode === 'zoom') {
-      planeScale = zoomScale;
-      if (header) {
-        header.classList.remove('hidden-logo');
-        header.style.mixBlendMode = 'difference';
-      }
-      if (logoEl) logoEl.style.width = (BASE_LOGO_W * (zoomScale / BASE_SCALE)) + 'px';
-      setHintText('zoom');
-      setTimeout(positionHint, 50);
-    } else {
-      planeScale = fitScale;
-      // 전체 보기: 로고 숨김
-      if (header) {
-        header.classList.add('hidden-logo');
-        header.style.mixBlendMode = 'difference';
-      }
-      if (logoEl) logoEl.style.width = BASE_LOGO_W + 'px';
-      setHintText('fit');
-      setTimeout(positionHint, 50);
-    }
-  }
+  function commitOpen(){
+    if (opened) return;
+    opened = true;
+    book.classList.remove('dragging');
+    book.classList.add('opening');
+    book.setAttribute('aria-disabled', 'true');
 
-  function updateBounds() {
-    var posts = document.querySelectorAll('#plane .post');
-    if (posts.length === 0) return;
-    var maxX = -Infinity, maxY = -Infinity;
-    for (var i = 0; i < posts.length; i++) {
-      var p = posts[i];
-      var pw = p.offsetWidth * planeScale;
-      var ph = p.offsetHeight * planeScale;
-      if (pw > maxX) maxX = pw;
-      if (ph > maxY) maxY = ph;
-    }
-    var W = window.innerWidth, H = window.innerHeight;
-    if (maxX >= W) { bounds.maxX = 0; bounds.minX = -(maxX - W); }
-    else { var cx = (W - maxX) / 2; bounds.maxX = cx; bounds.minX = cx; }
-    if (maxY >= H) {
-      bounds.maxY = 0; bounds.minY = -(maxY - H);
-    } else if (viewMode === 'fit') {
-      // 전체 보기: 세로가 화면보다 작아도 위에 붙임 (위아래 여백 제거)
-      bounds.maxY = 0; bounds.minY = 0;
-    } else {
-      var cy = (H - maxY) / 2; bounds.maxY = cy; bounds.minY = cy;
-    }
-  }
-
-  function clampPosition() {
-    if (tx > bounds.maxX) tx = bounds.maxX;
-    if (tx < bounds.minX) tx = bounds.minX;
-    if (ty > bounds.maxY) ty = bounds.maxY;
-    if (ty < bounds.minY) ty = bounds.minY;
-  }
-
-  function updateTransform() {
-    clampPosition();
-    plane.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + planeScale + ')';
-    updateLogoHit();
-  }
-
-  // 전체화면(fit)에서만, 사진 속 로고 위치에 클릭 영역 배치
-  function updateLogoHit() {
-    if (!logoHit) return;
-    if (viewMode !== 'fit' || !currentPost ||
-        typeof currentPost.logoX !== 'number' || typeof currentPost.logoY !== 'number') {
-      logoHit.style.display = 'none';
-      return;
-    }
-    var lw = curImgW * LOGO_W_RATIO;          // 로고 원본 너비(px)
-    var lh = lw * LOGO_HW_RATIO;              // 로고 원본 높이(px)
-    // 화면 좌표 = tx/ty + 원본좌표 * scale
-    var sx = tx + currentPost.logoX * planeScale;
-    var sy = ty + currentPost.logoY * planeScale;
-    var sw = lw * planeScale;
-    var sh = lh * planeScale;
-    // 여유를 둬서 키움 (중심 기준 확대)
-    var padW = sw * (HIT_PAD - 1) / 2;
-    var padH = sh * (HIT_PAD - 1) / 2;
-    logoHit.style.display = 'block';
-    logoHit.style.left = (sx - padW) + 'px';
-    logoHit.style.top = (sy - padH) + 'px';
-    logoHit.style.width = (sw * HIT_PAD) + 'px';
-    logoHit.style.height = (sh * HIT_PAD) + 'px';
-  }
-
-  function layoutPosts() {
-    var posts = document.querySelectorAll('#plane .post');
-    if (posts.length === 0) return;
-    var x = 0;
-    for (var i = 0; i < posts.length; i++) {
-      var post = posts[i];
-      var w = post.offsetWidth;
-      var h = post.offsetHeight;
-      if (w === 0 || h === 0) continue;
-      post.style.left = x + 'px';
-      post.style.top = '0px';
-      x += w + gap;
-    }
-    updateBounds();
-  }
-
-  function buildImageUrl(filename) {
-    return R2_BASE + '/' + encodeURIComponent(filename);
-  }
-
-  var currentPost = null;
-  function alignToLogo(post) {
-    if (post) currentPost = post;
-    var p = currentPost;
-    if (!p) return;
-    var lx = p.logoX, ly = p.logoY;
-    if (typeof lx !== 'number' || typeof ly !== 'number') return;
-    tx = HEADER_X - lx * planeScale;
-    ty = HEADER_Y - ly * planeScale;
-    updateTransform();
-  }
-
-  var allPosts = [];
-  var currentIndex = 0;
-  var currentPostEl = null;
-  var hasBefore = false;
-
-  function renderPosts(posts) {
-    posts = (posts || []).filter(function(p) {
-      if (!p) return false;
-      if (p.file) return true;
-      if (p.url && p.url.indexOf('undefined') === -1) return true;
-      return false;
-    });
-    if (posts.length === 0) {
-      if (loadingEl) loadingEl.textContent = '아직 업로드된 사진이 없어요.';
-      return;
-    }
-    allPosts = posts;
-    currentIndex = 0;
-    showPost(0);
-  }
-
-  function positionForMode() {
-    if (viewMode === 'zoom') {
-      alignToLogo(null);
-    } else {
-      // 전체 보기: 가로 중앙, 위 정렬
-      var W = window.innerWidth;
-      tx = (W - curImgW * planeScale) / 2;
-      ty = 0;
-      updateTransform();
-    }
-  }
-
-  function showPost(index) {
-    if (allPosts.length === 0) return;
-    currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
-    var post = allPosts[currentIndex];
-    currentPost = post;
-    plane.innerHTML = '';
-    currentPostEl = null;
-    hasBefore = false;
-    viewMode = 'zoom';   // 새 사진은 확대 보기로 시작 (로고 표시)
-
-    showLoading();
-
-    var div = document.createElement('div');
-    div.className = 'post post-photo';
-    var img = document.createElement('img');
-    img.className = 'photo';
-    img.src = post.file ? buildImageUrl(post.file) : post.url;
-    img.alt = post.caption || '';
-    img.draggable = false;
-    img.addEventListener('load', function() {
-      var w = img.naturalWidth, h = img.naturalHeight;
-      img.style.width = w + 'px';
-      img.style.height = h + 'px';
-      if (beforeImg) {
-        beforeImg.style.width = w + 'px';
-        beforeImg.style.height = h + 'px';
-      }
-      computeScales(w, h);
-      applyMode();
-      layoutPosts();
-      positionForMode();
-      showHintAgain(2000);
-      if (loadingEl) loadingEl.remove();
-    });
-    img.addEventListener('error', function() {
-      if (div.parentNode) div.parentNode.removeChild(div);
-    });
-    div.appendChild(img);
-
-    var beforeImg = null;
-    if (post.before) {
-      beforeImg = document.createElement('img');
-      beforeImg.className = 'photo photo-before';
-      beforeImg.src = buildImageUrl(post.before);
-      beforeImg.alt = '';
-      beforeImg.draggable = false;
-      div.appendChild(beforeImg);
-      hasBefore = true;
-    }
-
-    if (post.caption) {
-      var cap = document.createElement('div');
-      cap.className = 'caption';
-      cap.textContent = post.caption;
-      div.appendChild(cap);
-    }
-    plane.appendChild(div);
-    currentPostEl = div;
-    layoutPosts();
-    setTimeout(function(){ layoutPosts(); positionForMode(); }, 500);
-    setTimeout(function(){ layoutPosts(); positionForMode(); }, 1500);
-  }
-
-  function nextPost() { showPost(currentIndex + 1); }
-
-  // 모드 전환
-  function enterZoom() {
-    if (viewMode === 'zoom') return;
-    viewMode = 'zoom';
-    applyMode();
-    layoutPosts();
-    alignToLogo(currentPost);   // 확대 시 항상 로고 겹침 위치로
-    updateTransform();
-    showHintAgain();
-  }
-  function enterFit() {
-    if (viewMode === 'fit') return;
-    viewMode = 'fit';
-    applyMode();
-    layoutPosts();
-    positionForMode();
-    showHintAgain();
-  }
-  function toggleMode() {
-    if (viewMode === 'fit') enterZoom(); else enterFit();
-  }
-
-  function showBefore() {
-    if (hasBefore && currentPostEl) currentPostEl.classList.add('show-before');
-  }
-  function hideBefore() {
-    if (currentPostEl) currentPostEl.classList.remove('show-before');
-  }
-
-  fetch('posts.json?v=' + Date.now())
-    .then(function(r) { return r.json(); })
-    .then(function(posts) { renderPosts(posts); })
-    .catch(function() {
-      if (loadingEl) loadingEl.textContent = '포스트를 불러올 수 없어요.';
-    });
-
-  var resizeTimer = null;
-  window.addEventListener('resize', function() {
-    if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function() {
-      if (curImgW && curImgH) {
-        computeScales(curImgW, curImgH);
-        applyMode();
-        layoutPosts();
-        positionForMode();
-      }
-    }, 100);
-  });
-
-  // ===== 정보 팝업 =====
-  var infoPopup = document.getElementById('info-popup');
-  var infoCard  = document.getElementById('info-card');
-  var POPUP_HOLD = 2000;  // 로고를 이 시간 이상 누르면 팝업
-
-  function openPopup() {
-    if (!infoPopup) return;
-    infoPopup.classList.add('show');
-  }
-  function closePopup() {
-    if (!infoPopup) return;
-    infoPopup.classList.remove('show');
-  }
-  function isPopupOpen() {
-    return infoPopup && infoPopup.classList.contains('show');
-  }
-
-  // 팝업 닫기: 바깥 탭 / 카드 탭 / ESC / 스크롤·스와이프 등
-  if (infoPopup) {
-    infoPopup.addEventListener('click', function(e){ e.preventDefault(); closePopup(); });
-    infoPopup.addEventListener('touchend', function(e){ e.preventDefault(); closePopup(); }, { passive: false });
-    infoPopup.addEventListener('touchmove', function(e){ e.preventDefault(); closePopup(); }, { passive: false });
-    infoPopup.addEventListener('wheel', function(e){ e.preventDefault(); closePopup(); }, { passive: false });
-  }
-  document.addEventListener('keydown', function(e){
-    if (isPopupOpen() && (e.key === 'Escape' || e.key === 'Esc')) { closePopup(); }
-  });
-
-  // 헤더 로고: 짧게 누르면 다음, 길게 누르면 팝업
-  var headerLink = document.getElementById('header-link');
-  if (headerLink) {
-    headerLink.style.cursor = 'pointer';
-    var logoHoldTimer = null;
-    var logoHeld = false;
-
-    function logoPressStart(e) {
-      logoHeld = false;
-      if (logoHoldTimer) clearTimeout(logoHoldTimer);
-      logoHoldTimer = setTimeout(function(){
-        logoHeld = true;
-        openPopup();
-      }, POPUP_HOLD);
-    }
-    function logoPressEnd(e) {
-      if (logoHoldTimer) { clearTimeout(logoHoldTimer); logoHoldTimer = null; }
-      if (logoHeld) { e.preventDefault(); return; }  // 팝업 떴으면 다음 사진 안 함
-    }
-
-    headerLink.addEventListener('mousedown', logoPressStart);
-    headerLink.addEventListener('mouseup', logoPressEnd);
-    headerLink.addEventListener('mouseleave', function(){ if (logoHoldTimer){ clearTimeout(logoHoldTimer); logoHoldTimer=null; } });
-    headerLink.addEventListener('touchstart', function(e){ logoPressStart(e); }, { passive: true });
-    headerLink.addEventListener('touchend', function(e){
-      if (logoHoldTimer) { clearTimeout(logoHoldTimer); logoHoldTimer = null; }
-      if (logoHeld) { e.preventDefault(); e.stopPropagation(); return; }
-      e.preventDefault(); e.stopPropagation();
-      nextPost();
-    }, { passive: false });
-
-    headerLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      if (logoHeld) { logoHeld = false; return; }  // 길게여서 팝업 떴으면 다음 안 함
-      nextPost();
-    });
-  }
-
-  // 전체화면 로고 클릭 영역 → 다음 사진
-  if (logoHit) {
-    logoHit.addEventListener('click', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      nextPost();
-    });
-    logoHit.addEventListener('touchend', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      nextPost();
-    }, { passive: false });
-  }
-
-  function onWheel(e) {
-    if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
-    e.preventDefault();
-    hideHint();
-    var dx = e.deltaX, dy = e.deltaY;
-    if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
-    else if (e.deltaMode === 2) { dx *= window.innerWidth; dy *= window.innerHeight; }
-    if (e.shiftKey && dx === 0) { dx = dy; dy = 0; }
-    tx -= dx; ty -= dy;
-    updateTransform();
-  }
-  window.addEventListener('wheel', onWheel, { passive: false, capture: true });
-
-  var isDragging = false, didMove = false;
-  var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
-  var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
-  var momentumRAF = null;
-
-  var holdTimer = null;
-  var holding = false;
-  var holdCancelled = false;
-
-  function clearHold() {
-    holdCancelled = true;
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (holding) { holding = false; hideBefore(); }
-  }
-
-  function stopMomentum() {
-    if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
-  }
-
-  function startDrag(clientX, clientY, target) {
-    if (target && target.closest && target.closest('button, input, textarea, video, audio, iframe')) return false;
-    stopMomentum();
-    isDragging = true; didMove = false;
-    dragStartX = clientX; dragStartY = clientY;
-    dragStartTx = tx; dragStartTy = ty;
-    lastDragX = clientX; lastDragY = clientY;
-    velX = 0; velY = 0;
-    canvas.classList.add('dragging');
-    hideHint();
-
-    if (hasBefore) {
-      holdCancelled = false;
-      if (holdTimer) clearTimeout(holdTimer);
-      holdTimer = setTimeout(function() {
-        if (isDragging && !holdCancelled) {
-          holding = true;
-          showBefore();
-        }
-      }, HOLD_DELAY);
-    }
-    return true;
-  }
-
-  var HOLD_CANCEL_DIST = 15;
-
-  function moveDrag(clientX, clientY) {
-    if (!isDragging) return;
-    var dx = clientX - dragStartX, dy = clientY - dragStartY;
-    var dist = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
-
-    if (holding) {
-      if (dist > HOLD_CANCEL_DIST) {
-        didMove = true;
-        clearHold();
-        dragStartX = clientX; dragStartY = clientY;
-        dragStartTx = tx; dragStartTy = ty;
-        lastDragX = clientX; lastDragY = clientY;
-      }
+    if (reduceMotion){
+      veil.classList.add('show');
+      setTimeout(function(){ window.location.href = NEXT_URL; }, 200);
       return;
     }
 
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-      didMove = true;
-      if (dist > HOLD_CANCEL_DIST) clearHold();
-    }
-    velX = clientX - lastDragX; velY = clientY - lastDragY;
-    lastDragX = clientX; lastDragY = clientY;
-    tx = dragStartTx + dx; ty = dragStartTy + dy;
-    updateTransform();
+    book.style.transform = 'translate(-50%, calc(-100% - 210px)) rotate(-2deg) scale(1.08)';
+    shadowEl.style.opacity = '0';
+    setTimeout(function(){ veil.classList.add('show'); }, 190);
+    setTimeout(function(){ window.location.href = NEXT_URL; }, 560);
   }
 
-  function endDrag() {
-    if (!isDragging) return;
-    isDragging = false;
-    canvas.classList.remove('dragging');
-    clearHold();
-    if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) startMomentum();
+  function onPointerDown(e){
+    if (opened) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    dragging = true;
+    activePointerId = e.pointerId;
+    try { book.setPointerCapture(e.pointerId); } catch(err){}
+    startX = e.clientX; startY = e.clientY;
+    maxMove = 0; currentDy = 0;
+    book.classList.add('dragging');
+    wakeHint();
   }
 
-  function startMomentum() {
-    var friction = 0.93;
-    function step() {
-      velX *= friction; velY *= friction;
-      tx += velX; ty += velY;
-      var bx = tx, by = ty;
-      updateTransform();
-      if (tx === bx && Math.abs(velX) > 0.1) velX = 0;
-      if (ty === by && Math.abs(velY) > 0.1) velY = 0;
-      if (Math.abs(velX) < 0.1 && Math.abs(velY) < 0.1) { momentumRAF = null; return; }
-      momentumRAF = requestAnimationFrame(step);
-    }
-    momentumRAF = requestAnimationFrame(step);
+  function onPointerMove(e){
+    if (!dragging || e.pointerId !== activePointerId) return;
+    var dx = e.clientX - startX;
+    var dy = startY - e.clientY; // 위로 당기면 양수
+    currentDy = dy;
+    maxMove = Math.max(maxMove, Math.abs(dx), Math.abs(dy));
+    applyDrag(dy, dx);
   }
 
-  canvas.addEventListener('mousedown', function(e) { if (startDrag(e.clientX, e.clientY, e.target)) e.preventDefault(); });
-  canvas.addEventListener('dragstart', function(e) { if (e.target && e.target.tagName === 'IMG') e.preventDefault(); });
-  window.addEventListener('mousemove', function(e) { if (isDragging) { e.preventDefault(); moveDrag(e.clientX, e.clientY); } });
-  window.addEventListener('mouseup', endDrag);
-  window.addEventListener('mouseleave', endDrag);
+  function onPointerUp(e){
+    if (!dragging || e.pointerId !== activePointerId) return;
+    dragging = false;
+    activePointerId = null;
+    book.classList.remove('dragging');
 
-  // 더블클릭으로 확대/축소 토글 (데스크톱, 어디서나)
-  document.addEventListener('dblclick', function(e) {
-    e.preventDefault();
-    toggleMode();
-  });
-
-  // 터치 더블탭으로 확대/축소 토글 (아이패드 등, 어디서나)
-  // touchstart 기준으로 두 번 두드림을 직접 인식 (드래그 여부와 무관)
-  var lastTapTime = 0;
-  var lastTapX = 0, lastTapY = 0;
-  document.addEventListener('touchstart', function(e) {
-    if (!e.touches || e.touches.length !== 1) { lastTapTime = 0; return; }
-    var t = e.touches[0];
-    var now = Date.now();
-    var dt = now - lastTapTime;
-    var dx = Math.abs(t.clientX - lastTapX);
-    var dy = Math.abs(t.clientY - lastTapY);
-    if (dt > 0 && dt < 350 && dx < 40 && dy < 40) {
-      // 두 번째 빠른 탭 → 더블탭
-      e.preventDefault();
-      toggleMode();
-      lastTapTime = 0;
+    if (maxMove < TAP_PX || currentDy >= OPEN_PX){
+      commitOpen();
     } else {
-      lastTapTime = now;
-      lastTapX = t.clientX; lastTapY = t.clientY;
+      springBack();
     }
-  }, { passive: false });
-
-  // ===== 터치: 1손가락 드래그 / 2손가락 핀치 =====
-  var pinching = false;
-  var pinchStartDist = 0;
-
-  function touchDist(t1, t2) {
-    var dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
-    return Math.sqrt(dx*dx + dy*dy);
+    suppressNextClick = true; // 곧이어 브라우저가 합성 발생시킬 click은 무시
+    maxMove = 0;
   }
 
-  canvas.addEventListener('touchstart', function(e) {
-    if (e.touches.length === 1) {
-      pinching = false;
-      var t = e.touches[0]; startDrag(t.clientX, t.clientY, e.target);
-    } else if (e.touches.length === 2) {
-      e.preventDefault();
-      endDrag();
-      pinching = true;
-      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
-    }
-  }, { passive: false });
+  function onPointerCancel(e){
+    if (!dragging || e.pointerId !== activePointerId) return;
+    dragging = false;
+    activePointerId = null;
+    springBack();
+  }
 
-  canvas.addEventListener('touchmove', function(e) {
-    if (pinching && e.touches.length === 2) {
-      e.preventDefault();
-      var d = touchDist(e.touches[0], e.touches[1]);
-      var ratio = d / (pinchStartDist || d);
-      // 핀치 아웃(벌리기) → 확대, 핀치 인(오므리기) → 전체
-      if (ratio > 1.18) { enterZoom(); pinching = false; }
-      else if (ratio < 0.85) { enterFit(); pinching = false; }
-      return;
-    }
-    if (e.touches.length === 1 && isDragging) {
-      e.preventDefault(); var t = e.touches[0]; moveDrag(t.clientX, t.clientY);
-    } else if (e.touches.length > 1) {
-      e.preventDefault();
-    }
-  }, { passive: false });
+  book.addEventListener('pointerdown', onPointerDown);
+  book.addEventListener('pointermove', onPointerMove);
+  book.addEventListener('pointerup', onPointerUp);
+  book.addEventListener('pointercancel', onPointerCancel);
 
-  canvas.addEventListener('touchend', function(e) {
-    if (e.touches.length === 0) { pinching = false; }
-    endDrag();
-  });
-  canvas.addEventListener('touchcancel', function(){ pinching = false; endDrag(); });
-
-  document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
-  document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
-  document.addEventListener('gestureend', function(e) { e.preventDefault(); });
-  document.addEventListener('wheel', function(e) { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false, capture: true });
-
-  var lastTouchEnd = 0;
-  document.addEventListener('touchend', function(e) {
-    var now = Date.now();
-    if (now - lastTouchEnd <= 300) e.preventDefault();
-    lastTouchEnd = now;
-  }, { passive: false });
-
-  document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) { e.preventDefault(); return; }
-    var step = 100;
-    if (e.key === 'ArrowLeft')  { tx += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowRight') { tx -= step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowUp')    { ty += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
+  // 키보드(Enter/Space)로 여는 경우 — 포인터 제스처를 거치지 않은 click만 처리
+  book.addEventListener('click', function(e){
+    if (suppressNextClick){ suppressNextClick = false; return; } // 방금 포인터로 이미 처리됨
+    commitOpen();
   });
 
-  canvas.addEventListener('click', function(e) {
-    if (didMove) { e.preventDefault(); e.stopPropagation(); }
-  }, true);
-
-  updateTransform();
+  window.addEventListener('blur', function(){
+    if (dragging){ dragging = false; activePointerId = null; springBack(); }
+  });
 
 })();
 </script>

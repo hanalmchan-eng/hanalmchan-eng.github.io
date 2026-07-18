@@ -2,27 +2,16 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>hanalmchan — 서가</title>
+<title>hanalmchan</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 
 <style>
   :root{
     --paper:#ffffff;
-    --ink:#111111;
-
-    --spine:#15130f;
-    --spine-deep:#070604;
-    --spine-sheen:#2b2419;
-    --foil:#b6975f;
-    --foil-dim:rgba(182,151,95,.55);
-    --mark:#efe9dc;
-    --shadow:rgba(15,13,10,.24);
-
-    --shelf-y:64%;
-    --book-left:66%;
-    --spine-w:clamp(58px,8vw,92px);
-    --spine-h:clamp(220px,40vh,360px);
-    --tilt:7deg;
+    --ink:#141414;
+    --ink-60:rgba(20,20,20,.6);
+    --ink-35:rgba(20,20,20,.35);
+    --ink-16:rgba(20,20,20,.14);
   }
 
   *{ margin:0; padding:0; box-sizing:border-box; }
@@ -36,165 +25,121 @@
     overscroll-behavior:none;
   }
 
-  #scene{ position:fixed; inset:0; overflow:hidden; }
+  #scene{
+    position:fixed; inset:0;
+    cursor:grab; touch-action:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #scene.dragging{ cursor:grabbing; }
+  #scene:focus-visible{ outline:2px solid var(--ink); outline-offset:-10px; }
 
-  #shelf-shadow{
-    position:absolute; left:0; right:0; top:var(--shelf-y); height:44px;
-    background:linear-gradient(to bottom, rgba(17,17,17,.08), rgba(17,17,17,0) 100%);
-    pointer-events:none;
+  .stage{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    will-change:transform, opacity;
   }
-  #shelf-line{
-    position:absolute; left:0; right:0; top:var(--shelf-y); height:1px;
-    background:rgba(17,17,17,.22); pointer-events:none;
-  }
+  .stage.settling{ transition:transform .5s cubic-bezier(.22,1,.36,1), opacity .5s ease; }
+  .stage.opening{ transition:transform .6s cubic-bezier(.16,1,.3,1), opacity .6s ease; }
 
-  /* 책이 기대는 얇은 칸막이(서가의 측판). 7deg 기울기 기준으로 맞춘 위치입니다 */
-  .divider{
-    position:absolute; top:var(--shelf-y);
-    left:calc(var(--book-left) + (var(--spine-w) / 2) + (var(--spine-h) * 0.122) + 3px);
-    width:2px; height:calc(var(--spine-h) * 0.97);
-    transform:translate(0,-100%);
-    background:linear-gradient(to top, rgba(17,17,17,.30), rgba(17,17,17,.14) 85%, rgba(17,17,17,0));
-    pointer-events:none;
+  .top-bar{
+    padding:clamp(20px,4vh,32px) 24px 0;
+    display:flex; justify-content:flex-end;
   }
-
-  /* 아직 채워지지 않은 자리 — 앞으로 늘어날 책들의 자리를 점선으로 예고 */
-  .ghost-slot{
-    position:absolute; top:var(--shelf-y); transform:translate(-50%,-100%);
-    border:1px dashed rgba(17,17,17,.12);
-    pointer-events:none;
-  }
-  .ghost-slot.g1{ left:45%; width:calc(var(--spine-w) * 0.92); height:calc(var(--spine-h) * 0.94); }
-  .ghost-slot.g2{ left:55.5%; width:calc(var(--spine-w) * 0.84); height:calc(var(--spine-h) * 0.86); }
-
-  .book-shadow{
-    position:absolute; top:var(--shelf-y); left:var(--book-left);
-    width:calc(var(--spine-w) * 2.3); height:20px;
-    transform:translate(-50%,-50%) scale(1,1);
-    border-radius:50%; opacity:.6;
-    background:radial-gradient(closest-side, var(--shadow), rgba(0,0,0,0) 72%);
-    pointer-events:none; will-change:transform,opacity;
-  }
-  #scene:has(.book:hover) .book-shadow,
-  #scene:has(.book:focus-visible) .book-shadow{
-    transform:translate(-50%,-50%) scale(1.08,.86);
-    opacity:.42;
+  .vol{
+    font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--ink-60);
   }
 
-  .book{
-    position:absolute; top:var(--shelf-y); left:var(--book-left);
-    width:var(--spine-w); height:var(--spine-h);
-    transform:translate(-50%,-100%) rotate(var(--tilt));
-    transform-origin:bottom center;
-    background:none; border:0; padding:0; -webkit-appearance:none; appearance:none;
-    cursor:grab; touch-action:none; -webkit-tap-highlight-color:transparent;
-    transition:transform .5s cubic-bezier(.22,1,.36,1);
-    animation:idleSway 7s ease-in-out infinite;
-  }
-  .book:hover, .book:focus-visible{
-    transform:translate(-50%, calc(-100% - 8px)) rotate(calc(var(--tilt) - 3deg));
-  }
-  .book:focus-visible{ outline:2px solid var(--ink); outline-offset:10px; }
-  .book:hover, .book:focus-visible, .book.dragging, .book.settling, .book.opening{
-    animation-play-state:paused;
-  }
-  .book.dragging{ transition:none; cursor:grabbing; }
-  .book.settling{ transition:transform .55s cubic-bezier(.34,1.56,.64,1); }
-  .book.opening{ transition:transform .55s cubic-bezier(.16,1,.3,1); }
-
-  @keyframes idleSway{
-    0%,100%{ transform:translate(-50%,-100%) rotate(var(--tilt)); }
-    50%{ transform:translate(-50%,-100%) rotate(calc(var(--tilt) - .6deg)); }
+  .hero{
+    flex:1;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:0 24px;
   }
 
-  .spine{
-    position:relative; display:block; width:100%; height:100%;
-    overflow:hidden;
-    background:linear-gradient(100deg, var(--spine-sheen) 0%, var(--spine) 14%, var(--spine) 86%, var(--spine-deep) 100%);
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04), 0 16px 28px -12px var(--shadow);
-  }
-  .spine-edge{
-    position:absolute; top:0; right:0; width:5px; height:100%;
-    background:linear-gradient(90deg, rgba(0,0,0,0), var(--spine-deep));
-    opacity:.85;
-  }
-
-  .foil-rule{ position:absolute; left:15%; right:15%; height:1px; background:var(--foil-dim); }
-  .foil-rule--top{ top:11%; }
-  .foil-rule--bottom{ bottom:21%; }
-
-  .spine-mark{
-    position:absolute; left:50%; top:45%;
-    width:calc(var(--spine-h) * 0.48);
-    height:calc(var(--spine-w) * 0.62);
-    transform:translate(-50%,-50%) rotate(-90deg);
+  .wordmark{
     display:flex; align-items:center; justify-content:center;
+    opacity:0; transform:translateY(12px);
+    transition:opacity .7s ease, transform .7s ease;
   }
-  .spine-mark img{
-    max-width:100%; max-height:100%; object-fit:contain;
-    display:block; opacity:.95;
-    filter:invert(1); /* 로고가 이미 밝은 색이면 이 줄을 지우세요 */
+  .wordmark img{
+    display:block; max-width:min(70vw,440px); height:auto;
   }
-  .spine-mark-fallback{
-    font-family:Helvetica, Arial, sans-serif;
-    font-size:15px; letter-spacing:.28em; font-weight:400;
-    color:var(--mark); white-space:nowrap; text-transform:lowercase;
-  }
-
-  .spine-number{
-    position:absolute; left:0; right:0; bottom:8%; text-align:center;
-    font-size:8px; letter-spacing:.16em; color:var(--foil-dim); text-transform:uppercase;
-  }
-
-  #site-label{
-    position:fixed; top:24px; left:20px; z-index:50;
-    font-size:12px; letter-spacing:.08em; color:#fff; mix-blend-mode:difference;
+  .wordmark img:not([src]), .wordmark img[src=""]{ display:none; }
+  .wordmark-fallback{
+    font-family:Georgia,'Times New Roman',serif;
+    font-style:italic; font-weight:400;
+    font-size:clamp(42px,11vw,96px);
+    line-height:1;
+    text-transform:lowercase;
+    color:var(--ink);
   }
 
-  #hint{ position:fixed; left:20px; bottom:22px; z-index:50; mix-blend-mode:difference; pointer-events:none; transition:opacity .5s; }
-  #hint-text{ font-size:10px; color:#fff; letter-spacing:.04em; line-height:1.6; white-space:nowrap; }
+  .rule-wrap{
+    margin-top:clamp(26px,6vh,52px);
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .rule{
+    width:1px; height:clamp(72px,16vh,160px);
+    background:var(--ink-16);
+    transform:scaleY(0); transform-origin:top;
+    transition:transform .8s cubic-bezier(.16,1,.3,1) .15s;
+  }
+  .chevron{ margin-top:12px; color:var(--ink-35); opacity:0; }
 
-  #count-label{
-    position:fixed; right:20px; bottom:22px; z-index:50;
-    font-size:11px; letter-spacing:.1em; color:#fff; mix-blend-mode:difference;
+  #scene.ready .wordmark{ opacity:1; transform:translateY(0); }
+  #scene.ready .rule{ transform:scaleY(1); }
+  #scene.ready .chevron{
+    animation:chevFadeIn .5s ease forwards .8s, chevPulse 3.2s ease-in-out infinite 1.3s;
+  }
+  #scene.dragging .chevron{ animation-play-state:paused; }
+
+  @keyframes chevFadeIn{ from{ opacity:0; } to{ opacity:.4; } }
+  @keyframes chevPulse{ 0%,100%{ opacity:.35; } 50%{ opacity:.85; } }
+
+  #hint{ padding:0 24px clamp(26px,6vh,44px); text-align:center; }
+  #hint-text{
+    font-size:10px; letter-spacing:.04em; line-height:1.7;
+    color:var(--ink-60);
   }
 
-  #veil{ position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:200; transition:opacity .38s ease; }
+  #veil{
+    position:fixed; inset:0; background:var(--paper);
+    opacity:0; pointer-events:none; z-index:200;
+    transition:opacity .4s ease;
+  }
   #veil.show{ opacity:1; }
 
   @media (prefers-reduced-motion:reduce){
-    .book{ animation:none; }
-    .book, .book.settling, .book.opening{ transition-duration:.15s; }
+    .wordmark, .rule{ transition-duration:.01s !important; }
+    .chevron{ animation:none !important; opacity:.4; }
+    .stage.settling, .stage.opening{ transition-duration:.15s; }
   }
 </style>
 </head>
 <body>
 
-  <div id="site-label">서가</div>
+  <div id="scene" role="button" tabindex="0" aria-label="hanalmchan — 위로 밀거나 클릭하여 입장">
+    <div class="stage">
+      <div class="top-bar">
+        <span class="vol">Vol. 01</span>
+      </div>
 
-  <div id="hint"><div id="hint-text"></div></div>
-  <div id="count-label">vol. 01</div>
+      <div class="hero">
+        <div class="wordmark">
+          <img id="mark-img" alt="" draggable="false">
+          <span class="wordmark-fallback" id="mark-fallback">hanalmchan</span>
+        </div>
+        <div class="rule-wrap">
+          <div class="rule" aria-hidden="true"></div>
+          <svg class="chevron" width="14" height="8" viewBox="0 0 14 8" aria-hidden="true">
+            <path d="M1 7L7 1L13 7" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
 
-  <div id="scene">
-    <div id="shelf-shadow"></div>
-    <div id="shelf-line"></div>
-    <div class="ghost-slot g1" aria-hidden="true"></div>
-    <div class="ghost-slot g2" aria-hidden="true"></div>
-    <div class="divider" aria-hidden="true"></div>
-    <div class="book-shadow" aria-hidden="true"></div>
-
-    <button class="book" id="book" type="button" aria-label="hanalmchan — 당겨서 열기">
-      <span class="spine">
-        <span class="foil-rule foil-rule--top" aria-hidden="true"></span>
-        <span class="spine-mark">
-          <img id="spine-logo-img" alt="" draggable="false">
-          <span class="spine-mark-fallback" id="spine-mark-fallback">hanalmchan</span>
-        </span>
-        <span class="foil-rule foil-rule--bottom" aria-hidden="true"></span>
-        <span class="spine-number">no. 01</span>
-        <span class="spine-edge" aria-hidden="true"></span>
-      </span>
-    </button>
+      <div id="hint"><div id="hint-text"></div></div>
+    </div>
   </div>
 
   <div id="veil"></div>
@@ -204,117 +149,91 @@
   'use strict';
 
   // ====== 설정: 실제 배포 시 이 두 값만 맞춰주면 됩니다 ======
-  var LOGO_SRC = 'logo.png';        // 책등 로고 이미지 경로 (가로형 원본)
-  var NEXT_URL = 'hanalmchan.html'; // 이 책을 열었을 때 이동할 갤러리 페이지
+  var LOGO_SRC = 'logo.png';        // 워드마크 이미지 경로 (없으면 텍스트로 대체)
+  var NEXT_URL = 'hanalmchan.html'; // 입장 시 이동할 갤러리 페이지
   // ===========================================================
 
-  var book       = document.getElementById('book');
-  var shadowEl   = document.querySelector('.book-shadow');
-  var veil       = document.getElementById('veil');
-  var hint       = document.getElementById('hint');
-  var hintText   = document.getElementById('hint-text');
-  var logoImg    = document.getElementById('spine-logo-img');
-  var fallback   = document.getElementById('spine-mark-fallback');
+  var scene    = document.getElementById('scene');
+  var stage    = document.querySelector('.stage');
+  var veil     = document.getElementById('veil');
+  var hintText = document.getElementById('hint-text');
+  var markImg  = document.getElementById('mark-img');
+  var fallback = document.getElementById('mark-fallback');
 
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---- 로고 로드 시도, 실패하면 텍스트로 대체 ----
-  (function loadLogo(){
+  // ---- 워드마크 로고 로드 시도, 실패하면 텍스트로 대체 ----
+  (function loadMark(){
     var probe = new Image();
     probe.onload = function(){
       if (probe.naturalWidth === 0) return;
-      logoImg.src = LOGO_SRC;
+      markImg.src = LOGO_SRC;
       fallback.style.display = 'none';
     };
-    probe.onerror = function(){ /* 로고 없으면 fallback 텍스트 유지 */ };
     probe.src = LOGO_SRC;
   })();
 
-  // ---- 안내문구 ----
   hintText.innerHTML =
-    '당겨서 꺼내기 · 또는 클릭해서 열기<br>' +
-    'Drag to pull it out · or click to open<br>' +
-    '引いて取り出す · またはクリックで開く';
+    '위로 밀어서 살펴보기 · 또는 클릭<br>' +
+    'Swipe up to enter · or click<br>' +
+    '上にスワイプ · またはクリック';
 
-  var hideTimer = setTimeout(function(){ hint.style.opacity = '0'; }, 6000);
-  function wakeHint(){
-    clearTimeout(hideTimer);
-    hint.style.opacity = '1';
-    hideTimer = setTimeout(function(){ hint.style.opacity = '0'; }, 4000);
-  }
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){ scene.classList.add('ready'); });
+  });
 
-  // ---- 드래그로 책 꺼내기 ----
-  var TILT_DEG   = 7;
-  var OPEN_PX    = 90;   // 이만큼 위로 당기면 완전히 빠져나옴
-  var TAP_PX     = 8;    // 이보다 적게 움직이면 '클릭'으로 간주
+  // ---- 위로 밀어서(또는 클릭해서) 입장 ----
+  var OPEN_PX = 64;
+  var TAP_PX  = 8;
 
   var dragging = false;
   var activePointerId = null;
-  var startX = 0, startY = 0;
-  var maxMove = 0;
-  var currentDy = 0;
+  var startY = 0, maxMove = 0, currentDy = 0;
   var opened = false;
-  var suppressNextClick = false; // 포인터 제스처가 이미 처리한 뒤 이어지는 합성 click 무시용
+  var suppressNextClick = false;
 
-  function setShadow(dy){
-    var lift = Math.max(0, dy);
-    var t = Math.min(lift / 140, 1);
-    var scaleX = 1 + t * 0.15;
-    var scaleY = 1 - t * 0.55;
-    var ty = Math.min(lift * 0.22, 16);
-    var opacity = 0.6 - t * 0.42;
-    shadowEl.style.transform = 'translate(-50%, calc(-50% + ' + ty + 'px)) scale(' + scaleX + ',' + scaleY + ')';
-    shadowEl.style.opacity = String(Math.max(0.12, opacity));
+  function applyDrag(dy){
+    var lift = Math.max(0, Math.min(dy, 260));
+    var opacity = 1 - Math.min(lift / 220, 1) * 0.55;
+    stage.style.transform = 'translateY(' + (-lift) + 'px)';
+    stage.style.opacity = String(opacity);
+    veil.style.opacity = String(Math.min(lift / 220, 1) * 0.85);
   }
 
-  function applyDrag(dy, dx){
-    var clampedDy = Math.max(-14, Math.min(dy, 220));
-    var lift = Math.max(0, clampedDy) * 0.92;
-    var tiltProgress = Math.min(Math.max(clampedDy, 0), 150) / 150;
-    var tilt = TILT_DEG - tiltProgress * (TILT_DEG + 2.5);
-    if (clampedDy < 0) tilt = TILT_DEG - clampedDy * 0.12; // 살짝 눌렀을 때 미세한 저항감
-    var scale = 1 + Math.min(Math.max(clampedDy, 0), 220) * 0.0007;
-    var sway = Math.max(-6, Math.min(dx * 0.06, 6));
-    book.style.transform =
-      'translate(calc(-50% + ' + sway + 'px), calc(-100% - ' + lift + 'px)) ' +
-      'rotate(' + tilt + 'deg) scale(' + scale + ')';
-    setShadow(clampedDy);
-  }
-
-  function resetInlineStyles(){
-    book.style.transform = '';
+  function resetInline(){
+    stage.style.transform = '';
+    stage.style.opacity = '';
+    veil.style.opacity = '';
   }
 
   function springBack(){
-    book.classList.remove('dragging');
-    book.classList.add('settling');
-    resetInlineStyles();
-    shadowEl.style.transform = '';
-    shadowEl.style.opacity = '';
+    scene.classList.remove('dragging');
+    stage.classList.add('settling');
+    resetInline();
     var done = function(){
-      book.classList.remove('settling');
-      book.removeEventListener('transitionend', done);
+      stage.classList.remove('settling');
+      stage.removeEventListener('transitionend', done);
     };
-    book.addEventListener('transitionend', done);
+    stage.addEventListener('transitionend', done);
   }
 
   function commitOpen(){
     if (opened) return;
     opened = true;
-    book.classList.remove('dragging');
-    book.classList.add('opening');
-    book.setAttribute('aria-disabled', 'true');
+    scene.classList.remove('dragging');
+    scene.setAttribute('aria-disabled', 'true');
 
     if (reduceMotion){
       veil.classList.add('show');
-      setTimeout(function(){ window.location.href = NEXT_URL; }, 200);
+      setTimeout(function(){ window.location.href = NEXT_URL; }, 180);
       return;
     }
 
-    book.style.transform = 'translate(-50%, calc(-100% - 210px)) rotate(-2deg) scale(1.08)';
-    shadowEl.style.opacity = '0';
-    setTimeout(function(){ veil.classList.add('show'); }, 190);
-    setTimeout(function(){ window.location.href = NEXT_URL; }, 560);
+    stage.classList.add('opening');
+    stage.style.transform = 'translateY(-56px)';
+    stage.style.opacity = '0';
+    setTimeout(function(){ veil.classList.add('show'); }, 160);
+    setTimeout(function(){ window.location.href = NEXT_URL; }, 520);
   }
 
   function onPointerDown(e){
@@ -322,34 +241,32 @@
     if (e.button !== undefined && e.button !== 0) return;
     dragging = true;
     activePointerId = e.pointerId;
-    try { book.setPointerCapture(e.pointerId); } catch(err){}
-    startX = e.clientX; startY = e.clientY;
+    try { scene.setPointerCapture(e.pointerId); } catch(err){}
+    startY = e.clientY;
     maxMove = 0; currentDy = 0;
-    book.classList.add('dragging');
-    wakeHint();
+    scene.classList.add('dragging');
   }
 
   function onPointerMove(e){
     if (!dragging || e.pointerId !== activePointerId) return;
-    var dx = e.clientX - startX;
-    var dy = startY - e.clientY; // 위로 당기면 양수
+    var dy = startY - e.clientY;
     currentDy = dy;
-    maxMove = Math.max(maxMove, Math.abs(dx), Math.abs(dy));
-    applyDrag(dy, dx);
+    maxMove = Math.max(maxMove, Math.abs(dy));
+    applyDrag(dy);
   }
 
   function onPointerUp(e){
     if (!dragging || e.pointerId !== activePointerId) return;
     dragging = false;
     activePointerId = null;
-    book.classList.remove('dragging');
+    scene.classList.remove('dragging');
 
     if (maxMove < TAP_PX || currentDy >= OPEN_PX){
       commitOpen();
     } else {
       springBack();
     }
-    suppressNextClick = true; // 곧이어 브라우저가 합성 발생시킬 click은 무시
+    suppressNextClick = true;
     maxMove = 0;
   }
 
@@ -360,15 +277,21 @@
     springBack();
   }
 
-  book.addEventListener('pointerdown', onPointerDown);
-  book.addEventListener('pointermove', onPointerMove);
-  book.addEventListener('pointerup', onPointerUp);
-  book.addEventListener('pointercancel', onPointerCancel);
+  scene.addEventListener('pointerdown', onPointerDown);
+  scene.addEventListener('pointermove', onPointerMove);
+  scene.addEventListener('pointerup', onPointerUp);
+  scene.addEventListener('pointercancel', onPointerCancel);
 
-  // 키보드(Enter/Space)로 여는 경우 — 포인터 제스처를 거치지 않은 click만 처리
-  book.addEventListener('click', function(e){
-    if (suppressNextClick){ suppressNextClick = false; return; } // 방금 포인터로 이미 처리됨
+  scene.addEventListener('click', function(){
+    if (suppressNextClick){ suppressNextClick = false; return; }
     commitOpen();
+  });
+
+  scene.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      commitOpen();
+    }
   });
 
   window.addEventListener('blur', function(){

@@ -207,10 +207,12 @@
     visibility:hidden;
   }
   .map-info.show{ visibility:visible; }
+  /* 카드 전체는 마우스를 통과시키되, 사진만 누를 수 있게 한다 */
   .map-info img, .map-info video{
     display:block; width:100%; height:auto;
     max-height:300px; object-fit:cover;
     background:var(--ink-08);
+    pointer-events:auto; cursor:zoom-in;
   }
   .map-info-addr, .map-info-note{
     color:#ffffff;
@@ -332,9 +334,9 @@
     <div class="section-label">ELSES, MAPS</div>
     <div id="map-head">
       <span id="map-note">
-        마커에 커서를 대거나 눌러 미리보기 · 한 번 더 눌러 크게 보기<br>
-        Hover or tap a marker to preview · tap again to open<br>
-        マーカーにカーソルまたはタップでプレビュー · もう一度タップで拡大
+        마커에 커서를 대거나 눌러 미리보기 · 사진을 눌러 크게 보기<br>
+        Hover or tap a marker to preview · click the photo to open<br>
+        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大
       </span>
     </div>
     <div id="maps"></div>
@@ -989,6 +991,14 @@
       // 커서를 대면 지도 왼쪽 위 카드에 사진과 설명이 뜬다.
       // 사진은 처음 한 번만 받아두고 이후에는 그대로 재사용한다.
       var media = null;
+      function openFull(){
+        if (isVideo(p)){
+          window.open(ELSES_URL + '?f=' + encodeURIComponent(p.file || ''),
+                      '_blank', 'noopener');
+        } else {
+          openLightbox(p, item.index);
+        }
+      }
       function ensureMedia(){
         if (media) return media;
         if (isVideo(p)){
@@ -1002,6 +1012,14 @@
           media.alt = '';
           media.src = srcOf(p);              // thumb 가 있으면 srcOf 가 그걸 쓴다
         }
+        // 미리보기 사진을 눌러야 크게 열린다
+        media.addEventListener('click', function(e){
+          e.stopPropagation();
+          openFull();
+        });
+        // 마커에서 사진으로 커서를 옮기는 동안 카드가 사라지지 않도록
+        media.addEventListener('mouseenter', cancelHide);
+        media.addEventListener('mouseleave', function(){ if (!isTouch) scheduleHide(); });
         return media;
       }
       function showInfo(){
@@ -1024,27 +1042,20 @@
       function hideInfo(){
         if (infoEl) infoEl.classList.remove('show');
       }
+      // 마커 → 사진으로 커서가 건너가는 짧은 순간에 닫히지 않도록 잠깐 유예한다
+      var hideTimer = null;
+      function scheduleHide(){
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(hideInfo, 260);
+      }
+      function cancelHide(){ clearTimeout(hideTimer); }
       // 터치 화면에서는 탭 한 번에 mouseover 와 click 이 잇달아 들어온다.
       // 그대로 두면 카드가 떴다가 곧바로 열려버리므로, 터치일 때는 mouseover 를 무시한다.
-      m.on('mouseover', function(){ if (!isTouch) showInfo(); });
-      m.on('mouseout',  function(){ if (!isTouch) hideInfo(); });
+      m.on('mouseover', function(){ if (!isTouch){ cancelHide(); showInfo(); } });
+      m.on('mouseout',  function(){ if (!isTouch) scheduleHide(); });
 
-      // 영상은 별도 창(elses.html)에서, 사진은 그 자리에서 크게.
-      // 손가락으로 쓰는 화면에는 '커서를 올리는' 동작이 없으므로,
-      // 첫 번째 탭에서는 설명 카드를 띄우고 한 번 더 눌러야 열리게 한다.
-      m.on('click', function(){
-        if (isTouch &&
-            !(infoEl && infoEl._owner === m && infoEl.classList.contains('show'))){
-          showInfo();
-          return;
-        }
-        if (isVideo(p)){
-          window.open(ELSES_URL + '?f=' + encodeURIComponent(p.file || ''),
-                      '_blank', 'noopener');
-        } else {
-          openLightbox(p, item.index);
-        }
-      });
+      // 마커를 누르면 미리보기 카드가 뜨기만 한다. 크게 보는 건 사진을 눌러서.
+      m.on('click', showInfo);
   }
 
   function buildMaps(located){

@@ -55,7 +55,7 @@
     transition:background-color .3s ease, color .3s ease;
   }
   body{
-    padding:88px 24px 96px;
+    padding:20px 24px 96px;
     display:flex; flex-direction:column; align-items:center;
   }
   /* 좌상단 섹션 표시. 지금 보고 있는 쪽이 진하게 표시된다. */
@@ -235,7 +235,8 @@
   }
 
   @media (max-width:669px){
-    body{ padding:64px 18px 72px; }
+    body{ padding:16px 18px 72px; }
+    .section-label{ font-size:20px; margin-bottom:32px; }
     #map{ height:52vh; }
     #map-head{ flex-direction:column; gap:4px; }
   }
@@ -332,34 +333,6 @@
     return post.place || post.caption || captionOf(post, index);
   }
 
-  // ---- 좌상단 섹션 표시: 지금 보고 있는 쪽을 진하게 ----
-  var navModels = document.getElementById('nav-models');
-  var navMaps   = document.getElementById('nav-maps');
-  function updateSectionNav(){
-    var onMaps = false;
-    if (!mapSection.hidden){
-      var r = mapSection.getBoundingClientRect();
-      // 지도 영역이 화면 중간선을 넘어 올라오면 '지도를 보고 있다'로 간주
-      onMaps = r.top < window.innerHeight * 0.5 && r.bottom > 0;
-    }
-    navModels.classList.toggle('is-active', !onMaps);
-    navMaps.classList.toggle('is-active', onMaps);
-  }
-  var navTicking = false;
-  function queueNavUpdate(){
-    if (navTicking) return;
-    navTicking = true;
-    requestAnimationFrame(function(){ navTicking = false; updateSectionNav(); });
-  }
-  window.addEventListener('scroll', queueNavUpdate, { passive:true });
-  window.addEventListener('resize', queueNavUpdate);
-  navModels.addEventListener('click', function(){
-    window.scrollTo({ top:0, behavior:'smooth' });
-  });
-  navMaps.addEventListener('click', function(){
-    if (!mapSection.hidden) mapSection.scrollIntoView({ behavior:'smooth', block:'start' });
-  });
-
   // ---- 로고 크기 맞추기 ----
   // 칸 너비를 꽉 채우되 MARK_H 를 넘지 않게 한다.
   // 2열·1열에서는 칸 자체가 창 크기를 따라가므로 로고도 같이 커진다.
@@ -373,9 +346,19 @@
     if (boxH > MARK_H){ boxH = MARK_H; boxW = boxH * e.aspect; }
     e.mark.style.width  = boxW + 'px';
     e.mark.style.height = boxH + 'px';
-    e.el.style.width  = '100%';
-    e.el.style.height = '100%';
-    e.el.style.left = '0'; e.el.style.top = '0';
+    if (e.mode === 'crop'){
+      // 원본 이미지를 CSS 로 밀어서 로고 부분만 보이게 하는 방식 (CORS 없이도 동작)
+      var dispW = boxW / e.fw, dispH = boxH / e.fh;
+      e.el.style.width  = dispW + 'px';
+      e.el.style.height = dispH + 'px';
+      e.el.style.left   = (-e.fx * dispW) + 'px';
+      e.el.style.top    = (-e.fy * dispH) + 'px';
+    } else {
+      // 이미 잘라놓은 캔버스·이미지는 칸을 그대로 채운다
+      e.el.style.width  = '100%';
+      e.el.style.height = '100%';
+      e.el.style.left = '0'; e.el.style.top = '0';
+    }
   }
   var fitTimer = null;
   window.addEventListener('resize', function(){
@@ -428,7 +411,7 @@
         limg.decoding = 'async'; limg.alt = '';
         limg.onload = function(){
           if (limg.naturalWidth && limg.naturalHeight){
-            var entry = { mark:mark, el:limg,
+            var entry = { mark:mark, el:limg, mode:'canvas',
                           aspect: limg.naturalWidth / limg.naturalHeight };
             fitted.push(entry); fitMark(entry);
             limg.classList.add('is-ready');
@@ -446,12 +429,8 @@
     var src = srcOf(post);
     if (src && typeof post.logoX === 'number' && typeof post.logoY === 'number'){
       enqueue(function(done){
-        var img = new Image();
-        img.decoding = 'async';
-        img.crossOrigin = 'anonymous';   // 캔버스로 옮겨 그리기 위해
-        img.onload = function(){
-          var iw = img.naturalWidth, ih = img.naturalHeight;
-          if (!iw || !ih){ done(); return; }
+        // 로고 영역을 사진 픽셀 기준으로 계산한다
+        function region(iw, ih){
           var refW = post.width  || iw;
           var refH = post.height || ih;
           // 로고 크기는 사진의 '짧은 변'을 기준으로 잡힌다.
@@ -462,39 +441,68 @@
           var sy = post.logoY + logoH * CROP_TOP;
           var sw = logoW * (1 - CROP_SIDE * 2);
           var sh = logoH * (1 - CROP_TOP - CROP_BOTTOM);
-          // 원본 좌표계가 다를 수 있으니 실제 픽셀 크기에 맞춰 환산
-          var kx = iw / refW, ky = ih / refH;
+          var kx = iw / refW, ky = ih / refH;   // 좌표계가 다를 경우 환산
           sx *= kx; sy *= ky; sw *= kx; sh *= ky;
-          // 사진 밖으로 나가지 않도록 가둔다
           if (sx < 0){ sw += sx; sx = 0; }
           if (sy < 0){ sh += sy; sy = 0; }
           if (sx + sw > iw) sw = iw - sx;
           if (sy + sh > ih) sh = ih - sy;
-          if (sw <= 0 || sh <= 0){ done(); return; }
+          return (sw > 0 && sh > 0) ? { x:sx, y:sy, w:sw, h:sh } : null;
+        }
 
-          // 화면에 필요한 만큼만 작은 캔버스에 옮겨 그린다
-          var dpr = Math.min(window.devicePixelRatio || 1, 2);
-          var cw = Math.min(Math.round(MARK_MAX_W * dpr), Math.round(sw));
-          var ch = Math.max(1, Math.round(cw * (sh / sw)));
-          var cv = document.createElement('canvas');
-          cv.width = cw; cv.height = ch;
-          try {
-            cv.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
-          } catch (err){ done(); return; }
+        // CORS 가 열려 있으면 캔버스로 옮겨 그려 원본을 즉시 놓아준다(가벼움).
+        // 열려 있지 않으면 CORS 없이 다시 받아 CSS 로 잘라 보여준다(무겁지만 확실히 보임).
+        function attempt(useCors){
+          var img = new Image();
+          img.decoding = 'async';
+          if (useCors) img.crossOrigin = 'anonymous';
+          img.onload = function(){
+            var iw = img.naturalWidth, ih = img.naturalHeight;
+            var r = (iw && ih) ? region(iw, ih) : null;
+            if (!r){ done(); return; }
 
-          var entry = { mark:mark, el:cv, aspect: sw / sh };
-          mark.appendChild(cv);
-          fitted.push(entry); fitMark(entry);
-          cv.classList.add('is-ready');
-          mark.classList.add('has-photo');
-
-          // 원본은 여기서 놓아준다 — 이게 아이폰 메모리를 지키는 핵심
-          img.onload = img.onerror = null;
-          img.src = '';
-          done();
-        };
-        img.onerror = function(){ done(); };
-        img.src = src;
+            if (useCors){
+              var dpr = Math.min(window.devicePixelRatio || 1, 2);
+              var cw = Math.min(Math.round(MARK_MAX_W * dpr), Math.round(r.w));
+              var ch = Math.max(1, Math.round(cw * (r.h / r.w)));
+              var cv = document.createElement('canvas');
+              cv.width = cw; cv.height = ch;
+              try {
+                cv.getContext('2d').drawImage(img, r.x, r.y, r.w, r.h, 0, 0, cw, ch);
+              } catch (err){
+                // 캔버스가 오염되어 그릴 수 없음 → CSS 방식으로 재시도
+                img.onload = img.onerror = null;
+                attempt(false);
+                return;
+              }
+              var e1 = { mark:mark, el:cv, mode:'canvas', aspect: r.w / r.h };
+              mark.appendChild(cv);
+              fitted.push(e1); fitMark(e1);
+              cv.classList.add('is-ready');
+              mark.classList.add('has-photo');
+              // 원본은 여기서 놓아준다 — 아이폰 메모리를 지키는 핵심
+              img.onload = img.onerror = null;
+              img.src = '';
+              done();
+            } else {
+              var e2 = { mark:mark, el:img, mode:'crop',
+                         fx:r.x / iw, fy:r.y / ih, fw:r.w / iw, fh:r.h / ih,
+                         aspect: r.w / r.h };
+              mark.appendChild(img);
+              fitted.push(e2); fitMark(e2);
+              img.classList.add('is-ready');
+              mark.classList.add('has-photo');
+              done();
+            }
+          };
+          img.onerror = function(){
+            img.onload = img.onerror = null;
+            if (useCors) attempt(false);   // CORS 미설정으로 실패한 경우
+            else done();
+          };
+          img.src = src;
+        }
+        attempt(true);
       });
     }
     return a;
@@ -755,7 +763,6 @@
     } else {
       map.fitBounds(L.latLngBounds(latlngs), { padding:[48,48], maxZoom:15 });
     }
-    updateSectionNav();   // 지도 영역이 이제 보이므로 좌상단 표시를 다시 계산
   }
 
   // ---- 로드 ----

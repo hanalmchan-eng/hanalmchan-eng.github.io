@@ -202,7 +202,8 @@
     padding:5px;
   }
   .leaflet-tooltip.pin-tip::before{ display:none; }
-  .leaflet-tooltip.pin-tip img{
+  .leaflet-tooltip.pin-tip img,
+  .leaflet-tooltip.pin-tip video{
     display:block; width:150px; height:auto; max-height:190px;
     object-fit:cover;
   }
@@ -220,10 +221,13 @@
     padding:32px; cursor:zoom-out;
   }
   #lightbox.show{ display:flex; }
-  #lightbox img{
+  #lightbox img, #lightbox video{
     max-width:100%; max-height:82vh;
     object-fit:contain; display:block;
   }
+  #lightbox img[hidden], #lightbox video[hidden]{ display:none; }
+  /* 영상 재생 컨트롤을 누를 때 창이 닫히지 않도록 */
+  #lightbox video{ cursor:default; }
   #lightbox-cap{
     font-size:11px; letter-spacing:.06em; color:rgba(255,255,255,.7);
     text-align:center;
@@ -264,6 +268,7 @@
 
   <div id="lightbox">
     <img id="lightbox-img" alt="">
+    <video id="lightbox-video" controls loop playsinline hidden></video>
     <div id="lightbox-cap"></div>
   </div>
 
@@ -315,6 +320,11 @@
       return String(d).slice(0, 10);
     }
     return String(index + 1).padStart(2, '0');
+  }
+  // 동영상 여부 (지도 항목은 사진·영상 둘 다 올 수 있다)
+  function isVideo(post){
+    var n = String(post.file || post.url || '').toLowerCase();
+    return /\.(mp4|mov|m4v|webm)(\?|$)/.test(n);
   }
   function labelOf(post, index){
     return post.place || post.caption || captionOf(post, index);
@@ -560,9 +570,19 @@
   function openLightbox(post, index){
     var box = document.getElementById('lightbox');
     var img = document.getElementById('lightbox-img');
+    var vid = document.getElementById('lightbox-video');
     var cap = document.getElementById('lightbox-cap');
-    img.src = srcOf(post);
-    img.alt = labelOf(post, index);
+    // 영상은 원본(file)을, 사진은 썸네일이 아닌 원본을 크게 보여준다
+    var full = post.file ? buildImageUrl(post.file) : (post.url || '');
+    if (isVideo(post)){
+      img.hidden = true; img.src = '';
+      vid.hidden = false; vid.src = full;
+      vid.play().catch(function(){});
+    } else {
+      vid.hidden = true; vid.removeAttribute('src'); vid.load();
+      img.hidden = false; img.src = full;
+      img.alt = labelOf(post, index);
+    }
     cap.textContent = [post.place, post.caption].filter(Boolean).join(' · ');
     box.classList.add('show');
   }
@@ -570,8 +590,14 @@
     var box = document.getElementById('lightbox');
     box.classList.remove('show');
     document.getElementById('lightbox-img').src = '';
+    var vid = document.getElementById('lightbox-video');
+    vid.pause(); vid.removeAttribute('src'); vid.load();
   }
-  document.getElementById('lightbox').addEventListener('click', closeLightbox);
+  document.getElementById('lightbox').addEventListener('click', function(e){
+    // 영상 컨트롤(재생·볼륨)을 누른 경우에는 닫지 않는다
+    if (e.target && e.target.id === 'lightbox-video') return;
+    closeLightbox();
+  });
   document.addEventListener('keydown', function(e){
     if (e.key === 'Escape' || e.key === 'Esc') closeLightbox();
   });
@@ -614,12 +640,22 @@
       var ll = [item.lat, item.lng];
       latlngs.push(ll);
       var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
-      // 커서를 올리면 사진 축소본 미리보기
+      // 커서를 올리면 축소본 미리보기 (영상이면 소리 없이 반복 재생)
       var tip = document.createElement('div');
-      var timg = document.createElement('img');
-      timg.src = srcOf(p);
-      timg.alt = '';
-      tip.appendChild(timg);
+      var media;
+      if (isVideo(p) && !p.thumb){
+        media = document.createElement('video');
+        media.src = srcOf(p);
+        media.muted = true; media.loop = true;
+        media.autoplay = true; media.playsInline = true;
+        media.setAttribute('playsinline', '');
+        media.preload = 'metadata';
+      } else {
+        media = document.createElement('img');
+        media.src = srcOf(p);   // thumb 가 있으면 srcOf 가 그걸 쓴다
+        media.alt = '';
+      }
+      tip.appendChild(media);
       var label = labelOf(p, item.index);
       if (label){
         var tcap = document.createElement('div');

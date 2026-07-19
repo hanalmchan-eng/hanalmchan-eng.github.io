@@ -59,25 +59,25 @@
     display:flex; flex-direction:column; align-items:center;
   }
   /* 좌상단 섹션 표시. 지금 보고 있는 쪽이 진하게 표시된다. */
+  /* 두 라벨을 같은 자리에 겹쳐 두고, 지금 보고 있는 섹션의 것만 나타난다. */
   #section-nav{
     position:fixed; top:24px; left:20px; z-index:600;
-    display:flex; flex-direction:column; gap:6px;
+    display:grid;
   }
   #section-nav button{
+    grid-area:1 / 1;              /* 같은 칸에 겹쳐 배치 */
     font-family:'LMCHan', Georgia, serif;
     font-size:26px; letter-spacing:.12em;
     background:none; border:0; padding:0; margin:0;
-    text-align:left; cursor:pointer;
-    color:var(--ink-16);
-    -webkit-text-stroke:0 currentColor;
-    transition:color .35s ease, -webkit-text-stroke-width .35s ease, opacity .35s ease;
-  }
-  #section-nav button.is-active{
+    text-align:left; cursor:pointer; white-space:nowrap;
     color:var(--ink);
     -webkit-text-stroke:0.4px currentColor;
+    opacity:0; pointer-events:none;
+    transition:opacity .4s ease;
   }
-  #section-nav button:hover{ color:var(--ink-60); }
-  #section-nav button.is-active:hover{ color:var(--ink); }
+  #section-nav button.is-active{
+    opacity:1; pointer-events:auto;
+  }
   /* 본문 속 'LMCHAN' 만 로고 폰트로.
      LMCHan 폰트에는 소문자 글리프가 없으므로 반드시 대문자로 쓸 것. */
   .lm{
@@ -282,6 +282,7 @@
   var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
   var POSTS_JSON  = 'posts.json';    // 워터마크 갤러리용 (위 격자)
   var PLACES_JSON = 'places.json';   // 지도용 — 워터마크 없는 별도 사진 목록
+  var ELSES_URL   = 'elses.html';    // 영상 전용 창
   var LOGO_W_RATIO  = 0.0936;      // 로고 너비 / 사진 너비
   var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
   // 로고 박스에서 잘라낼 여백 비율.
@@ -640,16 +641,31 @@
       var ll = [item.lat, item.lng];
       latlngs.push(ll);
       var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
-      // 커서를 올리면 축소본 미리보기 (영상이면 소리 없이 반복 재생)
+      // 커서를 올리면 축소본 미리보기.
+      // 영상은 썸네일 파일을 따로 만들 필요 없이, 브라우저가 영상 앞부분만 조각으로
+      // 받아 0.5초 지점 한 프레임을 정지화면처럼 보여준다(preload="metadata" + #t=0.5).
+      // 커서를 잠깐 스치는 정도로는 재생하지 않고, 0.45초 이상 머무르면 그때 재생을 시작한다.
       var tip = document.createElement('div');
-      var media;
+      var media, playTimer = null;
       if (isVideo(p) && !p.thumb){
         media = document.createElement('video');
-        media.src = srcOf(p);
-        media.muted = true; media.loop = true;
-        media.autoplay = true; media.playsInline = true;
-        media.setAttribute('playsinline', '');
         media.preload = 'metadata';
+        media.src = srcOf(p) + '#t=0.5';
+        media.muted = true; media.loop = true;
+        media.playsInline = true;
+        media.setAttribute('playsinline', '');
+        media.setAttribute('muted', '');
+        m.on('mouseover', function(){
+          clearTimeout(playTimer);
+          playTimer = setTimeout(function(){
+            var r = media.play();
+            if (r && r.catch) r.catch(function(){});
+          }, 450);
+        });
+        m.on('mouseout', function(){
+          clearTimeout(playTimer);
+          media.pause();
+        });
       } else {
         media = document.createElement('img');
         media.src = srcOf(p);   // thumb 가 있으면 srcOf 가 그걸 쓴다
@@ -666,7 +682,15 @@
       m.bindTooltip(tip, {
         className:'pin-tip', direction:'top', offset:[0,-12], opacity:1
       });
-      m.on('click', function(){ openLightbox(p, item.index); });
+      // 영상은 별도 창(elses.html)에서, 사진은 그 자리에서 크게
+      m.on('click', function(){
+        if (isVideo(p)){
+          window.open(ELSES_URL + '?f=' + encodeURIComponent(p.file || ''),
+                      '_blank', 'noopener');
+        } else {
+          openLightbox(p, item.index);
+        }
+      });
     });
 
     if (latlngs.length === 1){

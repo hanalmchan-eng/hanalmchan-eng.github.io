@@ -125,14 +125,9 @@
     background:linear-gradient(90deg, rgba(20,20,20,0), var(--ink-10));
   }
 
-  .spine-mark{
-    position:absolute; left:50%; top:22%;
-    width:calc(var(--spine-h) * 0.34);
-    height:calc(var(--spine-w) * 1.05);
-    transform:translate(-50%,-50%) rotate(-90deg);
-    display:flex; align-items:center; justify-content:center;
-  }
   .spine-mark-text{
+    position:absolute; left:50%; top:22%;
+    transform:translate(-50%,-50%) rotate(-90deg);
     font-family:'LMCHan', Georgia, 'Times New Roman', serif;
     font-weight:400;
     font-size:14px; letter-spacing:0;
@@ -172,9 +167,7 @@
 
     <button class="book" id="book" type="button" aria-label="hanalmchan — 당겨서 열기">
       <span class="spine">
-        <span class="spine-mark">
-          <span class="spine-mark-text">hanalmchan</span>
-        </span>
+        <span class="spine-mark-text">hanalmchan</span>
         <span class="spine-edge" aria-hidden="true"></span>
       </span>
     </button>

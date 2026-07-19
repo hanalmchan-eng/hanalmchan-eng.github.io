@@ -72,6 +72,7 @@
     font-family:'LMCHan', Georgia, serif;
     font-size:26px; letter-spacing:.12em; white-space:nowrap;
     color:var(--ink);
+    -webkit-text-stroke:0.4px currentColor;
     margin-bottom:44px;
   }
   #models-section{ margin-bottom:96px; }
@@ -82,6 +83,8 @@
     /* LMCHan 은 좁고 길어서 같은 크기로 두면 옆 본문보다 작아 보인다 — 1.2배로 보정 */
     font-size:1.2em; letter-spacing:.06em;
     color:var(--ink-60);
+    /* 진짜 볼드 자형이 없으므로 외곽선을 덧그려 굵기만 올린다 */
+    -webkit-text-stroke:0.3px currentColor;
   }
   .byline{
     font-size:17px; color:var(--ink-60); letter-spacing:.04em;
@@ -176,6 +179,7 @@
     font-family:'LMCHan', Georgia, serif;
     font-size:30px; letter-spacing:.1em;
     color:var(--ink);
+    -webkit-text-stroke:0.4px currentColor;
     pointer-events:none;
   }
   #map-empty{

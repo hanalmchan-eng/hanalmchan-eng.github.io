@@ -58,11 +58,26 @@
     padding:88px 24px 96px;
     display:flex; flex-direction:column; align-items:center;
   }
-  #site-label{
+  /* 좌상단 섹션 표시. 지금 보고 있는 쪽이 진하게 표시된다. */
+  #section-nav{
     position:fixed; top:24px; left:20px; z-index:600;
-    font-family:'LMCHan', Georgia, serif;
-    font-size:26px; letter-spacing:.12em; color:var(--ink-60);
+    display:flex; flex-direction:column; gap:6px;
   }
+  #section-nav button{
+    font-family:'LMCHan', Georgia, serif;
+    font-size:26px; letter-spacing:.12em;
+    background:none; border:0; padding:0; margin:0;
+    text-align:left; cursor:pointer;
+    color:var(--ink-16);
+    -webkit-text-stroke:0 currentColor;
+    transition:color .35s ease, -webkit-text-stroke-width .35s ease, opacity .35s ease;
+  }
+  #section-nav button.is-active{
+    color:var(--ink);
+    -webkit-text-stroke:0.4px currentColor;
+  }
+  #section-nav button:hover{ color:var(--ink-60); }
+  #section-nav button.is-active:hover{ color:var(--ink); }
   /* 본문 속 'LMCHAN' 만 로고 폰트로.
      LMCHan 폰트에는 소문자 글리프가 없으므로 반드시 대문자로 쓸 것. */
   .lm{
@@ -179,13 +194,22 @@
     transition:transform .2s ease;
   }
   .photo-pin:hover span{ transform:scale(1.45); }
+  /* 마커 미리보기 툴팁 */
   .leaflet-tooltip.pin-tip{
     background:var(--paper); color:var(--ink);
     border:1px solid var(--ink-16); border-radius:2px;
-    box-shadow:none; font-size:10px; letter-spacing:.04em;
-    padding:4px 7px;
+    box-shadow:0 6px 20px -8px rgba(0,0,0,.35);
+    padding:5px;
   }
   .leaflet-tooltip.pin-tip::before{ display:none; }
+  .leaflet-tooltip.pin-tip img{
+    display:block; width:150px; height:auto; max-height:190px;
+    object-fit:cover;
+  }
+  .pin-tip-cap{
+    font-size:9.5px; letter-spacing:.06em; color:var(--ink-35);
+    text-align:center; padding:5px 2px 1px;
+  }
 
   /* 마커를 눌렀을 때 뜨는 사진 창 */
   #lightbox{
@@ -217,7 +241,10 @@
 </style>
 </head>
 <body>
-  <div id="site-label">MODELS, WATERMARKS</div>
+  <nav id="section-nav">
+    <button type="button" id="nav-models" class="is-active">MODELS, WATERMARKS</button>
+    <button type="button" id="nav-maps">ELSES, MAPS</button>
+  </nav>
   <div class="byline">photos by <span class="lm">hanalmchan</span></div>
   <div class="hint-text">
     <span class="lm">LMCHAN</span> 워터마크를 눌러 해당 사진으로<br>
@@ -229,8 +256,7 @@
 
   <section id="map-section" hidden>
     <div id="map-head">
-      <span id="map-title">ELSES, MAPS</span>
-      <span id="map-note">마커를 눌러 해당 사진으로 · tap a marker</span>
+      <span id="map-note">마커에 커서를 올리면 미리보기 · 눌러서 크게 보기</span>
     </div>
     <div id="map"></div>
     <div id="map-empty" hidden>좌표가 등록된 사진이 아직 없습니다.</div>
@@ -293,6 +319,34 @@
   function labelOf(post, index){
     return post.place || post.caption || captionOf(post, index);
   }
+
+  // ---- 좌상단 섹션 표시: 지금 보고 있는 쪽을 진하게 ----
+  var navModels = document.getElementById('nav-models');
+  var navMaps   = document.getElementById('nav-maps');
+  function updateSectionNav(){
+    var onMaps = false;
+    if (!mapSection.hidden){
+      var r = mapSection.getBoundingClientRect();
+      // 지도 영역이 화면 중간선을 넘어 올라오면 '지도를 보고 있다'로 간주
+      onMaps = r.top < window.innerHeight * 0.5 && r.bottom > 0;
+    }
+    navModels.classList.toggle('is-active', !onMaps);
+    navMaps.classList.toggle('is-active', onMaps);
+  }
+  var navTicking = false;
+  function queueNavUpdate(){
+    if (navTicking) return;
+    navTicking = true;
+    requestAnimationFrame(function(){ navTicking = false; updateSectionNav(); });
+  }
+  window.addEventListener('scroll', queueNavUpdate, { passive:true });
+  window.addEventListener('resize', queueNavUpdate);
+  navModels.addEventListener('click', function(){
+    window.scrollTo({ top:0, behavior:'smooth' });
+  });
+  navMaps.addEventListener('click', function(){
+    if (!mapSection.hidden) mapSection.scrollIntoView({ behavior:'smooth', block:'start' });
+  });
 
   // ---- 로고 크기 맞추기 ----
   // 칸 너비를 꽉 채우되 MARK_H 를 넘지 않게 한다.
@@ -560,8 +614,21 @@
       var ll = [item.lat, item.lng];
       latlngs.push(ll);
       var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
-      m.bindTooltip(labelOf(p, item.index), {
-        className:'pin-tip', direction:'top', offset:[0,-10], opacity:1
+      // 커서를 올리면 사진 축소본 미리보기
+      var tip = document.createElement('div');
+      var timg = document.createElement('img');
+      timg.src = srcOf(p);
+      timg.alt = '';
+      tip.appendChild(timg);
+      var label = labelOf(p, item.index);
+      if (label){
+        var tcap = document.createElement('div');
+        tcap.className = 'pin-tip-cap';
+        tcap.textContent = label;
+        tip.appendChild(tcap);
+      }
+      m.bindTooltip(tip, {
+        className:'pin-tip', direction:'top', offset:[0,-12], opacity:1
       });
       m.on('click', function(){ openLightbox(p, item.index); });
     });
@@ -571,6 +638,7 @@
     } else {
       map.fitBounds(L.latLngBounds(latlngs), { padding:[48,48], maxZoom:15 });
     }
+    updateSectionNav();   // 지도 영역이 이제 보이므로 좌상단 표시를 다시 계산
   }
 
   // ---- 로드 ----

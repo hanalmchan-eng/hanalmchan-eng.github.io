@@ -161,7 +161,10 @@
     font-size:26px; letter-spacing:.12em;
     color:var(--ink);
   }
-  #map-note{ font-size:10px; color:var(--ink-35); letter-spacing:.04em; }
+  #map-note{
+    font-size:10px; color:var(--ink-35); letter-spacing:.04em;
+    line-height:1.8; text-align:right;
+  }
   /* 지도는 항상 같은 지리적 범위를 보여준다.
      안쪽(.map-inner)은 픽셀 크기가 고정이고, 창이 좁아지면 통째로 축소만 된다. */
   .map-wrap{
@@ -189,7 +192,18 @@
   }
   @media (max-width:669px){
     .map-date{ font-size:22px; top:10px; right:12px; }
+    .map-info{ top:10px; left:12px; }
   }
+  /* 지도 왼쪽 위 설명란 — 마커에 커서를 대면 나타난다 */
+  .map-info{
+    position:absolute; top:18px; left:20px; z-index:500;
+    max-width:60%;
+    font-size:10.8px; letter-spacing:.04em; line-height:1.8;
+    color:#ffffff; mix-blend-mode:difference;
+    pointer-events:none;
+    opacity:0; transition:opacity .22s ease;
+  }
+  .map-info.show{ opacity:1; }
   #map-empty{
     font-size:11px; color:var(--ink-35); text-align:center;
     padding:40px 0;
@@ -283,20 +297,25 @@
     <div class="byline">photos by <span class="lm">HAN A-LEUM</span></div>
     <div class="hint-text">
       <span class="lm">LMCHAN</span> 워터마크를 눌러 해당 사진으로<br>
-      Tap an <span class="lm">LMCHAN</span> watermark to open that photo
+      Tap an <span class="lm">LMCHAN</span> watermark to open that photo<br>
+      <span class="lm">LMCHAN</span> のウォーターマークをタップして写真へ
     </div>
 
     <div id="grid" role="list"></div>
-    <div id="empty" hidden>불러올 사진이 없습니다.</div>
+      <div id="empty" hidden>불러올 사진이 없습니다.<br>No photos yet.<br>写真がまだありません。</div>
   </section>
 
   <section id="map-section" hidden>
     <div class="section-label">ELSES, MAPS</div>
     <div id="map-head">
-      <span id="map-note">마커에 커서를 올리면 미리보기 · 눌러서 크게 보기</span>
+      <span id="map-note">
+        마커에 커서를 올리면 미리보기 · 눌러서 크게 보기<br>
+        Hover a marker to preview · tap to open<br>
+        マーカーにカーソルを合わせるとプレビュー · タップで拡大
+      </span>
     </div>
     <div id="maps"></div>
-    <div id="map-empty" hidden>좌표가 등록된 사진이 아직 없습니다.</div>
+    <div id="map-empty" hidden>좌표가 등록된 사진이 아직 없습니다.<br>No located photos yet.<br>座標のある写真がまだありません。</div>
   </section>
 
   <div id="lightbox">
@@ -783,10 +802,10 @@
     });
   }
   function addrCacheGet(key){
-    try { return localStorage.getItem('lmchan:road2:' + key); } catch (err){ return null; }
+    try { return localStorage.getItem('lmchan:road3:' + key); } catch (err){ return null; }
   }
   function addrCacheSet(key, v){
-    try { localStorage.setItem('lmchan:road2:' + key, v); } catch (err){}
+    try { localStorage.setItem('lmchan:road3:' + key, v); } catch (err){}
   }
   function formatAddress(j){
     if (!j) return '';
@@ -801,25 +820,104 @@
     var key = lat.toFixed(5) + ',' + lng.toFixed(5);
     var hit = addrCacheGet(key);
     if (hit){ cb(hit); return; }
+    cb('…');   // 조회 중임을 표시 (빈 줄로 남지 않도록)
     addrQueue.push(function(done){
-      function finish(text){
-        if (text){ addrCacheSet(key, text); cb(text); }
+      // 도로명에 번호가 없으면 근처 건물번호를 찾아 붙인다 ("북촌북길" → "북촌북길 44")
+      function finish(text, via){
+        if (text && !/\d/.test(text)){
+          nearestHouseNumber(lat, lng, text, function(num){
+            settle(num ? (text + ' ' + num) : text, via + (num ? '+addr' : ''));
+          });
+        } else {
+          settle(text, via);
+        }
+      }
+      function settle(text, via){
+        var out = text || (lat.toFixed(5) + ', ' + lng.toFixed(5));  // 끝내 못 찾으면 좌표
+        if (text) addrCacheSet(key, out);
+        if (window.LMCHAN_DEBUG) console.log('[addr]', key, '→', out, '(' + via + ')');
+        cb(out);
         done();
       }
+      // 1) Nominatim — 그 지점의 도로명
       var url = 'https://nominatim.openstreetmap.org/reverse' +
                 '?format=jsonv2&zoom=18&accept-language=ko' +
                 '&lat=' + lat + '&lon=' + lng;
       fetch(url, { headers: { 'Accept': 'application/json' } })
-        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(r){
+          if (!r.ok) throw new Error('nominatim ' + r.status);
+          return r.json();
+        })
         .then(function(j){
           var text = formatAddress(j);
-          if (text){ finish(text); return; }
-          // 그 지점에 도로명이 없으면 주변에서 가장 가까운 이름 있는 길을 찾는다
-          nearestRoad(lat, lng, finish);
+          if (text){ finish(text, 'nominatim'); return; }
+          tryPhoton();
         })
-        .catch(function(){ nearestRoad(lat, lng, finish); });
+        .catch(function(err){
+          if (window.LMCHAN_DEBUG) console.warn('[addr] nominatim 실패', err);
+          tryPhoton();
+        });
+
+      // 2) Photon — 가장 가까운 지물의 거리명
+      function tryPhoton(){
+        fetch('https://photon.komoot.io/reverse?lang=default&lat=' + lat + '&lon=' + lng)
+          .then(function(r){
+            if (!r.ok) throw new Error('photon ' + r.status);
+            return r.json();
+          })
+          .then(function(j){
+            var f = j && j.features && j.features[0];
+            var pr = f && f.properties;
+            var text = pr && (pr.street || pr.name);
+            if (text){ finish(text, 'photon'); return; }
+            nearestRoad(lat, lng, function(t){ finish(t, 'overpass'); });
+          })
+          .catch(function(err){
+            if (window.LMCHAN_DEBUG) console.warn('[addr] photon 실패', err);
+            nearestRoad(lat, lng, function(t){ finish(t, 'overpass'); });
+          });
+      }
     });
     addrPump();
+  }
+
+  // 근처에서 건물번호(addr:housenumber)를 찾는다.
+  // 같은 도로명(addr:street)에 붙은 것을 우선하고, 없으면 가장 가까운 것을 쓴다.
+  function nearestHouseNumber(lat, lng, road, cb){
+    var radii = [80, 250, 700], i = 0;
+    function step(){
+      if (i >= radii.length){ cb(''); return; }
+      var r = radii[i++];
+      var q = '[out:json][timeout:20];(' +
+              'node(around:' + r + ',' + lat + ',' + lng + ')["addr:housenumber"];' +
+              'way(around:' + r + ',' + lat + ',' + lng + ')["addr:housenumber"];' +
+              ');out center 80;';
+      fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(q)
+      })
+        .then(function(res){ return res.ok ? res.json() : null; })
+        .then(function(j){
+          var els = (j && j.elements) || [];
+          var kx = Math.cos(lat * Math.PI / 180);
+          var best = '', bestD = Infinity, bestSame = false;
+          els.forEach(function(el){
+            var t = el.tags || {}, c = el.center || el;
+            if (!t['addr:housenumber'] || typeof c.lat !== 'number') return;
+            var dy = c.lat - lat, dx = (c.lon - lng) * kx;
+            var d = dy * dy + dx * dx;
+            var same = (t['addr:street'] === road);
+            // 같은 도로명이면 우선, 그 안에서 가장 가까운 것
+            if ((same && !bestSame) || (same === bestSame && d < bestD)){
+              bestD = d; best = t['addr:housenumber']; bestSame = same;
+            }
+          });
+          if (best) cb(best); else step();
+        })
+        .catch(function(){ step(); });
+    }
+    step();
   }
 
   // Overpass 로 반경을 넓혀가며 이름이 있는 도로를 찾는다
@@ -855,80 +953,28 @@
     step();
   }
 
-  function addMarker(map, item){
+  function addMarker(map, item, infoEl){
       var p = item.post;
       var ll = [item.lat, item.lng];
       var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
-      // 커서를 올리면 축소본 미리보기.
-      // 영상은 썸네일 파일을 따로 만들 필요 없이, 브라우저가 영상 앞부분만 조각으로
-      // 받아 0.5초 지점 한 프레임을 정지화면처럼 보여준다(preload="metadata" + #t=0.5).
-      // 커서를 잠깐 스치는 정도로는 재생하지 않고, 0.45초 이상 머무르면 그때 재생을 시작한다.
-      var tip = document.createElement('div');
-      var media;
-      if (isVideo(p) && !p.thumb){
-        // 영상은 재생하지 않는다. 첫 프레임 한 장만 뽑아 정지화면으로 쓰고,
-        // 그 결과를 브라우저에 저장해두어 다음부터는 영상을 아예 받지 않는다.
-        media = document.createElement('img');
-        media.alt = '';
-        media.className = 'pin-poster';
 
-        var key = 'lmchan:poster:' + (p.file || p.url || '');
-        var cached = null;
-        try { cached = localStorage.getItem(key); } catch (err){}
-
-        if (cached){
-          media.src = cached;
-        } else {
-          var grabbed = false;
-          m.on('mouseover', function(){
-            if (grabbed) return;
-            grabbed = true;
-            var v = document.createElement('video');
-            v.preload = 'metadata';
-            v.muted = true; v.playsInline = true;
-            v.crossOrigin = 'anonymous';
-            v.addEventListener('loadeddata', function(){
-              try {
-                var vw = v.videoWidth, vh = v.videoHeight;
-                if (vw && vh){
-                  var cw = 320, ch = Math.max(1, Math.round(cw * vh / vw));
-                  var cv = document.createElement('canvas');
-                  cv.width = cw; cv.height = ch;
-                  cv.getContext('2d').drawImage(v, 0, 0, cw, ch);
-                  var url = cv.toDataURL('image/jpeg', 0.72);
-                  media.src = url;
-                  try { localStorage.setItem(key, url); } catch (err){}
-                }
-              } catch (err){
-                // CORS 미설정 등으로 프레임을 못 뽑은 경우 — 조용히 포기
-              }
-              v.removeAttribute('src'); v.load();   // 영상 즉시 해제
-            }, { once:true });
-            v.addEventListener('error', function(){
-              v.removeAttribute('src');
-            }, { once:true });
-            v.src = srcOf(p) + '#t=0.5';
-            v.load();
-          });
-        }
-      } else {
-        media = document.createElement('img');
-        media.src = srcOf(p);   // thumb 가 있으면 srcOf 가 그걸 쓴다
-        media.alt = '';
-      }
-      tip.appendChild(media);
-
-      // 미리보기 아래에 그 위치의 주소
-      var tcap = document.createElement('div');
-      tcap.className = 'pin-tip-cap';
-      tip.appendChild(tcap);
+      // 주소는 미리 조회해 두고, 커서를 대면 지도 왼쪽 위 설명란에 띄운다
+      var addrText = '';
       resolveAddress(p, item.lat, item.lng, function(text){
-        tcap.textContent = text;
+        addrText = text;
+        if (m._lmActive) showInfo();
       });
+      function showInfo(){
+        if (!infoEl) return;
+        infoEl.textContent = addrText || '…';
+        infoEl.classList.add('show');
+      }
+      function hideInfo(){
+        if (infoEl) infoEl.classList.remove('show');
+      }
+      m.on('mouseover', function(){ m._lmActive = true;  showInfo(); });
+      m.on('mouseout',  function(){ m._lmActive = false; hideInfo(); });
 
-      m.bindTooltip(tip, {
-        className:'pin-tip', direction:'top', offset:[0,-12], opacity:1
-      });
       // 영상은 별도 창(elses.html)에서, 사진은 그 자리에서 크게
       m.on('click', function(){
         if (isVideo(p)){
@@ -996,6 +1042,12 @@
       dateEl.className = 'map-date';
       dateEl.textContent = (key === 'undated') ? '' : key.replace(/-/g, '.');
       wrap.appendChild(dateEl);
+
+      // 왼쪽 위 설명란 — 마커에 커서를 대면 그 위치의 주소가 여기 뜬다
+      var infoEl = document.createElement('div');
+      infoEl.className = 'map-info';
+      wrap.appendChild(infoEl);
+
       mapsWrap.appendChild(wrap);
 
       var map = L.map(inner, {
@@ -1007,7 +1059,7 @@
 
       var lls = [];
       items.forEach(function(o){
-        addMarker(map, o);
+        addMarker(map, o, infoEl);
         lls.push([o.lat, o.lng]);
       });
 

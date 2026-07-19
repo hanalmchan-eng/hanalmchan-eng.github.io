@@ -8,7 +8,7 @@
 <style>
   @font-face{
     font-family:'LMCHan';
-    src:url(data:font/otf;base64,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jQX7DfdMFb4rh4SDgISChIOEhoWHhIiGioWLhoyEjoWPhJCEkwWElIOWhJiEmYWbhZyFnoWfh5+GoYeiiKKJo4mkiaSKpIukjKWMpI2jjaSOoo6iBY+ikKCQn5GfkZ2Rm5KakpmSl5KVkpOTkpGPko+QjJGMkYqQipKHkYeThJKDkoEFkn+SfZJ8kXuReZF3kHeQdo90jnSOdI1yjXOMcoxxi3KKcolyiXKJc4h0h3SGdQWHd4V3hXiFeoiEYdqLjYmMio2JjImLiYyHi4mKiYuJioqJiYqKiYuJiomLh4yJBYmMBw73xPdnuBWOB4qMBY2KB4qMioyKi4qMiYuJioqLioqKioqJhH+EgYSBhIOEhYWGhYiFiQWGioaLho2GjYWOhpCFkYWThZSFlYWXhpiFmYabhpuHnYadiJ6Hn4igiKGJoYmhBYqiiqGL0YyhjKKNoY2hjqGOoI+fjp6QnY+dkJuQm5GZkJiRl5GVkZSRk5GRkJAFkY6QjZCNkIuQipGJkYiRhpKFkoOSgZKBkn+MiYyKjIqMi42KjYuMjIyLjIyMjAWMjQaMjIuQhZmFl4SWhJWElIOTgpGCj4GOgYuBioGIgYaChIKDg4KDgIR/hH6EfYV7BYV7hnmFeYd3hneHdoh2iHWJdIl0iXOKdItDjHSNc410jXSOdY52j3aQd493kXkFkHmRe5F7kn2SfpJ/k4CTgpSDlISVhpWIlYqVi5WOlI+UkZOTkpSSlZKWkZeRmQWMBw73zveX9xwVjQeMjYv3LoqNi40Fio2KjYqMiY2KjImLiYwki4mKiouJiomJioqKiYqJi4OMiYyJjIqNiY2KjIuNigXj+yUGjImMiYyKjYmNio2LjYqPi42MjYuMjI2NjIyMjQVk+wUVjI2LjoyOio6LjYqOiY2JjYmNiY2IjIiLiYyIioiLiIqJiYmJiYmKigWDf4SBg4OEhoWHhYmFi4aMhY2EkISRg5OEloOYhJqDm4WehZ+FoYaihqOHpIilBYimiaeKp4qni6eMp42mjaaOpo+kj6SQo5GhkaCRnpKdk5qSmZOXkpSTk5KQkY4FkY2Qi5GKkYiSh5KEk4KSgJN+knySepJ4kXaNiIyJjYmNiY2JjoqOi46KjYyOiwWOjI2NjY2NjY2NjI6LjoyNio6LjoSghKCDnoOcgpqBmYGXgJV/k3+QfY59in6IBX+Ff4KAgIF/gn2Ce4N5hHiDdoV0hXSGcoZxiHCHcIlviW6KbotujG6Mb41ujm8FjnCPcZBxkXORdJJ2knaTeZN6lHuVfpV/loKXg5iGmYmYjJmPl5KWk5aWlZiUmQUO96b3Z/daFYyNio0Fi46KjIqMiYyKjIqMhYuJioqKioqKioqLhIGDg4KEgoaAhoGIgIqBioCNgY2BjwWCj4KQg5KEkoWThZSHlYmUiZaLlYyVjpWOlZCUkZOSk5ORlJGUj5WOlY2WjJmMBZqOmZCZkZiTlpWVlpSXkpmRmY6ZjZqLmoiah5qGmYOYgpeAln+Uf5N9kXyOfI0FfIp9iX2HfYV/hICCgIGDgISAioqLiIqJjImLiIyKjIqNioyKjIqRi42MjIyMjAWMjIyLkpWTk5SSlJCWkJWOloyVjJaJlYmVh5SHlIaThJKEkYORgo+BjYKNgIuBBYqBiIGIgYaChYOEg4OFgoWCh4GIgYmAin2KfIh9hn2FfoOAgYGAgn+EfYV9iH0FiXyLfI58j3yQfZN+lH+WgJeCl4OZhZqImomajJmNmY+ZkZeSlpSWlZOWkpaMjAWNBw734oR8FZAGloqMi42KjoqRi46MjYyMi6SNp4+lkqSTo5YFopifmp2cm52Yn5SgkqGOoYuhiKGEoYKgfp97nXmcd5p0mHOWepGYj6KWoJiemgWdnJmemJ6UoJGhjqGLoYihhaGCoH6efZ55nHiadph0lnKTcpJxj3ONiouJjIiMBYWLiIqJioqLgIqHi4mKiImKiomJiomKiIqJi4aMiIyJjImNiYyJjoqNio2LjooFjPvQigaIiomLiYqIioqJiYmKioqJioiKiYuGjIiMiYyJjYmMiY6KjYqNi46KBY370IkGiIqJi4mKiIqKiYmJiomKiYqIi4aMiYyIjImNiYyKjokFxasVfoqL99CYiqOIBaOFooOggZ6AnX6afZh8lnqTe5B5jXqLeYl6hnmDe4B6fnx8fXl+eIB2gXSDc4UFcffvFYCKi/fQloqiiAWihaCDn4GegJt+mn2XfJV7k3qQeY16i3mJeoZ5g3qBe398fH17fniAd4F2g3SFBQ737J15FYwGmoycjZuPBZuRmpKak5qVmZaYmJiZl5qXm5WclZyUnpSfkp+SoJChkKGPoY6ijaKMooujiqIFiaKIooehhqGGoYSghJ+Cn4KegZyBnH+bf5p+mX6YfZZ8lXyTfJJ7kXuPeo18jAWKBogGiIqJioiKiYmJiYqIiomKiIv9VoyIjImMiI2JjYmOio2KjooFoLAV+SoHk4mXiJiHmIWXhJeDl4GXgZZ/ln6VfJR8lHuUepJ5kniReJB3kHaOdo52jXWMdgWLdYp2iXWIdoh2hnaGd4V4hHiEeYJ6gnuCfIF8gH6Af3+Bf4F/g3+EfoV+h3+IBQ73zq6FFYyOi/fYnY2djp2QnJGck5uTmpWZlpiXl5iVmQWUmpOakpuPnI+cjJyLm4qch5yHnISbg5qCmoGZf5h+l32WfJV7k3qTepF5kHmOBXmNgoyKi4mMiIyFi4iKiYqKi4KKhouJiomJiYqJiYqJioiKiYuGjIiMiYyJjYkFjYmNio2KjouNiov73omKiIuJiomKiYmJiYqJiomKiIuGjImMiIyJjYmNio2JjYoFkPvYBoyIjImMiI2JjYmOio2KjoqRi46MjYyOjI2NjY2MjgWN9/0V994HmYqaiJuGmoaZhZiDmIOXgZaBlYCUfwWTf5F+kH6Pfo59jH2LfYp9iH2HfoZ+hX6Df4J/gYCAgX+BfoN+g32FfIZ7hnyIBQ732PezhRWMjouRio6KjYuM+0v304uNiYyKjYqLl4+ck5uTm5UFmZaZl5eYlpmVmpOakZuQnI+bjJyLnYqch5uGnIWbg5qBmoCZf5h9l32We5V7kwV6k3mReJB5jniNgYyKi4mMiIyFi4iKiYqKi4GKh4uIiomJiYqKiYmJioiLgYyJBY2JjImNiY2KjoqNi46Ki/veiIqJi4iKiYqJiYqJiYmKiYuBjIiNiYyJjYqNiY6KBY8GjPvYBoyIjImMiI2JjYmOio2KjoqRi46MjYyOjI2NjY2MjgWN9/0V994HmYqaiJuGmoaZhZiDmIOXgZaBlYCUfwWTf5F+kH6Pfo59jH2LfYp9iH2HfoZ+hX6Df4J/gYCAgX+BfoN+g32FfIZ7hnyIBQ732PezhRWMjouRio6KjYuM+0v304uNiYyKjYqLl4+ck5uTm5UFmZaZl5eYlpmVmpOakZuQnI+bjJyLnYqch5uGnIWbg5qBmoCZf5h9l32We5V7kwV6k3mReJB5jniNgYyKi4mMiIyFi4iKiYqKi4GKh4uIiomJiYqKiYmJioiLgYyJBY2JjImNiY2KjoqNi46Ki/veiIqJi4iKiYqJiYqJiYmKiYuBjIiNiYyJjYqNiY6KBY8GjPvYBoyIjImMiI2JjYmOio2KjoqRi46MjYyOjI2NjY2MjoyNjI4F99iMB56NnY6RjYuJiomLh4yJBYmMB/dB+9mMiY2JjYmOio2KjoqRi46MjYyOjI2NjY2MjgX7f/f+FXyKi/femoqbiJyGmoaahZmDmYOXgZeBlYAFlH+Tf5J+kH6Pfo59jH2LfYp9iH2HfoZ+hH6Df4J/gYB/gX+BfYN9g3yFfIZ6hgUO98T3GPlnFYmMiYqAin6GgISBgYF/gn6DfAWDeoR4hXeFdYV0hnOHcohwiHCIb4pvim+LUY1vjG+Ob45wj3GQc5BzkXWRdpJ3BZJ5k3uUfZR/lYCWgpaFmIiZi5iOlpGWlJWWlJeUmZObkp2Sn5GgkaGQo5Cjj6UFjqaOp4ynjaeLxYqniqeIp4imiKaHpIajhaKFoYWfhJ6DnIOagpiBl4GVgJJ+kAV6aBWPjI+KkImRh5GFkoOSgQWSfpF8knqReZB3kXWPdI9yj3KNcY5wjHCMb4tTiXCKcIhwiHGHcod0hnSGdoV4BYV5hHuEfYSAhIGFhIWGhYmHioeLh4yFjYWQhZKElYSWhJmEm4WdhZ6GoIaih6IFh6SIpYimiqaJpovDjKeMpo6mjaWPpI+kj6KRoZCfkZ2SnJGakpiSlZKTkZGRjwUO91bvhRWOB4yOi/lQio6LjoqNiY6JjYmNiYyIjAWIjIaLiIqIiomKiYmJiYmIiomLeFz7AIuKiomLh4yJi4mMiY2KjImNio2LjYqPiwWNjI2LjYyMjY2MjI2LjKK/i/0HjImNiI2JjYmNio6KjoqQi46MjoyNjI2NjY2NjgUO97CPjBWOivd2i46MjYyOjI2NjY2MjoyNjI6LkYqOio2KjomNiY2IjImMiIz7VYv3N/fIBYyNBoyNi4+KjYuNio2JjIqNiYyJi4mMiouTlpObk5yRnZGfj5+NoAWNoIugiaCJoIeghp6EnoScgpuBmYGXf5V+lH+QiYuJjIaLiYqIiomKiYqKiYmIBYqJi4GMiY2JjImNiY2KjIuVhpOGlISTgZOAkn6SfJB7kHqOeI15jXeLeIl4iXgFh3mHeoV6hX2EfoN/g4KChIOFgoiDiYOLg42DjoKQg5ODlIOWg5iFmoWbh5yHnQWJnouMio2KjoqNiY2JjImNiYyBi4iKiYmJioqJiYmLiIqJi4aOd493kHeReZN6BZR7lH2Wf5eBmIOZhZmImouZjpiRmJOOjvtF+82LioqJioiLhYyIjImMiI2JjYmOigUO96bIihWNio2KloSZh5iJmYyYjpiRl5SWlQWVl5SZk5qSm5GdkJ2Pno2fjJ+Ln4qfiZ+HnoadhZ2Em4OagpmBl4CVho+Ni5aWBZWXlJmTm5KckZ2Pn4+fjZ+MoIqgiqCIoIeehp6EnYSbgpqBmIGWf5V+kn6PfYwFfYl9h3+Df4KBf4J+iYmKiYuBjImNiYyJjYmNio6KjYqQi46MjYyNjI2NjY2TlgWSlJORk4+SjpKMkoqTiZKHk4WTg5KBkn6RfpF7kHuOeY55jHiMeIp4iXiIeYd6BYZ7hXyEfoSAg4GEhIOGg4iEiYSLgo2Ki4mMiIqJi4mKiIqKiYmJioiKioGFiYoFiYqKiYqJioiKiYuGjImMiIyJjImNio2JjoqNi46KjYyOi42MlJCTjpKMk4uSiQWTh5OFk4STgpKAkX+RfZF7j3uOeo15jHmLeYp5iXmIeod7hXuFfYV/hICDgoOEBYOFg4eEiYOLhIyDjoKQiYyIi4mMiIqJi4iKiYmJioqJiomKiIqJi4aMiYyIjIkFDvfOifduFYwGioeKiYuHjImLiYyJjYqMiY2KjYuNio+LjYyNi42MjI2NjIyNi42NkAX3EftnBoyIi4iMiY2IjYmNiY2KjoqOipCLjoyOjI2MjY2NjYyOjY0F923YB42MjYuNjIyNjYyMjYuNjI2Lj4qNi42KjYmMio2JjImLiYwFPvhpBomNio6JjYmNiYwFiIyIjIaLiIqIiomKiYmJiYmIiomLiIqIi337JPxWiouJioqJiYqKiYuJiomLh4yJBfcrnBX7CQb3CfgABQ73sNv4BhWVj5iNjoyNjI2MjY2NjYyNjI2MjYuRio2KjYqNiY2JjYmMiYyIjAWHBooGe4gFeIN7f3x7fneAdIJyhHCGbohti22NbY9ukm+TcZZ0l3eaeZt+nIGeh5+MnZKdlgWam5idl6GUpJOmkKePqYypiamIqIWng6aBo3+gfpyKjYmNiIyJjImMhouIiomKBYmKiYmJiYqJiomKiIuGjImMiIyJl3yVeZR2knOQco5wjXCKb4hwhnGEc4N2gXgFgHyAgICEgIeBioGNgJF/lYCYgZyCn4SihaSHpYmni6eOpo+lkaSToZWelZuWlwVhmxWMjYyOBfeu92EHjoyNjI6MjY2NjYyOjI2MjouRio6KjYqOiY2JjYiMiYyIjPt2iwWIiomKiIqJiYmJioiKiYqIi/vDjIiMiYyIjYmNiY6KjYqOipGLjoyNjI6MjY2NjQUO97D3g/dYFYqhiaCIoYefhp8FhZ2DnYObgZmBmICVfpR+kn2OfIzf96yLk4qNio2JjIqNiYyJi4mMh4uJiomLiooFiYmKioqJioky+72AhYCBgICBfYJ8g3qEeYV4hneIdol2iXWLdY11jXaOdpB3kXgFknmTepR8lX2WgJaBmIOZhpmJmoyZjpiSmJSWlZWYlZmTm5OdkZ2Qn4+fjqGNoAVj3BWOd4x4jHeKd4p4iHeHeYd6hXuFfIR+g3+EgoODg4aDh4SJhIuEjISOg4+DkoOTBYSWhJeEmYWahpyHnYieiJ6Kn4ufjJ+Ono6ej52QnJGakpmSl4yNjIqMiY2KjYsFjYqPi42MjYuNjIyNjYyMjYuNk6OSjpKMkouSiZOHk4aTg5KCk3+SfpF8kXuPegUO97DjhRWMjYuM9zH5OYyNjI4Fi5OKjoqNio6JjYmNiIyJjIiMhYuIiomK+2uLiIqJioiKiYmJiYqIiomKiIuFjIgFjImMiI2JjYmOio2Kjor3XIv7I/0pi4SMiYyJjYqMiY2KjYuNio+LjYyNi4yMjY2MjAUO97D3fPdJFYwHjAeKoomjh6OFoYSggp6BnICahpCVmpSckp6SoJChjqKOowWjB6MHiKOIooahhKCEnoKcgZp/l3+VfZJ8jnyKfIZ+g39/gH6Ce4J5BYR3hnWGdYhzinOLc4xzjnOQdZB1kneUeZR7kIWAfoF7gXmDdoV2hnSIc4lzi3MFjXOOc5B0kXaTdpV5lXuXfZmAmYObhpuKm46akpmUmJiWmpWclJ6SoJGhj6ONowX7H/dsFYaIh5GDmISbhZyGnoegiKGKoYuhjKGOoY+gkJ6RnJKbk5iTlZOTk5CTjZKMBZKJk4iThJOCk4CSfJJ7kXiPd492jXWLX4l1h3aHd4V4hHuEfIOAi4p+kXuOe4oF4PsYFY92jXWMdYp1iXWHdoZ3hXmEe4N9gn+CgoGEg4iCiYOMgo2CkIKTgpWCmIObhZwFhZ6Hn4ihiaGLoY2hjqGPn5GekZyTm5SYlJWShpqGmoqajpmSkIeUf5N9knuReQUO97DLFoyN5Pe9j42YlJaVlZgFlZmTm5OdkZ2Qn4+fjqGNoIyhiqGJoIihh5+Gn4Wdg52Dm4GZgZiAlX6UfpJ9jgV8jH2JfYZ+g4CBgICBfYJ8g3qEeYV4hneIdol2iXWLdY11jXaOdpB3kXiSeZN6BZR8lX2WgJaBmIOZhpmJlIw2+62Lg4yJjImNioyJjYqNi42Kj4uNjI2LjIyNjYyMBdz3+BWDc4eJhImEi4SMhI6Dj4OSg5OEloSXhJmFmoach52Inoieip+Ln4yfjp6Ono+dBZCckZqSmZKXkpaTk5OSk4+SjpKMkouSiZOHk4aTg5KCk3+SfpF8kXuPeo95jncFjHiMd4p3iniId4d5h3qFe4V8hH6Gg4qMio2JjImLiYyHi4mKiYuJioqJiYqKiQWJBw73GsiXFZAHio2KjoqNiY2KjYiMiYyJi4iMiIqJiwWJioiKiomJiYqJioiKiYuGjIiMiYyJjYmMiY6KjYqNipGLjYyNjI6MjI2NjYyNjI0FDvckrDYVr+2MjQWMB5QHio2JjYqNiYyJjImMiIyHi4iKiYqJiomKiomJiYqJBYkHiAd+JAWKB4oHjIqMigWMBowGjIyMjAUO92qT958V9y4GjYyNi42MjI2NjIyNi42MjYuPio0Fi42KjYmMio2JjImLiYz7LouJiomLiYqKiYmKiomLiYqJi4eMiYuJjImNioyJjYoFjQYO9xrHlBWMjouQio2KjoqNiY2KjYiMiYyJi4iMiIqJiwWJioiKiomJiYqJioiKiYuGjIiMiYyJjYmMiY6KjYqNipGLjYyNjI6MjI2NjYyNBYn3fhWMjYuNjfhbi5CKjYmNio2JjImNiYyBi4mKBYmJiYqKiYmJioqLho38W4uJjImLiYyJjYqMiY2KjYuNio+LjYyNi42MjI2NjIyNBQ73kvcMlBWMjouQio2KjoqNiY2KjYiMiYyJi4iMiIqJiwWJioiKiomJiYqJioiKiYuGjIiMiYyJjYmMiY6KjYqNipGLjYyNjI6MjI2NjYyNBYn3fBWNB4yNi/dHio2LjYqNiYyKjYmMiYuJjIeLBYmKiYuJioqJiYqKiYuJiomL+0eMiYuJjImNioyJjYqNi42Kj4uNjI2LjYyMjY2MBa/3QhWNjY2MBYyMB5aalp2UoJGij6ONpIqkiKOGooOhgZ9/nH2YfJV6kHmLeYZ8gn1+BX96gXiDdYV0iHKKco1zj3KRdZN2jIqMiYyJjYqNio2KjoqPi46MjYyNjIyMjY0FjI2MjYyOi4+KjouMg52Gn4igiaGMoY6gkKCRnZOalJiVlJWRlI6Ui5SIlYWUgQWUfpN8kniPd451jHWJdYh2hXiEeYN9gH6KiYqIiomLhoyJjImMiYyJjYqNiY2KBZUGDvcQqvi2FaD3LIyMi4yKjYuNBYqNioyKjYmMioyJjImLiYyJiomLiYqKiomKiomKioqJi4mKiouKifsui4qMioyKBYwGjAaMjIyMBQ4B9AAAARgAAAFUAAABWAAAAVgAAAFXAAAA0QAAAFAAAADqAAABMAAAASYAAAEwAAABWAAAAfgAAAFEAAABOgAAAToAAAEwAAABTgAAAUQAAAFEAAABMAAAAToAAAESAAABTgAAAVgAAAE6AAABRAAAATAAAADCAAABHAAAARIAAAE6AAABHAAAARwAAAEcAAABHAAAARwAAACGAAAAkAAAANYAAACGAAAA/gAAAHwAAA==) format('opentype');
+    src:url(data:font/otf;base64,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Fb4rh4SDgISChIOEhoWHhIiGioWLhoyEjoWPhJCEkwWElIOWhJiEmYWbhZyFnoWfh5+GoYeiiKKJo4mkiaSKpIukjKWMpI2jjaSOoo6iBY+ikKCQn5GfkZ2Rm5KakpmSl5KVkpOTkpGPko+QjJGMkYqQipKHkYeThJKDkoEFkn+SfZJ8kXuReZF3kHeQdo90jnSOdI1yjXOMcoxxi3KKcolyiXKJc4h0h3SGdQWHd4V3hXiFeoiEYdqLjYmMio2JjImLiYyHi4mKiYuJioqJiYqKiYuJiomLh4yJBYmMBw73xPdnuBWOB4qMBY2KB4qMioyKi4qMiYuJioqLioqKioqJhH+EgYSBhIOEhYWGhYiFiQWGioaLho2GjYWOhpCFkYWThZSFlYWXhpiFmYabhpuHnYadiJ6Hn4igiKGJoYmhBYqiiqGL0YyhjKKNoY2hjqGOoI+fjp6QnY+dkJuQm5GZkJiRl5GVkZSRk5GRkJAFkY6QjZCNkIuQipGJkYiRhpKFkoOSgZKBkn+MiYyKjIqMi42KjYuMjIyLjIyMjAWMjQaMjIuQhZmFl4SWhJWElIOTgpGCj4GOgYuBioGIgYaChIKDg4KDgIR/hH6EfYV7BYV7hnmFeYd3hneHdoh2iHWJdIl0iXOKdItDjHSNc410jXSOdY52j3aQd493kXkFkHmRe5F7kn2SfpJ/k4CTgpSDlISVhpWIlYqVi5WOlI+UkZOTkpSSlZKWkZeRmQWMBw73zveX9xwVjQeMjYv3LoqNi40Fio2KjYqMiY2KjImLiYwki4mKiouJiomJioqKiYqJi4OMiYyJjIqNiY2KjIuNigXj+yUGjImMiYyKjYmNio2LjYqPi42MjYuMjI2NjIyMjQVk+wUVjI2LjoyOio6LjYqOiY2JjYmNiY2IjIiLiYyIioiLiIqJiYmJiYmKigWDf4SBg4OEhoWHhYmFi4aMhY2EkISRg5OEloOYhJqDm4WehZ+FoYaihqOHpIilBYimiaeKp4qni6eMp42mjaaOpo+kj6SQo5GhkaCRnpKdk5qSmZOXkpSTk5KQkY4FkY2Qi5GKkYiSh5KEk4KSgJN+knySepJ4kXaNiIyJjYmNiY2JjoqOi46KjYyOiwWOjI2NjY2NjY2NjI6LjoyNio6LjoSghKCDnoOcgpqBmYGXgJV/k3+QfY59in6IBX+Ff4KAgIF/gn2Ce4N5hHiDdoV0hXSGcoZxiHCHcIlviW6KbotujG6Mb41ujm8FjnCPcZBxkXORdJJ2knaTeZN6lHuVfpV/loKXg5iGmYmYjJmPl5KWk5aWlZiUmQUO96b3Z/daFYyNio0Fi46KjIqMiYyKjIqMhYuJioqKioqKioqLhIGDg4KEgoaAhoGIgIqBioCNgY2BjwWCj4KQg5KEkoWThZSHlYmUiZaLlYyVjpWOlZCUkZOSk5ORlJGUj5WOlY2WjJmMBZqOmZCZkZiTlpWVlpSXkpmRmY6ZjZqLmoiah5qGmYOYgpeAln+Uf5N9kXyOfI0FfIp9iX2HfYV/hICCgIGDgISAioqLiIqJjImLiIyKjIqNioyKjIqRi42MjIyMjAWMjIyLkpWTk5SSlJCWkJWOloyVjJaJlYmVh5SHlIaThJKEkYORgo+BjYKNgIuBBYqBiIGIgYaChYOEg4OFgoWCh4GIgYmAin2KfIh9hn2FfoOAgYGAgn+EfYV9iH0FiXyLfI58j3yQfZN+lH+WgJeCl4OZhZqImomajJmNmY+ZkZeSlpSWlZOWkpaMjAWNBw734oR8FZAGloqMi42KjoqRi46MjYyMi6SNp4+lkqSTo5YFopifmp2cm52Yn5SgkqGOoYuhiKGEoYKgfp97nXmcd5p0mHOWepGYj6KWoJiemgWdnJmemJ6UoJGhjqGLoYihhaGCoH6efZ55nHiadph0lnKTcpJxj3ONiouJjIiMBYWLiIqJioqLgIqHi4mKiImKiomJiomKiIqJi4aMiIyJjImNiYyJjoqNio2LjooFjPvQigaIiomLiYqIioqJiYmKioqJioiKiYuGjIiMiYyJjYmMiY6KjYqNi46KBY370IkGiIqJi4mKiIqKiYmJiomKiYqIi4aMiYyIjImNiYyKjokFxasVfoqL99CYiqOIBaOFooOggZ6AnX6afZh8lnqTe5B5jXqLeYl6hnmDe4B6fnx8fXl+eIB2gXSDc4UFcffvFYCKi/fQloqiiAWihaCDn4GegJt+mn2XfJV7k3qQeY16i3mJeoZ5g3qBe398fH17fniAd4F2g3SFBQ737J15FYwGmoycjZuPBZuRmpKak5qVmZaYmJiZl5qXm5WclZyUnpSfkp+SoJChkKGPoY6ijaKMooujiqIFiaKIooehhqGGoYSghJ+Cn4KegZyBnH+bf5p+mX6YfZZ8lXyTfJJ7kXuPeo18jAWKBogGiIqJioiKiYmJiYqIiomKiIv9VoyIjImMiI2JjYmOio2KjooFoLAV+SoHk4mXiJiHmIWXhJeDl4GXgZZ/ln6VfJR8lHuUepJ5kniReJB3kHaOdo52jXWMdgWLdYp2iXWIdoh2hnaGd4V4hHiEeYJ6gnuCfIF8gH6Af3+Bf4F/g3+EfoV+h3+IBQ73zq6FFYyOi/fYnY2djp2QnJGck5uTmpWZlpiXl5iVmQWUmpOakpuPnI+cjJyLm4qch5yHnISbg5qCmoGZf5h+l32WfJV7k3qTepF5kHmOBXmNgoyKi4mMiIyFi4iKiYqKi4KKhouJiomJiYqJiYqJioiKiYuGjIiMiYyJjYkFjYmNio2KjouNiov73omKiIuJiomKiYmJiYqJiomKiIuGjImMiIyJjYmNio2JjYoFkPvYBoyIjImMiI2JjYmOio2KjoqRi46MjYyOjI2NjY2MjgWN9/0V994HmYqaiJuGmoaZhZiDmIOXgZaBlYCUfwWTf5F+kH6Pfo59jH2LfYp9iH2HfoZ+hX6Df4J/gYCAgX+BfoN+g32FfIZ7hnyIBQ732PezhRWMjouRio6KjYuM+0v304uNiYyKjYqLl4+ck5uTm5UFmZaZl5eYlpmVmpOakZuQnI+bjJyLnYqch5uGnIWbg5qBmoCZf5h9l32We5V7kwV6k3mReJB5jniNgYyKi4mMiIyFi4iKiYqKi4GKh4uIiomJiYqKiYmJioiLgYyJBY2JjImNiY2KjoqNi46Ki/veiIqJi4iKiYqJiYqJiYmKiYuBjIiNiYyJjYqNiY6KBY8GjPvYBoyIjImMiI2JjYmOio2KjoqRi46MjYyOjI2NjY2MjoyNjI4F99iMB56NnY6RjYuJiomLh4yJBYmMB/dB+9mMiY2JjYmOio2KjoqRi46MjYyOjI2NjY2MjgX7f/f+FXyKi/femoqbiJyGmoaahZmDmYOXgZeBlYAFlH+Tf5J+kH6Pfo59jH2LfYp9iH2HfoZ+hH6Df4J/gYB/gX+BfYN9g3yFfIZ6hgUO98T3GPlnFYmMiYqAin6GgISBgYF/gn6DfAWDeoR4hXeFdYV0hnOHcohwiHCIb4pvim+LUY1vjG+Ob45wj3GQc5BzkXWRdpJ3BZJ5k3uUfZR/lYCWgpaFmIiZi5iOlpGWlJWWlJeUmZObkp2Sn5GgkaGQo5Cjj6UFjqaOp4ynjaeLxYqniqeIp4imiKaHpIajhaKFoYWfhJ6DnIOagpiBl4GVgJJ+kAV6aBWPjI+KkImRh5GFkoOSgQWSfpF8knqReZB3kXWPdI9yj3KNcY5wjHCMb4tTiXCKcIhwiHGHcod0hnSGdoV4BYV5hHuEfYSAhIGFhIWGhYmHioeLh4yFjYWQhZKElYSWhJmEm4WdhZ6GoIaih6IFh6SIpYimiqaJpovDjKeMpo6mjaWPpI+kj6KRoZCfkZ2SnJGakpiSlZKTkZGRjwUO91bvhRWOB4yOi/lQio6LjoqNiY6JjYmNiYyIjAWIjIaLiIqIiomKiYmJiYmIiomLeFz7AIuKiomLh4yJi4mMiY2KjImNio2LjYqPiwWNjI2LjYyMjY2MjI2LjKK/i/0HjImNiI2JjYmNio6KjoqQi46MjoyNjI2NjY2NjgUO97CPjBWOivd2i46MjYyOjI2NjY2MjoyNjI6LkYqOio2KjomNiY2IjImMiIz7VYv3N/fIBYyNBoyNi4+KjYuNio2JjIqNiYyJi4mMiouTlpObk5yRnZGfj5+NoAWNoIugiaCJoIeghp6EnoScgpuBmYGXf5V+lH+QiYuJjIaLiYqIiomKiYqKiYmIBYqJi4GMiY2JjImNiY2KjIuVhpOGlISTgZOAkn6SfJB7kHqOeI15jXeLeIl4iXgFh3mHeoV6hX2EfoN/g4KChIOFgoiDiYOLg42DjoKQg5ODlIOWg5iFmoWbh5yHnQWJnouMio2KjoqNiY2JjImNiYyBi4iKiYmJioqJiYmLiIqJi4aOd493kHeReZN6BZR7lH2Wf5eBmIOZhZmImouZjpiRmJOOjvtF+82LioqJioiLhYyIjImMiI2JjYmOigUO96bIihWNio2KloSZh5iJmYyYjpiRl5SWlQWVl5SZk5qSm5GdkJ2Pno2fjJ+Ln4qfiZ+HnoadhZ2Em4OagpmBl4CVho+Ni5aWBZWXlJmTm5KckZ2Pn4+fjZ+MoIqgiqCIoIeehp6EnYSbgpqBmIGWf5V+kn6PfYwFfYl9h3+Df4KBf4J+iYmKiYuBjImNiYyJjYmNio6KjYqQi46MjYyNjI2NjY2TlgWSlJORk4+SjpKMkoqTiZKHk4WTg5KBkn6RfpF7kHuOeY55jHiMeIp4iXiIeYd6BYZ7hXyEfoSAg4GEhIOGg4iEiYSLgo2Ki4mMiIqJi4mKiIqKiYmJiomKioGFiYoFiYqKiYqJioiKiYuGjImMiIyJjImNio2JjoqNi46KjYyOi42MlJCTjpKMk4uSiQWTh5OFk4STgpKAkX+RfZF7j3uOeo15jHmLeYp5iXmIeod7hXuFfYV/hICDgoOEBYOFg4eEiYOLhIyDjoKQiYyIi4mMiIqJi4iKiYmJioqJiomKiIqJi4aMiYyIjIkFDvfOifduFYwGioeKiYuHjImLiYyJjYqMiY2KjYuNio+LjYyNi42MjI2NjIyNi42NkAX3EftnBoyIi4iMiY2IjYmNiY2KjoqOipCLjoyOjI2MjY2NjYyOjY0F923YB42MjYuNjIyNjYyMjYuNjI2Lj4qNi42KjYmMio2JjImLiYwFPvhpBomNio6JjYmNiYwFiIyIjIaLiIqIiomKiYmJiYmIiomLiIqIi337JPxWiouJioqJiYqKiYuJiomLh4yJBfcrnBX7CQb3CfgABQ73sNv4BhWVj5iNjoyNjI2MjY2NjYyNjI2MjYuRio2KjYqNiY2JjYmMiYyIjAWHBooGe4gFeIN7f3x7fneAdIJyhHCGbohti22NbY9ukm+TcZZ0l3eaeZt+nIGeh5+MnZKdlgWam5idl6GUpJOmkKePqYypiamIqIWng6aBo3+gfpyKjYmNiIyJjImMhouIiomKBYmKiYmJiYqJiomKiIuGjImMiIyJl3yVeZR2knOQco5wjXCKb4hwhnGEc4N2gXgFgHyAgICEgIeBioGNgJF/lYCYgZyCn4SihaSHpYmni6eOpo+lkaSToZWelZuWlwVhmxWMjYyOBfeu92EHjoyNjI6MjY2NjYyOjI2MjouRio6KjYqOiY2JjYiMiYyIjPt2iwWIiomKiIqJiYmJioiKiYqIi/vDjIiMiYyIjYmNiY6KjYqOipGLjoyNjI6MjY2NjQUO97D3g/dYFYqhiaCIoYefhp8FhZ2DnYObgZmBmICVfpR+kn2OfIzf96yLk4qNio2JjIqNiYyJi4mMh4uJiomLiooFiYmKioqJioky+72AhYCBgICBfYJ8g3qEeYV4hneIdol2iXWLdY11jXaOdpB3kXgFknmTepR8lX2WgJaBmIOZhpmJmoyZjpiSmJSWlZWYlZmTm5OdkZ2Qn4+fjqGNoAVj3BWOd4x4jHeKd4p4iHeHeYd6hXuFfIR+g3+EgoODg4aDh4SJhIuEjISOg4+DkoOTBYSWhJeEmYWahpyHnYieiJ6Kn4ufjJ+Ono6ej52QnJGakpmSl4yNjIqMiY2KjYsFjYqPi42MjYuNjIyNjYyMjYuNk6OSjpKMkouSiZOHk4aTg5KCk3+SfpF8kXuPegUO97DjhRWMjYuM9zH5OYyNjI4Fi5OKjoqNio6JjYmNiIyJjIiMhYuIiomK+2uLiIqJioiKiYmJiYqIiomKiIuFjIgFjImMiI2JjYmOio2Kjor3XIv7I/0pi4SMiYyJjYqMiY2KjYuNio+LjYyNi4yMjY2MjAUO97D3fPdJFYwHjAeKoomjh6OFoYSggp6BnICahpCVmpSckp6SoJChjqKOowWjB6MHiKOIooahhKCEnoKcgZp/l3+VfZJ8jnyKfIZ+g39/gH6Ce4J5BYR3hnWGdYhzinOLc4xzjnOQdZB1kneUeZR7kIWAfoF7gXmDdoV2hnSIc4lzi3MFjXOOc5B0kXaTdpV5lXuXfZmAmYObhpuKm46akpmUmJiWmpWclJ6SoJGhj6ONowX7H/dsFYaIh5GDmISbhZyGnoegiKGKoYuhjKGOoY+gkJ6RnJKbk5iTlZOTk5CTjZKMBZKJk4iThJOCk4CSfJJ7kXiPd492jXWLX4l1h3aHd4V4hHuEfIOAi4p+kXuOe4oF4PsYFY92jXWMdYp1iXWHdoZ3hXmEe4N9gn+CgoGEg4iCiYOMgo2CkIKTgpWCmIObhZwFhZ6Hn4ihiaGLoY2hjqGPn5GekZyTm5SYlJWShpqGmoqajpmSkIeUf5N9knuReQUO97DLFoyN5Pe9j42YlJaVlZgFlZmTm5OdkZ2Qn4+fjqGNoIyhiqGJoIihh5+Gn4Wdg52Dm4GZgZiAlX6UfpJ9jgV8jH2JfYZ+g4CBgICBfYJ8g3qEeYV4hneIdol2iXWLdY11jXaOdpB3kXiSeZN6BZR8lX2WgJaBmIOZhpmJlIw2+62Lg4yJjImNioyJjYqNi42Kj4uNjI2LjIyNjYyMBdz3+BWDc4eJhImEi4SMhI6Dj4OSg5OEloSXhJmFmoach52Inoieip+Ln4yfjp6Ono+dBZCckZqSmZKXkpaTk5OSk4+SjpKMkouSiZOHk4aTg5KCk3+SfpF8kXuPeo95jncFjHiMd4p3iniId4d5h3qFe4V8hH6Gg4qMio2JjImLiYyHi4mKiYuJioqJiYqKiQWJBw73GsiXFZAHio2KjoqNiY2KjYiMiYyJi4iMiIqJi4mKBYiKiomJiYqJioiKiYuGjIiMiYyJjYmMiY6KjYqNipGLjYyNjI6MjI2NjYyNjI0FDvckrDYVr+2MjQWMB5QHio2JjYqNiYyJjImMiIyHi4iKiYqJiomKiomJiYqJBYkHiAd+JAWKB4oHjIqMigWMBowGjIyMjAUO92qT958V9y4GjYyNi42MjI2NjIyNi42MjYuPio0Fi42KjYmMio2JjImLiYz7LouJiomLiYqKiYmKiomLiYqJi4eMiYuJjImNioyJjYoFjQYO9xrHlBWMjouQio2KjoqNiY2KjYiMiYyJi4iMiIqJiwWJioiKiomJiYqJioiKiYuGjIiMiYyJjYmMiY6KjYqNipGLjYyNjI6MjI2NjYyNBYn3fhWMjYuNjfhbi5CKjYmNio2JjImNiYyBi4mKBYmJiYqKiYmJiomLho38W4uJjImLiYyJjYqMiY2KjYuNio+LjYyNi42MjI2NjIyNBQ73kvcMlBWMjouQio2KjoqNiY2KjYiMiYyJi4iMiIqJiwWJioiKiomJiYqJioiKiYuGjIiMiYyJjYmMiY6KjYqNipGLjYyNjI6MjI2NjYyNBYn3fBWNB4yNi/dHio2LjYqNiYyKjYmMiYuJjIeLBYmKiYuJioqJiYqKiYuJiomL+0eMiYuJjImNioyJjYqNi42Kj4uNjI2LjYyMjY2MBa/3QhWNjY2MBYyMB5aalp2UoJGij6ONpIqkiKOGooOhgZ9/nH2YfJV6kHmLeYZ8gn1+BX96gXiDdYV0iHKKco1zj3KRdZN2jIqMiYyJjYqNio2KjoqPi46MjYyNjIyMjY0FjI2MjYyOi4+KjouMg52Gn4igiaGMoY6gkKCRnZOalJiVlJWRlI6Ui5SIlYWUgQWUfpN8kniPd451jHWJdYh2hXiEeYN9gH6KiYqIiomLhoyJjImMiYyJjYqNiY2KBZUGDvcQqvi2FaD3LIyMi4yKjYuNBYqNioyKjYmMioyJjImLiYyJiomLiYqKiomKiomKioqJi4mKiouKifsui4qMioyKBYwGjAaMjIyMBQ4B9AAAARgAAAFUAAABWAAAAVgAAAFXAAAA0QAAAFAAAADqAAABMAAAASYAAAEwAAABWAAAAfgAAAFEAAABOgAAAToAAAEwAAABTgAAAUQAAAFEAAABMAAAAToAAAESAAABTgAAAVgAAAE6AAABRAAAATAAAADCAAABHAAAARIAAAE6AAABHAAAARwAAAEcAAABHAAAARwAAACGAAAAkAAAANYAAACGAAAA/gAAAHwAAA==) format('opentype');
     font-weight:400;
     font-style:normal;
     font-display:swap;
@@ -22,43 +22,12 @@
     --ink-22:rgba(20,20,20,.22);
     --ink-16:rgba(20,20,20,.14);
     --ink-10:rgba(20,20,20,.10);
-    --spine-bg-a:#ffffff;
-    --spine-bg-b:#f4f3f0;
-    --spine-shadow:rgba(20,20,20,.20);
 
-    --shelf-y:calc(100% - 48px);
+    --shelf-y:100%;
     --book-left:calc(100% - (var(--spine-w) / 2) - (var(--spine-h) * 0.122) - 3px);
-    --spine-w:clamp(30px,3.8vw,48px);
-    /* 책 상단이 화면 세로의 4/5 지점(위에서 20% 아래)에 오도록: 높이를 화면의 80%로 */
-    --spine-h:clamp(320px,80vh,900px);
+    --spine-w:clamp(18px,2.4vw,24px);
+    --spine-h:clamp(240px,44vh,380px);
     --tilt:7deg;
-
-    /* 실제 태양의 고도/방위각으로 갱신되는 그림자 값 — JS가 없거나 로딩 전에도
-       어색하지 않도록 기본값을 둔다 */
-    --shadow-angle:0deg;
-    --shadow-length:56px;
-    --shadow-opacity:.4;
-    --shadow-rgb:0,0,0;
-    --shadow-blend:multiply;
-  }
-
-  /* ── 다크모드: 시스템 설정을 그대로 따름 ── */
-  @media (prefers-color-scheme: dark){
-    :root{
-      --paper:#111113;
-      --ink:#ececeb;
-      --ink-60:rgba(236,236,235,.62);
-      --ink-35:rgba(236,236,235,.35);
-      --ink-22:rgba(236,236,235,.20);
-      --ink-16:rgba(236,236,235,.14);
-      --ink-10:rgba(236,236,235,.09);
-      --spine-bg-a:#1c1c1e;
-      --spine-bg-b:#141416;
-      --spine-shadow:rgba(0,0,0,.55);
-      /* 어두운 배경에서는 그림자가 아니라 달빛처럼 은은히 밝아지는 쪽으로 반전 */
-      --shadow-rgb:255,255,255;
-      --shadow-blend:screen;
-    }
   }
 
   *{ margin:0; padding:0; box-sizing:border-box; }
@@ -70,10 +39,19 @@
     -webkit-user-select:none; user-select:none;
     -webkit-touch-callout:none;
     overscroll-behavior:none;
-    transition:background-color .3s ease, color .3s ease;
   }
 
   #scene{ position:fixed; inset:0; overflow:hidden; }
+
+  #shelf-shadow{
+    position:absolute; left:0; right:0; top:var(--shelf-y); height:44px;
+    background:linear-gradient(to bottom, var(--ink-10), rgba(20,20,20,0) 100%);
+    pointer-events:none;
+  }
+  #shelf-line{
+    position:absolute; left:0; right:0; top:var(--shelf-y); height:1px;
+    background:var(--ink-22); pointer-events:none;
+  }
 
   /* 책이 기대는 얇은 칸막이(서가의 측판) */
   .divider{
@@ -94,27 +72,18 @@
   .ghost-slot.g1{ left:45%; width:calc(var(--spine-w) * 0.92); height:calc(var(--spine-h) * 0.94); }
   .ghost-slot.g2{ left:55.5%; width:calc(var(--spine-w) * 0.84); height:calc(var(--spine-h) * 0.86); }
 
-  /* 바닥/선반 면은 따로 그리지 않는다 — 이 그림자 하나만으로 책이 놓여 있음을
-     암시한다. top/left는 JS가 붙기 전(또는 실패했을 때)을 위한 기본값일 뿐이고,
-     실제로는 매 프레임 책의 렌더링된 좌표(getBoundingClientRect)를 읽어
-     transform으로 그 밑점에 그림자를 붙인다 — 기울어짐·들어올림·흔들림 등
-     책의 모든 움직임을 그대로, 지연 없이 따라간다.
-     길이·기울기·농도는 보고 있는 사람의 지금 이 순간, 실제 태양의 고도에서
-     계산된다. 색은 --shadow-rgb/--shadow-blend로 빼두어 다크모드에서는
-     그림자 대신 달빛처럼 밝아지는 쪽으로 자동 반전된다. */
-  .sun-shadow{
+  .book-shadow{
     position:absolute; top:var(--shelf-y); left:var(--book-left);
-    width:calc(var(--spine-w) * 1.5);
-    height:var(--shadow-length);
-    transform-origin:50% 0%;
-    transform:translate(-50%,0) rotate(var(--shadow-angle));
-    border-radius:50%;
-    background:linear-gradient(to bottom, rgba(var(--shadow-rgb),.9), rgba(var(--shadow-rgb),0) 100%);
-    mix-blend-mode:var(--shadow-blend);
-    filter:blur(7px);
-    opacity:var(--shadow-opacity);
-    pointer-events:none;
-    will-change:transform,opacity,height;
+    width:calc(var(--spine-w) * 2.3); height:18px;
+    transform:translate(-50%,-50%) scale(1,1);
+    border-radius:50%; opacity:.5;
+    background:radial-gradient(closest-side, rgba(20,20,20,.20), rgba(20,20,20,0) 72%);
+    pointer-events:none; will-change:transform,opacity;
+  }
+  #scene:has(.book:hover) .book-shadow,
+  #scene:has(.book:focus-visible) .book-shadow{
+    transform:translate(-50%,-50%) scale(1.08,.86);
+    opacity:.34;
   }
 
   .book{
@@ -147,10 +116,9 @@
   .spine{
     position:relative; display:block; width:100%; height:100%;
     overflow:hidden;
-    background:linear-gradient(100deg, var(--spine-bg-a) 0%, var(--spine-bg-a) 90%, var(--spine-bg-b) 100%);
+    background:linear-gradient(100deg, #ffffff 0%, #ffffff 90%, #f4f3f0 100%);
     border:1px solid var(--ink-16);
-    box-shadow:0 16px 28px -16px var(--spine-shadow);
-    transition:background .3s ease, border-color .3s ease, box-shadow .3s ease;
+    box-shadow:0 16px 28px -16px rgba(20,20,20,.20);
   }
   .spine-edge{
     position:absolute; top:0; right:0; width:3px; height:100%;
@@ -160,30 +128,16 @@
   .spine-mark{
     position:absolute; left:50%; top:22%;
     width:calc(var(--spine-h) * 0.34);
-    height:calc(var(--spine-w) * 1.3);
+    height:calc(var(--spine-w) * 1.05);
     transform:translate(-50%,-50%) rotate(-90deg);
     display:flex; align-items:center; justify-content:center;
   }
   .spine-mark-text{
     font-family:'LMCHan', Georgia, 'Times New Roman', serif;
     font-weight:400;
-    font-size:calc(var(--spine-w) * 0.58);
-    letter-spacing:0;
+    font-size:14px; letter-spacing:0;
     color:var(--ink); white-space:nowrap; text-transform:lowercase;
-    transition:opacity .6s ease;
   }
-  /* 갤러리의 최신 사진에서 실시간으로 크롭해오는 로고 — .spine-mark(텍스트)와는 별개로
-     .spine 바로 아래 독립적으로 배치해, 책등 맨 끝(아래쪽)에 책등 두께만큼 크게 딱 붙는다.
-     실제 top 위치는 크기가 정해진 뒤 JS(paintMark)가 픽셀 단위로 계산해 지정한다.
-     로딩 전엔 보이지 않고, 준비되면 텍스트 로고가 페이드아웃되며 이게 페이드인한다. */
-  .spine-mark-photo{
-    position:absolute; left:50%; top:50%;
-    transform:translate(-50%,-50%) rotate(-90deg);
-    display:block; overflow:hidden; background-repeat:no-repeat;
-    opacity:0; transition:opacity .6s ease;
-  }
-  .spine-mark-photo.is-ready{ opacity:1; }
-  .spine-mark.has-photo .spine-mark-text{ opacity:0; }
 
   #site-label{
     position:fixed; top:24px; left:20px; z-index:50;
@@ -209,16 +163,17 @@
   <div id="hint"><div id="hint-text"></div></div>
 
   <div id="scene">
+    <div id="shelf-shadow"></div>
+    <div id="shelf-line"></div>
     <div class="ghost-slot g1" aria-hidden="true"></div>
     <div class="ghost-slot g2" aria-hidden="true"></div>
     <div class="divider" aria-hidden="true"></div>
-    <div class="sun-shadow" aria-hidden="true"></div>
+    <div class="book-shadow" aria-hidden="true"></div>
 
     <button class="book" id="book" type="button" aria-label="hanalmchan — 당겨서 열기">
       <span class="spine">
         <span class="spine-mark">
-          <span class="spine-mark-text" id="spine-mark-text">hanalmchan</span>
-          <span class="spine-mark-photo" id="spine-mark-photo"></span>
+          <span class="spine-mark-text">hanalmchan</span>
         </span>
         <span class="spine-edge" aria-hidden="true"></span>
       </span>
@@ -232,98 +187,16 @@
   'use strict';
 
   // ====== 설정: 실제 배포 시 이 값만 맞춰주면 됩니다 ======
-  var NEXT_URL   = 'hanalmchan.html'; // 이 책을 열었을 때 이동할 갤러리 페이지
-  var R2_BASE    = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev'; // 갤러리 페이지와 동일
-  var POSTS_JSON = 'posts.json';
-  var LOGO_W_RATIO  = 0.0936;      // 로고 너비 / 사진 너비 — 갤러리 페이지와 동일한 값
-  var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비 — 갤러리 페이지와 동일한 값
-  // 책등에서는 위 원본 로고 박스를 그대로 쓰지 않고, 위/아래 1/5씩 · 좌우 1/10씩을
-  // 더 잘라내 로고 마크만 타이트하게 보이도록 한다. 여백이 더/덜 필요하면 이 세 값만 조정.
-  var CROP_TOP    = 0.2;  // 위쪽 1/5 제거
-  var CROP_BOTTOM = 0.2;  // 아래쪽 1/5 제거
-  var CROP_SIDE   = 0.1;  // 좌우 각 1/10 제거
+  var NEXT_URL = 'hanalmchan.html'; // 이 책을 열었을 때 이동할 갤러리 페이지
   // ===========================================================
 
-  var scene      = document.getElementById('scene');
   var book       = document.getElementById('book');
-  var spineEl    = document.querySelector('.spine');
-  var shadowEl   = document.querySelector('.sun-shadow');
+  var shadowEl   = document.querySelector('.book-shadow');
   var veil       = document.getElementById('veil');
   var hint       = document.getElementById('hint');
   var hintText   = document.getElementById('hint-text');
-  var markWrap   = document.querySelector('.spine-mark');
-  var textEl     = document.getElementById('spine-mark-text');
-  var markEl     = document.getElementById('spine-mark-photo');
 
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // ---- 책등 로고: posts.json에서 가장 최신(맨 위) 사진을 찾아, 그 안에 이미 합성된
-  //      로고 부분만 좌표(logoX, logoY)와 비율로 계산해서 크롭해 보여줌.
-  //      별도 로고 파일이 필요 없음 — 갤러리에 새 사진이 올라가면 책등도 그걸 따라감.
-  //      사진이 아직 로딩되지 않았거나 실패하면 LMCHan 폰트 텍스트 로고가 그대로 보인다. ----
-  function buildImageUrl(filename){
-    return R2_BASE + '/' + encodeURIComponent(filename);
-  }
-
-  var loadedLogo = null; // { imgW, imgH, src, cropX, cropY, cropW, cropH } — 리사이즈 시 재사용
-
-  function paintMark(){
-    if (!loadedLogo || !markEl || !spineEl) return;
-    // offsetWidth/Height는 상위(.book)의 rotate() 변형에 영향받지 않는 실제 스파인 크기
-    var spineW = spineEl.offsetWidth || 40, spineH = spineEl.offsetHeight || 320;
-
-    // 트림 후 크롭 박스의 세로/가로 비율 — 회전 후 책등 폭을 넘지 않도록 이 값으로 크기 산출
-    var cropHW = loadedLogo.cropH / loadedLogo.cropW;
-    var markW = Math.min((spineW * 0.62) / cropHW, spineH * 0.5);
-    var scale = markW / loadedLogo.cropW;
-
-    markEl.style.width  = markW + 'px';
-    markEl.style.height = (loadedLogo.cropH * scale) + 'px';
-    markEl.style.backgroundImage    = 'url(' + loadedLogo.src + ')';
-    markEl.style.backgroundSize     = (loadedLogo.imgW * scale) + 'px ' + (loadedLogo.imgH * scale) + 'px';
-    markEl.style.backgroundPosition = (-loadedLogo.cropX * scale) + 'px ' + (-loadedLogo.cropY * scale) + 'px';
-    markEl.classList.add('is-ready');
-    if (markWrap) markWrap.classList.add('has-photo'); // 텍스트 로고는 이때 페이드아웃됨
-  }
-
-  fetch(POSTS_JSON + '?v=' + Date.now())
-    .then(function(r){ return r.json(); })
-    .then(function(posts){
-      var latest = (posts || []).find(function(p){
-        return p && (p.file || p.url) &&
-          typeof p.logoX === 'number' && typeof p.logoY === 'number';
-      });
-      if (!latest || !markEl) return;
-
-      var src = latest.file ? buildImageUrl(latest.file) : latest.url;
-      var probe = new Image();
-      probe.onload = function(){
-        if (!probe.naturalWidth || !probe.naturalHeight) return;
-
-        // 원본(전체) 로고 박스: 사진 픽셀 기준
-        var logoW = probe.naturalWidth * LOGO_W_RATIO;
-        var logoH = logoW * LOGO_HW_RATIO;
-
-        // 위/아래 1/5씩, 좌우 1/10씩 더 잘라낸 최종 크롭 박스
-        loadedLogo = {
-          imgW: probe.naturalWidth, imgH: probe.naturalHeight, src: src,
-          cropX: latest.logoX + logoW * CROP_SIDE,
-          cropY: latest.logoY + logoH * CROP_TOP,
-          cropW: logoW * (1 - CROP_SIDE * 2),
-          cropH: logoH * (1 - CROP_TOP - CROP_BOTTOM)
-        };
-        paintMark();
-      };
-      probe.onerror = function(){ /* 사진을 못 불러오면 텍스트 로고를 그대로 둔다 */ };
-      probe.src = src;
-    })
-    .catch(function(){ /* posts.json이 아직 없으면 텍스트 로고를 그대로 둔다 */ });
-
-  var markResizeTimer = null;
-  window.addEventListener('resize', function(){
-    clearTimeout(markResizeTimer);
-    markResizeTimer = setTimeout(paintMark, 120);
-  });
 
   // ---- 안내문구 ----
   hintText.innerHTML =
@@ -336,122 +209,6 @@
     clearTimeout(hideTimer);
     hint.style.opacity = '1';
     hideTimer = setTimeout(function(){ hint.style.opacity = '0'; }, 4000);
-  }
-
-  // ---- 태양 위치 기반 그림자 ----
-  // sun.angle/length/opacity 는 "지금 이 순간의 태양"에서 계산된 목표값이고,
-  // disp.* 는 그 목표값을 향해 매 프레임 조금씩 다가가는 표시값(부드러운 보간용)이다.
-  // 위도는 권한 요청 없이 서울(37.5°N) 고정값을 쓰고, 시각은 방문자의 로컬 시계를 그대로 쓴다.
-  var sun  = { lat: 37.5665, lon: 126.9780, angle: 0, length: 56, opacity: .4 };
-  var disp = { angle: 0, length: 56, opacity: .4 };
-
-  function lerp(a, b, t){ return a + (b - a) * t; }
-
-  // NOAA 근사식 기반 태양 고도(altitude)·방위각(azimuth) 계산 (도 단위 반환)
-  function solarPosition(date, lat, lon, tzHours){
-    var rad = Math.PI / 180;
-    var startOfYear = Date.UTC(date.getFullYear(), 0, 1);
-    var dayOfYear = Math.floor((date.getTime() - startOfYear) / 86400000) + 1;
-    var minutesOfDay = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
-
-    var gamma = (2 * Math.PI / 365) * (dayOfYear - 1 + (date.getHours() - 12) / 24);
-
-    var eqtime = 229.18 * (
-      0.000075
-      + 0.001868 * Math.cos(gamma)
-      - 0.032077 * Math.sin(gamma)
-      - 0.014615 * Math.cos(2 * gamma)
-      - 0.040849 * Math.sin(2 * gamma)
-    );
-
-    var decl = 0.006918
-      - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma)
-      - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(2 * gamma)
-      - 0.002697 * Math.cos(3 * gamma) + 0.001480 * Math.sin(3 * gamma);
-
-    var timeOffset = eqtime + 4 * lon - 60 * tzHours;
-    var tst = minutesOfDay + timeOffset;
-    var ha = (tst / 4) - 180;
-    var haRad = ha * rad;
-    var latRad = lat * rad;
-
-    var cosZenith = Math.sin(latRad) * Math.sin(decl) + Math.cos(latRad) * Math.cos(decl) * Math.cos(haRad);
-    cosZenith = Math.max(-1, Math.min(1, cosZenith));
-    var zenithRad = Math.acos(cosZenith);
-    var altitude = 90 - zenithRad / rad;
-
-    var denom = Math.cos(latRad) * Math.sin(zenithRad);
-    var azimuth;
-    if (Math.abs(denom) < 1e-6){
-      azimuth = 180;
-    } else {
-      var cosAz = -(Math.sin(latRad) * Math.cos(zenithRad) - Math.sin(decl)) / denom;
-      cosAz = Math.max(-1, Math.min(1, cosAz));
-      var azRad = Math.acos(cosAz);
-      azimuth = (ha > 0) ? (azRad / rad + 180) % 360 : (540 - azRad / rad) % 360;
-    }
-
-    return { altitude: altitude, azimuth: azimuth };
-  }
-
-  function updateSunShadow(){
-    var now = new Date();
-    var tzHours = -now.getTimezoneOffset() / 60;
-    var pos = solarPosition(now, sun.lat, sun.lon, tzHours);
-
-    if (pos.altitude <= 0){
-      // 해가 진 시간 — 방향성 그림자는 사라지고, 은은한 접지 그림자만 남는다
-      sun.angle   = 0;
-      sun.length  = 34;
-      sun.opacity = 0.14;
-      return;
-    }
-
-    var altRad = Math.max(pos.altitude, 3) * Math.PI / 180; // 지평선 근처에서 과도하게 길어지지 않도록 하한
-    var azRad  = pos.azimuth * Math.PI / 180;
-
-    var rawLength = 42 / Math.tan(altRad);
-    sun.length  = Math.max(30, Math.min(rawLength, 260));
-    sun.angle   = Math.sin(azRad) * 34; // 태양의 방위에 따른 좌우 기울기 — 오전엔 왼쪽, 오후엔 오른쪽
-    sun.opacity = Math.max(0.18, Math.min(0.48, 0.52 - pos.altitude / 180));
-  }
-
-  // 책의 실제 렌더링 좌표를 매 프레임 읽어, 그 밑점에 그림자를 붙인다.
-  // 기울어짐·들어올림(호버/드래그)·idle 흔들림 등 book.style/CSS가 만드는
-  // 모든 움직임이 CSS 변수 복제 없이 자동으로 그대로 반영된다.
-  function trackShadow(){
-    disp.angle   = lerp(disp.angle,   sun.angle,   0.04);
-    disp.length  = lerp(disp.length,  sun.length,  0.04);
-    disp.opacity = lerp(disp.opacity, sun.opacity, 0.04);
-
-    var bookRect  = book.getBoundingClientRect();
-    var sceneRect = scene.getBoundingClientRect();
-    var anchorX = bookRect.left + bookRect.width / 2 - sceneRect.left;
-    var anchorY = bookRect.bottom - sceneRect.top;
-
-    var floorY = sceneRect.height - 48; // 눈에 보이지 않는 바닥 — --shelf-y와 같은 여백
-    var liftPx = Math.max(0, floorY - anchorY); // 책이 바닥에서 얼마나 떠 있는지, 측정값에서 바로 나옴
-    var t = Math.min(liftPx / 140, 1);
-
-    var len = Math.max(16, disp.length * (1 - t * 0.55));
-    var op  = Math.max(0, disp.opacity * (1 - t * 0.75));
-
-    shadowEl.style.transform =
-      'translate3d(' + anchorX.toFixed(1) + 'px,' + anchorY.toFixed(1) + 'px,0) ' +
-      'translate(-50%,0) rotate(' + disp.angle.toFixed(2) + 'deg)';
-    shadowEl.style.height = len.toFixed(1) + 'px';
-    shadowEl.style.opacity = op.toFixed(2);
-
-    requestAnimationFrame(trackShadow);
-  }
-
-  function initSun(){
-    shadowEl.style.top = '0px';
-    shadowEl.style.left = '0px';
-
-    updateSunShadow();
-    setInterval(updateSunShadow, 5 * 60 * 1000);
-    requestAnimationFrame(trackShadow);
   }
 
   // ---- 드래그로 책 꺼내기 ----
@@ -467,6 +224,17 @@
   var opened = false;
   var suppressNextClick = false; // 포인터 제스처가 이미 처리한 뒤 이어지는 합성 click 무시용
 
+  function setShadow(dy){
+    var lift = Math.max(0, dy);
+    var t = Math.min(lift / 140, 1);
+    var scaleX = 1 + t * 0.15;
+    var scaleY = 1 - t * 0.55;
+    var ty = Math.min(lift * 0.22, 16);
+    var opacity = 0.5 - t * 0.36;
+    shadowEl.style.transform = 'translate(-50%, calc(-50% + ' + ty + 'px)) scale(' + scaleX + ',' + scaleY + ')';
+    shadowEl.style.opacity = String(Math.max(0.1, opacity));
+  }
+
   function applyDrag(dy, dx){
     var clampedDy = Math.max(-14, Math.min(dy, 220));
     var lift = Math.max(0, clampedDy) * 0.92;
@@ -478,7 +246,7 @@
     book.style.transform =
       'translate(calc(-50% + ' + sway + 'px), calc(-100% - ' + lift + 'px)) ' +
       'rotate(' + tilt + 'deg) scale(' + scale + ')';
-    // 그림자는 trackShadow()가 다음 프레임에 book의 실제 위치를 읽어 알아서 따라온다
+    setShadow(clampedDy);
   }
 
   function resetInlineStyles(){
@@ -489,6 +257,8 @@
     book.classList.remove('dragging');
     book.classList.add('settling');
     resetInlineStyles();
+    shadowEl.style.transform = '';
+    shadowEl.style.opacity = '';
     var done = function(){
       book.classList.remove('settling');
       book.removeEventListener('transitionend', done);
@@ -510,6 +280,7 @@
     }
 
     book.style.transform = 'translate(-50%, calc(-100% - 210px)) rotate(-2deg) scale(1.08)';
+    shadowEl.style.opacity = '0';
     setTimeout(function(){ veil.classList.add('show'); }, 190);
     setTimeout(function(){ window.location.href = NEXT_URL; }, 560);
   }
@@ -580,8 +351,6 @@
   window.addEventListener('blur', function(){
     if (dragging){ dragging = false; activePointerId = null; springBack(); }
   });
-
-  initSun();
 
 })();
 </script>

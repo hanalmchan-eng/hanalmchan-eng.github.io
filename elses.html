@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>LMCHAN — ELSES</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<style>
+  @font-face{
+    font-family:'LMCHan';
+    src:url('fonts/LMCHan.woff2') format('woff2'),
+        url('LMCHan.woff2') format('woff2'),
+        url('fonts/LMCHan.otf') format('opentype'),
+        url('LMCHan.otf') format('opentype');
+    font-weight:400; font-style:normal; font-display:swap;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{
+    width:100%; height:100%;
+    background:#0c0c0d; color:#f2f2f0;
+    font-family:Helvetica, Arial, sans-serif;
+    overflow:hidden;
+  }
+  #stage{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:18px;
+    padding:72px 32px 56px;
+  }
+  #media{
+    max-width:100%; max-height:100%;
+    object-fit:contain; display:block;
+  }
+  #meta{
+    position:fixed; left:0; right:0; bottom:22px;
+    text-align:center;
+    font-size:11px; letter-spacing:.08em; color:rgba(242,242,240,.55);
+  }
+  #place{
+    font-family:'LMCHan', Georgia, serif;
+    font-size:20px; letter-spacing:.12em; color:rgba(242,242,240,.85);
+    display:block; margin-bottom:6px;
+  }
+  #away{
+    position:fixed; top:20px; right:20px; z-index:50;
+    font-family:'LMCHan', Georgia, serif;
+    font-size:22px; letter-spacing:.14em;
+    color:#f2f2f0; text-decoration:none; opacity:.7;
+    transition:opacity .3s ease;
+  }
+  #away:hover{ opacity:1; }
+  #loading, #error{
+    font-size:12px; letter-spacing:.08em; color:rgba(242,242,240,.5);
+  }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+  <a id="away" href="index.html">AWAY</a>
+  <div id="stage">
+    <div id="loading">불러오는 중...</div>
+    <div id="error" hidden>해당 항목을 찾을 수 없습니다.</div>
+    <video id="media-video" controls loop playsinline hidden></video>
+    <img id="media-img" alt="" hidden>
+  </div>
+  <div id="meta" hidden>
+    <span id="place"></span>
+    <span id="caption"></span>
+  </div>
+
+<script>
+(function(){
+  'use strict';
+  var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
+  var PLACES_JSON = 'places.json';
+
+  var loading = document.getElementById('loading');
+  var errorEl = document.getElementById('error');
+  var vid     = document.getElementById('media-video');
+  var img     = document.getElementById('media-img');
+  var meta    = document.getElementById('meta');
+  var placeEl = document.getElementById('place');
+  var capEl   = document.getElementById('caption');
+  var away    = document.getElementById('away');
+
+  function buildUrl(name){ return R2_BASE + '/' + encodeURIComponent(name); }
+  function isVideo(name){
+    return /\.(mp4|mov|m4v|webm)(\?|$)/i.test(String(name || ''));
+  }
+  function param(k){
+    var m = new RegExp('[?&]' + k + '=([^&]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  }
+
+  var want = param('f');
+  // 지도로 정확히 돌아가도록 링크에 앵커를 붙여둔다
+  away.href = 'index.html#map-section';
+
+  fetch(PLACES_JSON + '?v=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(places){
+      places = places || [];
+      var post = null;
+      for (var i = 0; i < places.length; i++){
+        var f = String(places[i].file || '');
+        if (f === want || f.replace(/\.[^.]+$/, '') === want){ post = places[i]; break; }
+      }
+      // ?f= 가 없거나 못 찾으면 첫 항목을 보여준다
+      if (!post && places.length) post = places[0];
+      if (!post){ loading.hidden = true; errorEl.hidden = false; return; }
+
+      var src = post.file ? buildUrl(post.file) : (post.url || '');
+      loading.hidden = true;
+
+      if (isVideo(post.file || post.url)){
+        vid.src = src;
+        vid.hidden = false;
+        vid.play().catch(function(){});   // 자동재생이 막히면 컨트롤로 재생
+      } else {
+        img.src = src;
+        img.alt = post.place || '';
+        img.hidden = false;
+      }
+
+      if (post.place || post.caption){
+        placeEl.textContent = post.place || '';
+        capEl.textContent = post.caption || '';
+        meta.hidden = false;
+      }
+      document.title = 'LMCHAN — ' + (post.place || 'ELSES');
+    })
+    .catch(function(){
+      loading.hidden = true;
+      errorEl.hidden = false;
+    });
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' || e.key === 'Esc') window.close();
+  });
+})();
+</script>
+</body>
+</html>

@@ -797,6 +797,10 @@
     var hit = addrCacheGet(key);
     if (hit){ cb(hit); return; }
     addrQueue.push(function(done){
+      function finish(text){
+        if (text){ addrCacheSet(key, text); cb(text); }
+        done();
+      }
       var url = 'https://nominatim.openstreetmap.org/reverse' +
                 '?format=jsonv2&zoom=18&accept-language=ko' +
                 '&lat=' + lat + '&lon=' + lng;
@@ -804,12 +808,46 @@
         .then(function(r){ return r.ok ? r.json() : null; })
         .then(function(j){
           var text = formatAddress(j);
-          if (text){ addrCacheSet(key, text); cb(text); }
-          done();
+          if (text){ finish(text); return; }
+          // 그 지점에 도로명이 없으면 주변에서 가장 가까운 이름 있는 길을 찾는다
+          nearestRoad(lat, lng, finish);
         })
-        .catch(function(){ done(); });
+        .catch(function(){ nearestRoad(lat, lng, finish); });
     });
     addrPump();
+  }
+
+  // Overpass 로 반경을 넓혀가며 이름이 있는 도로를 찾는다
+  function nearestRoad(lat, lng, cb){
+    var radii = [150, 400, 1200], i = 0;
+    function step(){
+      if (i >= radii.length){ cb(''); return; }
+      var r = radii[i++];
+      var q = '[out:json][timeout:20];way(around:' + r + ',' + lat + ',' + lng +
+              ')["highway"]["name"];out center 40;';
+      fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(q)
+      })
+        .then(function(res){ return res.ok ? res.json() : null; })
+        .then(function(j){
+          var best = '', bestD = Infinity;
+          var els = (j && j.elements) || [];
+          var kx = Math.cos(lat * Math.PI / 180);
+          els.forEach(function(el){
+            var c = el.center || el;
+            var name = el.tags && el.tags.name;
+            if (!name || typeof c.lat !== 'number') return;
+            var dy = c.lat - lat, dx = (c.lon - lng) * kx;
+            var d = dy * dy + dx * dx;
+            if (d < bestD){ bestD = d; best = name; }
+          });
+          if (best) cb(best); else step();
+        })
+        .catch(function(){ step(); });
+    }
+    step();
   }
 
   function addMarker(map, item){

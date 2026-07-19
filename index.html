@@ -32,8 +32,9 @@
     --ink-35:rgba(20,20,20,.35);
     --ink-16:rgba(20,20,20,.14);
     --ink-08:rgba(20,20,20,.07);
-    --grid-max:1360px;   /* 격자 전체 최대 너비 */
-    --gap:10px;
+    --cell:300px;        /* 로고 한 칸의 고정 너비 — 창 크기와 무관 */
+    --gap:12px;          /* 로고 사이 고정 간격 — 창 크기와 무관 */
+    --grid-max:1360px;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -72,16 +73,18 @@
     font-size:10px; color:var(--ink-35); letter-spacing:.04em; line-height:1.7;
     text-align:center;
   }
-  /* 화면 폭에 따라 4 → 2 → 1 열 */
+  /* 칸 너비와 간격은 고정. 창이 좁아지면 크기가 줄어드는 대신 열 수만 4 → 2 → 1 로 바뀐다.
+     남는 공간은 justify-content:center 로 양옆에 균등 분배되어 항상 가운데 정렬된다. */
   #grid{
     display:grid;
-    grid-template-columns:repeat(4, 1fr);
+    grid-template-columns:repeat(4, var(--cell));
+    justify-content:center;
     gap:var(--gap);
-    width:100%; max-width:var(--grid-max);
+    width:100%;
     margin-top:56px;
   }
-  @media (max-width:1100px){ #grid{ grid-template-columns:repeat(2, 1fr); } }
-  @media (max-width:640px){  #grid{ grid-template-columns:1fr; } }
+  @media (max-width:1289px){ #grid{ grid-template-columns:repeat(2, var(--cell)); } }
+  @media (max-width:669px){  #grid{ grid-template-columns:min(var(--cell), 100%); } }
   .icon{
     display:flex; flex-direction:column; align-items:center; gap:8px;
     text-decoration:none; color:inherit;
@@ -93,7 +96,7 @@
   .icon:focus-visible{ outline:1px solid var(--ink-35); outline-offset:2px; }
   .mark{
     position:relative; overflow:hidden;
-    width:100%; height:210px;
+    width:100%; height:190px;
     display:flex; align-items:center; justify-content:center;
   }
   .mark img{
@@ -170,8 +173,7 @@
   }
   .leaflet-tooltip.pin-tip::before{ display:none; }
 
-  @media (max-width:640px){
-    :root{ --gap:6px; }
+  @media (max-width:669px){
     body{ padding:64px 18px 72px; }
     #map{ height:52vh; }
     #map-head{ flex-direction:column; gap:4px; }
@@ -215,9 +217,9 @@
   var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
   // 로고 박스에서 잘라낼 여백 비율.
   // 음수를 넣으면 반대로 그만큼 더 넓게 보여준다 (위아래로 여유를 주고 싶을 때).
-  var CROP_TOP = -0.08, CROP_BOTTOM = -0.08, CROP_SIDE = 0.1;
+  var CROP_TOP = -0.08, CROP_BOTTOM = -0.08, CROP_SIDE = 0.02;
   // 로고 최대 높이. 칸이 좁으면 코드가 알아서 폭에 맞춰 줄인다.
-  var MARK_H = 210, MARK_MAX_W = 340;
+  var MARK_H = 190, MARK_MAX_W = 300;
   var MAP_FALLBACK = [37.5665, 126.9780]; // 좌표가 하나도 없을 때 지도 중심
   // 갤러리 링크 앵커: 확장자를 뗀 파일명 (hanalmchan.html 쪽 indexFromHash와 짝을 이룸)
   function anchorFor(post, index){

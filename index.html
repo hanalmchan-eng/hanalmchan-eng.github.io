@@ -208,6 +208,11 @@
     display:block; width:150px; height:auto; max-height:190px;
     object-fit:cover;
   }
+  /* 영상 정지화면: 아직 못 받았을 때도 자리를 지키도록 최소 크기를 준다 */
+  .leaflet-tooltip.pin-tip img.pin-poster{
+    min-width:150px; min-height:84px;
+    background:var(--ink-08);
+  }
   .pin-tip-cap{
     font-size:9.5px; letter-spacing:.06em; color:var(--ink-35);
     text-align:center; padding:5px 2px 1px;
@@ -249,7 +254,7 @@
 <body>
   <section id="models-section">
     <div class="section-label">MODELS, WATERMARKS</div>
-    <div class="byline">photos by <span class="lm">hanalmchan</span></div>
+    <div class="byline">photos by <span class="lm">HAN A-LEUM</span></div>
     <div class="hint-text">
       <span class="lm">LMCHAN</span> 워터마크를 눌러 해당 사진으로<br>
       Tap an <span class="lm">LMCHAN</span> watermark to open that photo
@@ -711,26 +716,53 @@
       // 받아 0.5초 지점 한 프레임을 정지화면처럼 보여준다(preload="metadata" + #t=0.5).
       // 커서를 잠깐 스치는 정도로는 재생하지 않고, 0.45초 이상 머무르면 그때 재생을 시작한다.
       var tip = document.createElement('div');
-      var media, playTimer = null;
+      var media;
       if (isVideo(p) && !p.thumb){
-        media = document.createElement('video');
-        media.preload = 'metadata';
-        media.src = srcOf(p) + '#t=0.5';
-        media.muted = true; media.loop = true;
-        media.playsInline = true;
-        media.setAttribute('playsinline', '');
-        media.setAttribute('muted', '');
-        m.on('mouseover', function(){
-          clearTimeout(playTimer);
-          playTimer = setTimeout(function(){
-            var r = media.play();
-            if (r && r.catch) r.catch(function(){});
-          }, 450);
-        });
-        m.on('mouseout', function(){
-          clearTimeout(playTimer);
-          media.pause();
-        });
+        // 영상은 재생하지 않는다. 첫 프레임 한 장만 뽑아 정지화면으로 쓰고,
+        // 그 결과를 브라우저에 저장해두어 다음부터는 영상을 아예 받지 않는다.
+        media = document.createElement('img');
+        media.alt = '';
+        media.className = 'pin-poster';
+
+        var key = 'lmchan:poster:' + (p.file || p.url || '');
+        var cached = null;
+        try { cached = localStorage.getItem(key); } catch (err){}
+
+        if (cached){
+          media.src = cached;
+        } else {
+          var grabbed = false;
+          m.on('mouseover', function(){
+            if (grabbed) return;
+            grabbed = true;
+            var v = document.createElement('video');
+            v.preload = 'metadata';
+            v.muted = true; v.playsInline = true;
+            v.crossOrigin = 'anonymous';
+            v.addEventListener('loadeddata', function(){
+              try {
+                var vw = v.videoWidth, vh = v.videoHeight;
+                if (vw && vh){
+                  var cw = 320, ch = Math.max(1, Math.round(cw * vh / vw));
+                  var cv = document.createElement('canvas');
+                  cv.width = cw; cv.height = ch;
+                  cv.getContext('2d').drawImage(v, 0, 0, cw, ch);
+                  var url = cv.toDataURL('image/jpeg', 0.72);
+                  media.src = url;
+                  try { localStorage.setItem(key, url); } catch (err){}
+                }
+              } catch (err){
+                // CORS 미설정 등으로 프레임을 못 뽑은 경우 — 조용히 포기
+              }
+              v.removeAttribute('src'); v.load();   // 영상 즉시 해제
+            }, { once:true });
+            v.addEventListener('error', function(){
+              v.removeAttribute('src');
+            }, { once:true });
+            v.src = srcOf(p) + '#t=0.5';
+            v.load();
+          });
+        }
       } else {
         media = document.createElement('img');
         media.src = srcOf(p);   // thumb 가 있으면 srcOf 가 그걸 쓴다

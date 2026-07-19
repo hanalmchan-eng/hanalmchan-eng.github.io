@@ -94,7 +94,7 @@
     text-align:center; margin-bottom:12px;
   }
   .hint-text{
-    font-size:10.8px; color:var(--ink-35); letter-spacing:.04em; line-height:2;
+    font-size:9.5px; color:var(--ink-35); letter-spacing:.04em; line-height:2;
     text-align:center;
   }
   /* 칸 너비와 간격은 고정. 창이 좁아지면 크기가 줄어드는 대신 열 수만 4 → 2 → 1 로 바뀐다.
@@ -162,7 +162,7 @@
     color:var(--ink);
   }
   #map-note{
-    font-size:10px; color:var(--ink-35); letter-spacing:.04em;
+    font-size:9px; color:var(--ink-35); letter-spacing:.04em;
     line-height:1.8; text-align:right;
   }
   /* 지도는 항상 같은 지리적 범위를 보여준다.
@@ -194,16 +194,33 @@
     .map-date{ font-size:22px; top:10px; right:12px; }
     .map-info{ top:10px; left:12px; }
   }
-  /* 지도 왼쪽 위 설명란 — 마커에 커서를 대면 나타난다 */
+  /* 지도 왼쪽 위 미리보기 카드 — 마커에 커서를 대면 나타난다 */
   .map-info{
     position:absolute; top:18px; left:20px; z-index:500;
-    max-width:60%;
-    font-size:10.8px; letter-spacing:.04em; line-height:1.8;
-    color:#ffffff; mix-blend-mode:difference;
+    width:420px; max-width:calc(100% - 40px);
+    background:var(--paper);
+    border:1px solid var(--ink-16);
+    padding:10px;
     pointer-events:none;
-    opacity:0; transition:opacity .22s ease;
+    opacity:0; transform:translateY(-4px);
+    transition:opacity .22s ease, transform .22s ease;
   }
-  .map-info.show{ opacity:1; }
+  .map-info.show{ opacity:1; transform:translateY(0); }
+  .map-info img, .map-info video{
+    display:block; width:100%; height:auto;
+    max-height:300px; object-fit:cover;
+    background:var(--ink-08);
+  }
+  .map-info-addr{
+    margin-top:10px;
+    font-size:15px; letter-spacing:.02em; line-height:1.4; color:var(--ink);
+  }
+  .map-info-note{
+    margin-top:4px;
+    font-size:12.5px; line-height:1.5; color:var(--ink-60);
+    word-break:keep-all;
+  }
+  .map-info-addr:empty, .map-info-note:empty{ display:none; }
   #map-empty{
     font-size:11px; color:var(--ink-35); text-align:center;
     padding:40px 0;
@@ -309,9 +326,9 @@
     <div class="section-label">ELSES, MAPS</div>
     <div id="map-head">
       <span id="map-note">
-        마커에 커서를 올리면 미리보기 · 눌러서 크게 보기<br>
-        Hover a marker to preview · tap to open<br>
-        マーカーにカーソルを合わせるとプレビュー · タップで拡大
+        마커에 커서를 대거나 눌러 미리보기 · 한 번 더 눌러 크게 보기<br>
+        Hover or tap a marker to preview · tap again to open<br>
+        マーカーにカーソルまたはタップでプレビュー · もう一度タップで拡大
       </span>
     </div>
     <div id="maps"></div>
@@ -734,6 +751,11 @@
   var MAP_W = 1236, MAP_H = 772;
   var mapScalers = [];
 
+  // 손가락으로 쓰는 화면인지 (커서 올리기가 없는 환경)
+  var isTouch = false;
+  window.addEventListener('touchstart', function(){ isTouch = true; },
+                          { once: true, passive: true });
+
   // 촬영 날짜를 YYYY-MM-DD 로 뽑는다. 없으면 'undated'.
   function dateKeyOf(post){
     var d = post.date || post.taken || post.createdAt || '';
@@ -958,25 +980,56 @@
       var ll = [item.lat, item.lng];
       var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
 
-      // 주소는 미리 조회해 두고, 커서를 대면 지도 왼쪽 위 설명란에 띄운다
-      var addrText = '';
-      resolveAddress(p, item.lat, item.lng, function(text){
-        addrText = text;
-        if (m._lmActive) showInfo();
-      });
+      // 커서를 대면 지도 왼쪽 위 카드에 사진과 설명이 뜬다.
+      // 사진은 처음 한 번만 받아두고 이후에는 그대로 재사용한다.
+      var media = null;
+      function ensureMedia(){
+        if (media) return media;
+        if (isVideo(p)){
+          media = document.createElement('video');
+          media.muted = true; media.playsInline = true;
+          media.setAttribute('playsinline', '');
+          media.preload = 'metadata';
+          media.src = srcOf(p) + '#t=0.5';   // 앞부분만 받아 한 프레임을 보여준다
+        } else {
+          media = document.createElement('img');
+          media.alt = '';
+          media.src = srcOf(p);              // thumb 가 있으면 srcOf 가 그걸 쓴다
+        }
+        return media;
+      }
       function showInfo(){
         if (!infoEl) return;
-        infoEl.textContent = addrText || '…';
+        infoEl.innerHTML = '';
+        infoEl.appendChild(ensureMedia());
+        var a = document.createElement('div');
+        a.className = 'map-info-addr';
+        a.textContent = p.address || '';
+        infoEl.appendChild(a);
+        if (p.note || p.caption){
+          var n = document.createElement('div');
+          n.className = 'map-info-note';
+          n.textContent = p.note || p.caption;
+          infoEl.appendChild(n);
+        }
+        infoEl._owner = m;
         infoEl.classList.add('show');
       }
       function hideInfo(){
         if (infoEl) infoEl.classList.remove('show');
       }
-      m.on('mouseover', function(){ m._lmActive = true;  showInfo(); });
-      m.on('mouseout',  function(){ m._lmActive = false; hideInfo(); });
+      m.on('mouseover', showInfo);
+      m.on('mouseout',  function(){ if (!isTouch) hideInfo(); });
 
-      // 영상은 별도 창(elses.html)에서, 사진은 그 자리에서 크게
+      // 영상은 별도 창(elses.html)에서, 사진은 그 자리에서 크게.
+      // 손가락으로 쓰는 화면에는 '커서를 올리는' 동작이 없으므로,
+      // 첫 번째 탭에서는 설명 카드를 띄우고 한 번 더 눌러야 열리게 한다.
       m.on('click', function(){
+        if (isTouch &&
+            !(infoEl && infoEl._owner === m && infoEl.classList.contains('show'))){
+          showInfo();
+          return;
+        }
         if (isVideo(p)){
           window.open(ELSES_URL + '?f=' + encodeURIComponent(p.file || ''),
                       '_blank', 'noopener');
@@ -1056,6 +1109,8 @@
         doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false
       });
       L.tileLayer(tileUrl, { maxZoom: 19, attribution: tileAttr }).addTo(map);
+      // 지도 빈 곳을 누르면 설명 카드를 닫는다
+      map.on('click', function(){ infoEl.classList.remove('show'); });
 
       var lls = [];
       items.forEach(function(o){

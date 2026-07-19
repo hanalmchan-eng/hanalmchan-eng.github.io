@@ -184,6 +184,24 @@
   }
   .leaflet-tooltip.pin-tip::before{ display:none; }
 
+  /* 마커를 눌렀을 때 뜨는 사진 창 */
+  #lightbox{
+    position:fixed; inset:0; z-index:900;
+    display:none; align-items:center; justify-content:center;
+    flex-direction:column; gap:14px;
+    background:rgba(0,0,0,.88);
+    padding:32px; cursor:zoom-out;
+  }
+  #lightbox.show{ display:flex; }
+  #lightbox img{
+    max-width:100%; max-height:82vh;
+    object-fit:contain; display:block;
+  }
+  #lightbox-cap{
+    font-size:11px; letter-spacing:.06em; color:rgba(255,255,255,.7);
+    text-align:center;
+  }
+
   @media (max-width:669px){
     body{ padding:64px 18px 72px; }
     #map{ height:52vh; }
@@ -215,6 +233,11 @@
     <div id="map-empty" hidden>좌표가 등록된 사진이 아직 없습니다.</div>
   </section>
 
+  <div id="lightbox">
+    <img id="lightbox-img" alt="">
+    <div id="lightbox-cap"></div>
+  </div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
@@ -223,12 +246,13 @@
   // ====== 설정 ======
   var GALLERY_URL = 'hanalmchan.html';
   var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
-  var POSTS_JSON  = 'posts.json';
+  var POSTS_JSON  = 'posts.json';    // 워터마크 갤러리용 (위 격자)
+  var PLACES_JSON = 'places.json';   // 지도용 — 워터마크 없는 별도 사진 목록
   var LOGO_W_RATIO  = 0.0936;      // 로고 너비 / 사진 너비
   var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
   // 로고 박스에서 잘라낼 여백 비율.
   // 음수를 넣으면 반대로 그만큼 더 넓게 보여준다 (위아래로 여유를 주고 싶을 때).
-  var CROP_TOP = -0.08, CROP_BOTTOM = -0.08, CROP_SIDE = -0.15;
+  var CROP_TOP = -0.08, CROP_BOTTOM = -0.08, CROP_SIDE = -0.05;
   // 로고는 칸 너비를 꽉 채우도록 그린다. MARK_H 는 지나치게 커지지 않게 막는 상한.
   var MARK_H = 420, MARK_MAX_W = 300;
   var MAP_FALLBACK = [37.5665, 126.9780]; // 좌표가 하나도 없을 때 지도 중심
@@ -475,6 +499,26 @@
     return fetchExifGps(src);
   }
 
+  // ---- 마커를 눌렀을 때 뜨는 사진 창 ----
+  function openLightbox(post, index){
+    var box = document.getElementById('lightbox');
+    var img = document.getElementById('lightbox-img');
+    var cap = document.getElementById('lightbox-cap');
+    img.src = srcOf(post);
+    img.alt = labelOf(post, index);
+    cap.textContent = [post.place, post.caption].filter(Boolean).join(' · ');
+    box.classList.add('show');
+  }
+  function closeLightbox(){
+    var box = document.getElementById('lightbox');
+    box.classList.remove('show');
+    document.getElementById('lightbox-img').src = '';
+  }
+  document.getElementById('lightbox').addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' || e.key === 'Esc') closeLightbox();
+  });
+
   // ---- 지도 ----
   function buildMap(located){
     if (typeof L === 'undefined') return;      // Leaflet 로드 실패 시 조용히 건너뜀
@@ -516,7 +560,7 @@
       m.bindTooltip(labelOf(p, item.index), {
         className:'pin-tip', direction:'top', offset:[0,-10], opacity:1
       });
-      m.on('click', function(){ window.location.href = hrefFor(p, item.index); });
+      m.on('click', function(){ openLightbox(p, item.index); });
     });
 
     if (latlngs.length === 1){
@@ -535,17 +579,24 @@
       var frag = document.createDocumentFragment();
       posts.forEach(function(p, i){ frag.appendChild(makeIcon(p, i)); });
       grid.appendChild(frag);
+    })
+    .catch(function(){ empty.hidden = false; });
 
-      // 좌표: posts.json의 수동값 우선, 없으면 사진 EXIF에서 읽어온다
-      Promise.all(posts.map(resolveCoords)).then(function(coords){
+  // ---- 지도: places.json (워터마크 갤러리와는 별개의 사진 목록) ----
+  fetch(PLACES_JSON + '?v=' + Date.now())
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(places){
+      places = (places || []).filter(function(p){ return p && (p.file || p.url); });
+      // 좌표: places.json의 수동값 우선, 없으면 사진 EXIF에서 읽어온다
+      return Promise.all(places.map(resolveCoords)).then(function(coords){
         var located = [];
         coords.forEach(function(c, i){
-          if (c) located.push({ post: posts[i], index: i, lat: c.lat, lng: c.lng });
+          if (c) located.push({ post: places[i], index: i, lat: c.lat, lng: c.lng });
         });
         buildMap(located);
       });
     })
-    .catch(function(){ empty.hidden = false; });
+    .catch(function(){ buildMap([]); });
 })();
 </script>
 </body>

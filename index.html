@@ -172,11 +172,13 @@
     color:var(--ink); white-space:nowrap; text-transform:lowercase;
     transition:opacity .6s ease;
   }
-  /* 갤러리의 최신 사진에서 실시간으로 크롭해오는 로고 — 로딩 전엔 보이지 않고,
-     준비되면 텍스트 로고 위로 페이드인한다 (아래 스크립트의 paintMark 참고) */
+  /* 갤러리의 최신 사진에서 실시간으로 크롭해오는 로고 — .spine-mark(텍스트)와는 별개로
+     .spine 바로 아래 독립적으로 배치해, 책등 맨 끝(아래쪽)에 책등 두께만큼 크게 딱 붙는다.
+     실제 top 위치는 크기가 정해진 뒤 JS(paintMark)가 픽셀 단위로 계산해 지정한다.
+     로딩 전엔 보이지 않고, 준비되면 텍스트 로고가 페이드아웃되며 이게 페이드인한다. */
   .spine-mark-photo{
     position:absolute; left:50%; top:50%;
-    transform:translate(-50%,-50%);
+    transform:translate(-50%,-50%) rotate(-90deg);
     display:block; overflow:hidden; background-repeat:no-repeat;
     opacity:0; transition:opacity .6s ease;
   }

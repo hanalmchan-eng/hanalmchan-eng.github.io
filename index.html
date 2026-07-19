@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>hanalmchan — 서가</title>
+<title>LMCHAN — WATERMARKS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -21,8 +21,8 @@
     --ink-35:rgba(20,20,20,.35);
     --ink-16:rgba(20,20,20,.14);
     --ink-08:rgba(20,20,20,.07);
-    --cell:148px;
-    --gap:14px;
+    --cell:260px;
+    --gap:6px;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -48,13 +48,14 @@
   }
   #site-label{
     position:fixed; top:24px; left:20px; z-index:600;
-    font-size:12px; letter-spacing:.08em; color:var(--ink-60);
-    mix-blend-mode:difference; color:#888;
+    font-family:'LMCHan', Georgia, serif;
+    font-size:14px; letter-spacing:.14em; color:var(--ink-60);
   }
+  /* LMCHan 폰트에는 소문자 글리프가 없다 — 반드시 대문자 LMCHAN 으로 쓸 것 */
   #wordmark{
     font-family:'LMCHan', Georgia, serif;
-    font-size:22px; letter-spacing:.02em; text-transform:lowercase;
-    margin-bottom:8px;
+    font-size:30px; letter-spacing:.04em;
+    margin-bottom:10px;
   }
   .hint-text{
     font-size:10px; color:var(--ink-35); letter-spacing:.04em; line-height:1.7;
@@ -64,13 +65,13 @@
     display:grid;
     grid-template-columns:repeat(auto-fill, minmax(var(--cell), 1fr));
     gap:var(--gap);
-    width:100%; max-width:calc(var(--cell) * 6 + var(--gap) * 5);
+    width:100%; max-width:calc(var(--cell) * 4 + var(--gap) * 3);
     margin-top:56px;
   }
   .icon{
-    display:flex; flex-direction:column; align-items:center; gap:10px;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
     text-decoration:none; color:inherit;
-    padding:14px 6px; border-radius:10px;
+    padding:10px 2px; border-radius:8px;
     -webkit-tap-highlight-color:transparent;
     transition:transform .28s cubic-bezier(.22,1,.36,1), background-color .28s ease;
   }
@@ -78,7 +79,7 @@
   .icon:focus-visible{ outline:1px solid var(--ink-35); outline-offset:2px; }
   .mark{
     position:relative; overflow:hidden;
-    width:100%; height:52px;
+    width:100%; height:96px;
     display:flex; align-items:center; justify-content:center;
   }
   .mark img{
@@ -88,7 +89,7 @@
   .mark img.is-ready{ opacity:1; }
   .mark-fallback{
     font-family:'LMCHan', Georgia, serif;
-    font-size:11px; letter-spacing:.02em; text-transform:lowercase;
+    font-size:15px; letter-spacing:.03em;
     color:var(--ink); white-space:nowrap;
   }
   .mark.has-photo .mark-fallback{ display:none; }
@@ -100,7 +101,7 @@
 
   /* ── 지도 ── */
   #map-section{
-    width:100%; max-width:calc(var(--cell) * 6 + var(--gap) * 5);
+    width:100%; max-width:calc(var(--cell) * 4 + var(--gap) * 3);
     margin-top:96px;
   }
   #map-head{
@@ -156,7 +157,7 @@
   .leaflet-tooltip.pin-tip::before{ display:none; }
 
   @media (max-width:520px){
-    :root{ --cell:120px; --gap:10px; }
+    :root{ --cell:170px; --gap:4px; }
     body{ padding:64px 18px 72px; }
     #map{ height:52vh; }
   }
@@ -167,8 +168,8 @@
 </style>
 </head>
 <body>
-  <div id="site-label">서가</div>
-  <div id="wordmark">hanalmchan</div>
+  <div id="site-label">WATERMARKS</div>
+  <div id="wordmark">LMCHAN</div>
   <div class="hint-text">
     LMCHAN 워터마크를 눌러 해당 사진으로<br>
     Tap an LMCHAN watermark to open that photo
@@ -199,7 +200,7 @@
   var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
   // 로고 박스에서 잘라낼 여백 비율 — 위아래·양옆 모두 1/10
   var CROP_TOP = 0.1, CROP_BOTTOM = 0.1, CROP_SIDE = 0.1;
-  var MARK_H = 52, MARK_MAX_W = 148;
+  var MARK_H = 96, MARK_MAX_W = 260;
   var MAP_FALLBACK = [37.5665, 126.9780]; // 좌표가 하나도 없을 때 지도 중심
   // 갤러리 링크 앵커: 확장자를 뗀 파일명 (hanalmchan.html 쪽 indexFromHash와 짝을 이룸)
   function anchorFor(post, index){
@@ -248,7 +249,7 @@
     mark.className = 'mark';
     var fb = document.createElement('span');
     fb.className = 'mark-fallback';
-    fb.textContent = 'hanalmchan';
+    fb.textContent = 'LMCHAN';   // 소문자는 LMCHan 폰트에 글리프가 없다
     mark.appendChild(fb);
 
     var cap = document.createElement('span');
@@ -296,18 +297,134 @@
     return a;
   }
 
-  // ---- 지도 ----
-  function hasCoords(p){
-    return typeof p.lat === 'number' && typeof p.lng === 'number' &&
-           isFinite(p.lat) && isFinite(p.lng) &&
-           p.lat >= -90 && p.lat <= 90 && p.lng >= -180 && p.lng <= 180;
+  // ---- 좌표 해석 ----
+  // 아래 표기를 모두 같은 것으로 받아들인다 (전부 십진수 도):
+  //   "lat": 37.86240, "lng": 127.17190
+  //   "coord": "북 37.86240°, 동 127.17190°"
+  //   "coord": "37.86240, 127.17190"
+  //   "coord": "N 37.8624, E 127.1719"   /  남·서·S·W 는 음수로 처리
+  // 도분초(37°51'44"N)는 지원하지 않는다 — 십진수로 바꿔서 넣을 것.
+  function parseCoordString(s){
+    if (typeof s !== 'string') return null;
+    var re = /([북남동서NSEWnsew])?\s*(-?\d+(?:\.\d+)?)\s*°?/g;
+    var lat = null, lng = null, loose = [], m;
+    while ((m = re.exec(s)) !== null){
+      var tag = (m[1] || '').toUpperCase();
+      var v = parseFloat(m[2]);
+      if (!isFinite(v)) continue;
+      if (tag === '북' || tag === 'N')      lat = v;
+      else if (tag === '남' || tag === 'S') lat = -v;
+      else if (tag === '동' || tag === 'E') lng = v;
+      else if (tag === '서' || tag === 'W') lng = -v;
+      else loose.push(v);                 // 방위 표시가 없으면 '위도, 경도' 순으로 간주
+    }
+    if (lat === null && loose.length) lat = loose.shift();
+    if (lng === null && loose.length) lng = loose.shift();
+    if (lat === null || lng === null) return null;
+    return { lat: lat, lng: lng };
   }
-  function buildMap(posts){
+  function readCoords(p){
+    var lat = p.lat, lng = p.lng;
+    if (typeof lat === 'string') { var a = parseCoordString(lat); lat = a ? a.lat : null; }
+    if (typeof lng === 'string') { var b = parseCoordString(lng); lng = b ? (b.lng !== null ? b.lng : b.lat) : null; }
+    if (typeof lat !== 'number' || typeof lng !== 'number'){
+      var c = parseCoordString(p.coord || p.coords || p.latlng || '');
+      if (!c) return null;
+      lat = c.lat; lng = c.lng;
+    }
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+    return { lat: lat, lng: lng };
+  }
+
+  // ---- 사진 안의 EXIF GPS 직접 읽기 ----
+  // 사진 앞부분(EXIF가 들어있는 구간)만 Range 요청으로 받아서 GPS 태그를 파싱한다.
+  // 원본 전체를 받지 않으므로 가볍고, 실패하면 조용히 null을 돌려준다.
+  var EXIF_BYTES = 262144; // 256KB — EXIF는 파일 맨 앞에 있으므로 이 정도면 충분
+
+  function typeSize(t){
+    return ({1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8})[t] || 1;
+  }
+  function readRationalTriplet(dv, o, le){
+    var out = [];
+    for (var i = 0; i < 3; i++){
+      var num = dv.getUint32(o + i * 8, le);
+      var den = dv.getUint32(o + i * 8 + 4, le);
+      if (!den) return null;
+      out.push(num / den);
+    }
+    return out[0] + out[1] / 60 + out[2] / 3600;
+  }
+  function readTiffGps(dv, tiff){
+    var le = dv.getUint16(tiff) === 0x4949;
+    function g16(o){ return dv.getUint16(o, le); }
+    function g32(o){ return dv.getUint32(o, le); }
+    if (g16(tiff + 2) !== 42) return null;
+
+    var ifd0 = tiff + g32(tiff + 4);
+    var n = g16(ifd0), gpsOff = 0;
+    for (var i = 0; i < n; i++){
+      var e = ifd0 + 2 + i * 12;
+      if (g16(e) === 0x8825){ gpsOff = tiff + g32(e + 8); break; }
+    }
+    if (!gpsOff) return null;
+
+    var m = g16(gpsOff);
+    var latRef = 'N', lngRef = 'E', lat = null, lng = null;
+    for (var j = 0; j < m; j++){
+      var e2 = gpsOff + 2 + j * 12;
+      var tag = g16(e2), type = g16(e2 + 2), cnt = g32(e2 + 4);
+      var vo = (cnt * typeSize(type) > 4) ? (tiff + g32(e2 + 8)) : (e2 + 8);
+      if (tag === 1)      latRef = String.fromCharCode(dv.getUint8(vo));
+      else if (tag === 3) lngRef = String.fromCharCode(dv.getUint8(vo));
+      else if (tag === 2) lat = readRationalTriplet(dv, vo, le);
+      else if (tag === 4) lng = readRationalTriplet(dv, vo, le);
+    }
+    if (lat === null || lng === null) return null;
+    if (latRef === 'S') lat = -lat;
+    if (lngRef === 'W') lng = -lng;
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    return { lat: lat, lng: lng };
+  }
+  function parseExifGps(buf){
+    try {
+      var dv = new DataView(buf);
+      if (dv.byteLength < 8 || dv.getUint16(0) !== 0xFFD8) return null;
+      var off = 2;
+      while (off + 4 <= dv.byteLength){
+        var marker = dv.getUint16(off);
+        if ((marker & 0xFF00) !== 0xFF00) return null;
+        if (marker === 0xFFDA) return null;           // 이미지 데이터 시작 — EXIF 없음
+        var size = dv.getUint16(off + 2);
+        if (marker === 0xFFE1 && off + 10 <= dv.byteLength){
+          if (dv.getUint32(off + 4) === 0x45786966)   // "Exif"
+            return readTiffGps(dv, off + 10);
+        }
+        off += 2 + size;
+      }
+    } catch (err){ /* 잘린 버퍼 등 — 조용히 포기 */ }
+    return null;
+  }
+  function fetchExifGps(url){
+    return fetch(url, { headers: { 'Range': 'bytes=0-' + (EXIF_BYTES - 1) } })
+      .then(function(r){ return r.ok ? r.arrayBuffer() : null; })
+      .then(function(buf){ return buf ? parseExifGps(buf) : null; })
+      .catch(function(){ return null; });   // CORS 미설정·네트워크 실패 등
+  }
+
+  // 수동 좌표가 있으면 그것을 쓰고, 없으면 사진의 EXIF에서 읽는다.
+  function resolveCoords(post){
+    var manual = readCoords(post);
+    if (manual) return Promise.resolve(manual);
+    var src = post.file ? buildImageUrl(post.file) : (post.url || '');
+    if (!src) return Promise.resolve(null);
+    return fetchExifGps(src);
+  }
+
+  // ---- 지도 ----
+  function buildMap(located){
     if (typeof L === 'undefined') return;      // Leaflet 로드 실패 시 조용히 건너뜀
     mapSection.hidden = false;
-
-    var located = [];
-    posts.forEach(function(p, i){ if (hasCoords(p)) located.push({ post:p, index:i }); });
 
     if (!located.length){
       mapEl.style.display = 'none';
@@ -339,7 +456,7 @@
     var latlngs = [];
     located.forEach(function(item){
       var p = item.post;
-      var ll = [p.lat, p.lng];
+      var ll = [item.lat, item.lng];
       latlngs.push(ll);
       var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
       m.bindTooltip(labelOf(p, item.index), {
@@ -364,7 +481,15 @@
       var frag = document.createDocumentFragment();
       posts.forEach(function(p, i){ frag.appendChild(makeIcon(p, i)); });
       grid.appendChild(frag);
-      buildMap(posts);
+
+      // 좌표: posts.json의 수동값 우선, 없으면 사진 EXIF에서 읽어온다
+      Promise.all(posts.map(resolveCoords)).then(function(coords){
+        var located = [];
+        coords.forEach(function(c, i){
+          if (c) located.push({ post: posts[i], index: i, lat: c.lat, lng: c.lng });
+        });
+        buildMap(located);
+      });
     })
     .catch(function(){ empty.hidden = false; });
 })();

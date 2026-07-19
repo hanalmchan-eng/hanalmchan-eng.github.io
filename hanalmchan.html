@@ -5,6 +5,16 @@
 <title>hanalmchan</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <style>
+  @font-face{
+    font-family:'LMCHan';
+    src:url('fonts/LMCHan.woff2') format('woff2'),
+        url('LMCHan.woff2') format('woff2'),
+        url('fonts/LMCHan.otf') format('opentype'),
+        url('LMCHan.otf') format('opentype');
+    font-weight:400;
+    font-style:normal;
+    font-display:swap;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 100%;
@@ -66,10 +76,14 @@
   /* 서가(index.html)로 돌아가는 링크 */
   #back-link {
     position: fixed; top: 20px; right: 20px; z-index: 100;
-    font-size: 11px; letter-spacing: 0.08em;
+    font-family: 'LMCHan', Georgia, serif;
+    font-size: 22px; letter-spacing: 0.14em;
     mix-blend-mode: difference; color: #ffffff;
     text-decoration: none;
+    opacity: 0.75;
+    transition: opacity 0.3s ease;
   }
+  #back-link:hover { opacity: 1; }
   .post { position: absolute; top: 0; left: 0; }
   .post img.photo {
     display: block;
@@ -177,7 +191,7 @@
 <body>
 <div id="hint"><div id="hint-text"></div></div>
 <div id="nav"></div>
-<a id="back-link" href="index.html">WATERMARKS</a>
+<a id="back-link" href="index.html">AWAY</a>
 <div id="loading">불러오는 중...<br>loading...<br>読み込み中...</div>
 <div id="canvas">
   <div id="plane"></div>

@@ -71,9 +71,12 @@
     align-self:flex-start;
     font-family:'LMCHan', Georgia, serif;
     font-size:26px; letter-spacing:.12em; white-space:nowrap;
-    color:var(--ink);
-    -webkit-text-stroke:0.4px currentColor;
     margin-bottom:44px;
+    /* 뒤에 무엇이 지나가든 항상 읽히도록 배경색을 반전시켜 그린다.
+       흰 바탕에서는 검게, 어두운 사진 위에서는 밝게 보인다. */
+    color:#ffffff;
+    mix-blend-mode:difference;
+    -webkit-text-stroke:0.4px currentColor;
   }
   #models-section{ margin-bottom:96px; }
   /* 본문 속 'LMCHAN' 만 로고 폰트로.
@@ -178,7 +181,9 @@
     position:absolute; top:16px; right:18px; z-index:500;
     font-family:'LMCHan', Georgia, serif;
     font-size:30px; letter-spacing:.1em;
-    color:var(--ink);
+    /* 지도 타일 위에서도 항상 읽히도록 반전 */
+    color:#ffffff;
+    mix-blend-mode:difference;
     -webkit-text-stroke:0.4px currentColor;
     pointer-events:none;
   }

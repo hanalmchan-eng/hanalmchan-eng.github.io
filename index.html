@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <title>hanalmchan — 서가</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
   @font-face{
     font-family:'LMCHan';
@@ -19,8 +21,8 @@
     --ink-35:rgba(20,20,20,.35);
     --ink-16:rgba(20,20,20,.14);
     --ink-08:rgba(20,20,20,.07);
-    --cell:112px;   /* 아이콘 한 칸의 너비 */
-    --gap:34px;
+    --cell:148px;
+    --gap:14px;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -41,46 +43,42 @@
     transition:background-color .3s ease, color .3s ease;
   }
   body{
-    padding:88px 24px 72px;
+    padding:88px 24px 96px;
     display:flex; flex-direction:column; align-items:center;
   }
   #site-label{
-    position:fixed; top:24px; left:20px; z-index:50;
+    position:fixed; top:24px; left:20px; z-index:600;
     font-size:12px; letter-spacing:.08em; color:var(--ink-60);
+    mix-blend-mode:difference; color:#888;
   }
   #wordmark{
     font-family:'LMCHan', Georgia, serif;
     font-size:22px; letter-spacing:.02em; text-transform:lowercase;
     margin-bottom:8px;
   }
-  #hint-text{
+  .hint-text{
     font-size:10px; color:var(--ink-35); letter-spacing:.04em; line-height:1.7;
-    text-align:center; margin-bottom:56px;
+    text-align:center;
   }
   #grid{
     display:grid;
     grid-template-columns:repeat(auto-fill, minmax(var(--cell), 1fr));
     gap:var(--gap);
     width:100%; max-width:calc(var(--cell) * 6 + var(--gap) * 5);
+    margin-top:56px;
   }
   .icon{
     display:flex; flex-direction:column; align-items:center; gap:10px;
     text-decoration:none; color:inherit;
-    padding:14px 6px;
-    border-radius:10px;
+    padding:14px 6px; border-radius:10px;
     -webkit-tap-highlight-color:transparent;
     transition:transform .28s cubic-bezier(.22,1,.36,1), background-color .28s ease;
   }
-  .icon:hover, .icon:focus-visible{
-    transform:translateY(-4px);
-    background:var(--ink-08);
-  }
+  .icon:hover, .icon:focus-visible{ transform:translateY(-4px); background:var(--ink-08); }
   .icon:focus-visible{ outline:1px solid var(--ink-35); outline-offset:2px; }
-  /* 로고 마크가 들어갈 크롭 창 — 실제 크기는 JS가 크롭 박스 비율에 맞춰 지정.
-     기본값은 로딩 전 자리만 잡아두는 용도. */
   .mark{
     position:relative; overflow:hidden;
-    width:100%; height:34px;
+    width:100%; height:52px;
     display:flex; align-items:center; justify-content:center;
   }
   .mark img{
@@ -88,7 +86,6 @@
     opacity:0; transition:opacity .5s ease;
   }
   .mark img.is-ready{ opacity:1; }
-  /* 로고를 못 읽어온 경우의 대체 표시 */
   .mark-fallback{
     font-family:'LMCHan', Georgia, serif;
     font-size:11px; letter-spacing:.02em; text-transform:lowercase;
@@ -100,9 +97,68 @@
     font-variant-numeric:tabular-nums;
   }
   #empty{ font-size:11px; color:var(--ink-35); margin-top:40px; }
+
+  /* ── 지도 ── */
+  #map-section{
+    width:100%; max-width:calc(var(--cell) * 6 + var(--gap) * 5);
+    margin-top:96px;
+  }
+  #map-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  #map-title{
+    font-family:'LMCHan', Georgia, serif;
+    font-size:13px; letter-spacing:.02em; text-transform:lowercase;
+    color:var(--ink);
+  }
+  #map-note{ font-size:10px; color:var(--ink-35); letter-spacing:.04em; }
+  #map{
+    width:100%; height:62vh; min-height:320px;
+    border:1px solid var(--ink-16); border-radius:2px;
+    background:var(--paper);
+    z-index:0;
+  }
+  #map-empty{
+    font-size:11px; color:var(--ink-35); text-align:center;
+    padding:40px 0;
+  }
+  /* Leaflet 기본 UI를 사이트 톤에 맞춰 정리 */
+  .leaflet-container{ background:var(--paper); font-family:Helvetica, Arial, sans-serif; }
+  .leaflet-control-attribution{
+    background:rgba(255,255,255,.7) !important;
+    font-size:9px !important; color:var(--ink-35) !important;
+  }
+  @media (prefers-color-scheme: dark){
+    .leaflet-control-attribution{ background:rgba(0,0,0,.5) !important; }
+  }
+  .leaflet-control-attribution a{ color:var(--ink-35) !important; }
+  .leaflet-bar a{
+    background:var(--paper) !important; color:var(--ink) !important;
+    border-bottom-color:var(--ink-16) !important;
+  }
+  .leaflet-bar{ border:1px solid var(--ink-16) !important; box-shadow:none !important; }
+  /* 사진 마커 */
+  .photo-pin{ background:none !important; border:none !important; }
+  .photo-pin span{
+    display:block; width:12px; height:12px; border-radius:50%;
+    background:var(--ink); border:2px solid var(--paper);
+    box-shadow:0 0 0 1px var(--ink-16);
+    transition:transform .2s ease;
+  }
+  .photo-pin:hover span{ transform:scale(1.45); }
+  .leaflet-tooltip.pin-tip{
+    background:var(--paper); color:var(--ink);
+    border:1px solid var(--ink-16); border-radius:2px;
+    box-shadow:none; font-size:10px; letter-spacing:.04em;
+    padding:4px 7px;
+  }
+  .leaflet-tooltip.pin-tip::before{ display:none; }
+
   @media (max-width:520px){
-    :root{ --cell:88px; --gap:22px; }
-    body{ padding:64px 18px 56px; }
+    :root{ --cell:120px; --gap:10px; }
+    body{ padding:64px 18px 72px; }
+    #map{ height:52vh; }
   }
   @media (prefers-reduced-motion:reduce){
     .icon{ transition:none; }
@@ -113,48 +169,62 @@
 <body>
   <div id="site-label">서가</div>
   <div id="wordmark">hanalmchan</div>
-  <div id="hint-text">
-    아이콘을 눌러 해당 사진으로<br>
-    Tap an icon to open that photo
+  <div class="hint-text">
+    LMCHAN 워터마크를 눌러 해당 사진으로<br>
+    Tap an LMCHAN watermark to open that photo
   </div>
+
   <div id="grid" role="list"></div>
   <div id="empty" hidden>불러올 사진이 없습니다.</div>
 
+  <section id="map-section" hidden>
+    <div id="map-head">
+      <span id="map-title">지도 · map</span>
+      <span id="map-note">마커를 눌러 해당 사진으로 · tap a marker</span>
+    </div>
+    <div id="map"></div>
+    <div id="map-empty" hidden>좌표가 등록된 사진이 아직 없습니다.</div>
+  </section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 (function(){
   'use strict';
   // ====== 설정 ======
-  var GALLERY_URL = 'hanalmchan.html';  // 갤러리 페이지
+  var GALLERY_URL = 'hanalmchan.html';
   var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
   var POSTS_JSON  = 'posts.json';
   var LOGO_W_RATIO  = 0.0936;      // 로고 너비 / 사진 너비
   var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
-  // 로고 마크만 타이트하게 보이도록 원본 로고 박스에서 더 잘라내는 비율
-  var CROP_TOP = 0.2, CROP_BOTTOM = 0.2, CROP_SIDE = 0.1;
-  var MARK_H = 34;                 // 아이콘 로고 높이(px) — CSS .mark height와 맞출 것
-  var MARK_MAX_W = 112;            // 로고 최대 너비(px) — 이보다 넓으면 높이를 줄여 통째로 맞춤
-  // 갤러리 앵커 규칙. 갤러리 쪽 요소 id가 다르면 이 함수 한 줄만 고치면 됩니다.
+  // 로고 박스에서 잘라낼 여백 비율 — 위아래·양옆 모두 1/10
+  var CROP_TOP = 0.1, CROP_BOTTOM = 0.1, CROP_SIDE = 0.1;
+  var MARK_H = 52, MARK_MAX_W = 148;
+  var MAP_FALLBACK = [37.5665, 126.9780]; // 좌표가 하나도 없을 때 지도 중심
+  // 갤러리 링크 앵커: 확장자를 뗀 파일명 (hanalmchan.html 쪽 indexFromHash와 짝을 이룸)
   function anchorFor(post, index){
-    if (post.id)   return String(post.id);
-    if (post.slug) return String(post.slug);
     if (post.file) return String(post.file).replace(/\.[^.]+$/, '');
-    return 'p' + index;
+    return 'i=' + index;
+  }
+  function hrefFor(post, index){
+    return GALLERY_URL + '#' + encodeURIComponent(anchorFor(post, index));
   }
   // ==================
 
   var grid  = document.getElementById('grid');
   var empty = document.getElementById('empty');
+  var mapSection = document.getElementById('map-section');
+  var mapEmpty   = document.getElementById('map-empty');
+  var mapEl      = document.getElementById('map');
 
-  function buildImageUrl(filename){
-    return R2_BASE + '/' + encodeURIComponent(filename);
-  }
+  function buildImageUrl(filename){ return R2_BASE + '/' + encodeURIComponent(filename); }
   function srcOf(post){
     if (post.thumb) return /^https?:/.test(post.thumb) ? post.thumb : buildImageUrl(post.thumb);
     if (post.file)  return buildImageUrl(post.file);
     return post.url || '';
   }
   function captionOf(post, index){
-    var d = post.date || post.taken || post.createdAt || '';
+    var d = post.date || post.taken || '';
     if (d){
       var m = String(d).match(/(\d{4})\D?(\d{2})\D?(\d{2})/);
       if (m) return m[1].slice(2) + '.' + m[2] + '.' + m[3];
@@ -162,13 +232,17 @@
     }
     return String(index + 1).padStart(2, '0');
   }
+  function labelOf(post, index){
+    return post.place || post.caption || captionOf(post, index);
+  }
 
+  // ---- 아이콘 (사진에 합성된 로고를 크롭해서 사용) ----
   function makeIcon(post, index){
     var a = document.createElement('a');
     a.className = 'icon';
     a.setAttribute('role', 'listitem');
-    a.href = GALLERY_URL + '#' + encodeURIComponent(anchorFor(post, index));
-    a.setAttribute('aria-label', (post.title || 'hanalmchan') + ' — 사진 열기');
+    a.href = hrefFor(post, index);
+    a.setAttribute('aria-label', labelOf(post, index) + ' — 사진 열기');
 
     var mark = document.createElement('span');
     mark.className = 'mark';
@@ -181,41 +255,33 @@
     cap.className = 'cap';
     cap.textContent = captionOf(post, index);
 
-    a.appendChild(mark);
-    a.appendChild(cap);
+    a.appendChild(mark); a.appendChild(cap);
 
-    // 로고 크롭: 사진 안에 이미 합성돼 있는 로고 부분만 잘라 보여준다
     var src = srcOf(post);
     if (src && typeof post.logoX === 'number' && typeof post.logoY === 'number'){
       var img = new Image();
-      img.decoding = 'async';
-      img.loading = 'lazy';
-      img.alt = '';
+      img.decoding = 'async'; img.loading = 'lazy'; img.alt = '';
       img.onload = function(){
         var iw = img.naturalWidth, ih = img.naturalHeight;
         if (!iw || !ih) return;
-        // posts.json의 logoX/logoY는 원본 픽셀 기준 → 비율로 환산해 썸네일에도 그대로 적용
-        var refW  = post.width || iw;              // 좌표 기준이 되는 원본 너비
-        var logoW = refW * LOGO_W_RATIO;
+        var refW = post.width  || iw;
+        var refH = post.height || ih;
+        // 로고 크기는 사진의 '짧은 변'을 기준으로 잡힌다.
+        // (너비 기준으로 잡으면 가로로 긴 사진에서만 크롭 박스가 과하게 커진다)
+        var logoW = Math.min(refW, refH) * LOGO_W_RATIO;
         var logoH = logoW * LOGO_HW_RATIO;
-        var refH  = post.height || (ih * (refW / iw));
         var fx = (post.logoX + logoW * CROP_SIDE) / refW;
         var fy = (post.logoY + logoH * CROP_TOP)  / refH;
         var fw = (logoW * (1 - CROP_SIDE * 2)) / refW;
         var fh = (logoH * (1 - CROP_TOP - CROP_BOTTOM)) / refH;
         if (fw <= 0 || fh <= 0) return;
-        // 크롭 박스의 실제 화면 비율 (사진의 가로세로비까지 반영)
-        var boxAspect = (fw * iw) / (fh * ih);           // 너비 / 높이
-        // 셀 안에 통째로 들어가도록 맞춤 — 잘려서 가운데 글자만 보이는 일이 없도록
+        var boxAspect = (fw * iw) / (fh * ih);
         var availW = mark.parentElement.clientWidth || MARK_MAX_W;
-        var boxH = MARK_H;
-        var boxW = boxH * boxAspect;
+        var boxH = MARK_H, boxW = boxH * boxAspect;
         if (boxW > availW){ boxW = availW; boxH = boxW / boxAspect; }
-        mark.style.width  = boxW + 'px';
+        mark.style.width = boxW + 'px';
         mark.style.height = boxH + 'px';
-        // 크롭 박스가 boxW × boxH가 되도록 이미지를 확대/축소
-        var dispW = boxW / fw;
-        var dispH = boxH / fh;
+        var dispW = boxW / fw, dispH = boxH / fh;
         img.style.width  = dispW + 'px';
         img.style.height = dispH + 'px';
         img.style.left   = (-fx * dispW) + 'px';
@@ -223,13 +289,73 @@
         img.classList.add('is-ready');
         mark.classList.add('has-photo');
       };
-      img.onerror = function(){ /* 실패 시 텍스트 로고 유지 */ };
+      img.onerror = function(){};
       img.src = src;
       mark.appendChild(img);
     }
     return a;
   }
 
+  // ---- 지도 ----
+  function hasCoords(p){
+    return typeof p.lat === 'number' && typeof p.lng === 'number' &&
+           isFinite(p.lat) && isFinite(p.lng) &&
+           p.lat >= -90 && p.lat <= 90 && p.lng >= -180 && p.lng <= 180;
+  }
+  function buildMap(posts){
+    if (typeof L === 'undefined') return;      // Leaflet 로드 실패 시 조용히 건너뜀
+    mapSection.hidden = false;
+
+    var located = [];
+    posts.forEach(function(p, i){ if (hasCoords(p)) located.push({ post:p, index:i }); });
+
+    if (!located.length){
+      mapEl.style.display = 'none';
+      mapEmpty.hidden = false;
+      return;
+    }
+
+    var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var tileUrl = dark
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+    var map = L.map(mapEl, { scrollWheelZoom:false, zoomControl:true });
+    L.tileLayer(tileUrl, {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(map);
+    // 스크롤은 페이지에 양보하고, 지도를 한 번 클릭한 뒤에만 휠 줌 허용
+    map.on('click', function(){ map.scrollWheelZoom.enable(); });
+    map.on('mouseout', function(){ map.scrollWheelZoom.disable(); });
+
+    var pin = L.divIcon({
+      className: 'photo-pin',
+      html: '<span></span>',
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
+    });
+
+    var latlngs = [];
+    located.forEach(function(item){
+      var p = item.post;
+      var ll = [p.lat, p.lng];
+      latlngs.push(ll);
+      var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
+      m.bindTooltip(labelOf(p, item.index), {
+        className:'pin-tip', direction:'top', offset:[0,-10], opacity:1
+      });
+      m.on('click', function(){ window.location.href = hrefFor(p, item.index); });
+    });
+
+    if (latlngs.length === 1){
+      map.setView(latlngs[0], 14);
+    } else {
+      map.fitBounds(L.latLngBounds(latlngs), { padding:[48,48], maxZoom:15 });
+    }
+  }
+
+  // ---- 로드 ----
   fetch(POSTS_JSON + '?v=' + Date.now())
     .then(function(r){ return r.json(); })
     .then(function(posts){
@@ -238,6 +364,7 @@
       var frag = document.createDocumentFragment();
       posts.forEach(function(p, i){ frag.appendChild(makeIcon(p, i)); });
       grid.appendChild(frag);
+      buildMap(posts);
     })
     .catch(function(){ empty.hidden = false; });
 })();

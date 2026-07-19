@@ -177,11 +177,11 @@
      실제 top 위치는 크기가 정해진 뒤 JS(paintMark)가 픽셀 단위로 계산해 지정한다.
      로딩 전엔 보이지 않고, 준비되면 텍스트 로고가 페이드아웃되며 이게 페이드인한다. */
   .spine-mark-photo{
-    position:absolute; left:50%; top:50%;
-    transform:translate(-50%,-50%) rotate(-90deg);
-    display:block; overflow:hidden; background-repeat:no-repeat;
-    opacity:0; transition:opacity .6s ease;
-  }
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%);   /* rotate(-90deg) 제거 */
+  display:block; overflow:hidden; background-repeat:no-repeat;
+  opacity:0; transition:opacity .6s ease;
+}
   .spine-mark-photo.is-ready{ opacity:1; }
   .spine-mark.has-photo .spine-mark-text{ opacity:0; }
 

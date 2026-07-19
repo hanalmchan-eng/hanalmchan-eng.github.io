@@ -72,11 +72,7 @@
     font-family:'LMCHan', Georgia, serif;
     font-size:26px; letter-spacing:.12em; white-space:nowrap;
     color:var(--ink);
-    -webkit-text-stroke:0.4px currentColor;
     margin-bottom:44px;
-    /* 뒤로 로고가 지나갈 때 글자가 묻히지 않도록 배경색을 살짝 깐다 */
-    background:var(--paper);
-    padding:2px 10px 4px 0;
   }
   #models-section{ margin-bottom:96px; }
   /* 본문 속 'LMCHAN' 만 로고 폰트로.
@@ -86,8 +82,6 @@
     /* LMCHan 은 좁고 길어서 같은 크기로 두면 옆 본문보다 작아 보인다 — 1.2배로 보정 */
     font-size:1.2em; letter-spacing:.06em;
     color:var(--ink-60);
-    /* 진짜 볼드 자형이 없으므로 외곽선을 살짝 덧그려 굵기만 올린다 */
-    -webkit-text-stroke:0.3px currentColor;
   }
   .byline{
     font-size:17px; color:var(--ink-60); letter-spacing:.04em;
@@ -147,8 +141,9 @@
   #empty{ font-size:11px; color:var(--ink-35); margin-top:40px; }
 
   /* ── 지도 ── */
+  /* 지도 폭 = 로고 4열 격자의 폭 */
   #map-section{
-    width:100%; max-width:var(--grid-max);
+    width:100%; max-width:calc(var(--cell) * 4 + var(--gap) * 3);
     margin-top:96px;
   }
   #map-head{
@@ -161,11 +156,27 @@
     color:var(--ink);
   }
   #map-note{ font-size:10px; color:var(--ink-35); letter-spacing:.04em; }
-  #map{
-    width:100%; height:62vh; min-height:320px;
+  /* 지도는 항상 같은 지리적 범위를 보여준다.
+     안쪽(.map-inner)은 픽셀 크기가 고정이고, 창이 좁아지면 통째로 축소만 된다. */
+  .map-wrap{
+    position:relative; width:100%; overflow:hidden;
     border:1px solid var(--ink-16); border-radius:2px;
     background:var(--paper);
+    margin-bottom:40px;
+  }
+  .map-wrap:last-child{ margin-bottom:0; }
+  .map-inner{
+    transform-origin:0 0;
+    background:var(--paper);
     z-index:0;
+  }
+  /* 지도 오른쪽 위의 촬영 날짜 — 지도 묶음의 제목 역할 */
+  .map-date{
+    position:absolute; top:16px; right:18px; z-index:500;
+    font-family:'LMCHan', Georgia, serif;
+    font-size:30px; letter-spacing:.1em;
+    color:var(--ink);
+    pointer-events:none;
   }
   #map-empty{
     font-size:11px; color:var(--ink-35); text-align:center;
@@ -212,10 +223,6 @@
   .leaflet-tooltip.pin-tip img.pin-poster{
     min-width:150px; min-height:84px;
     background:var(--ink-08);
-  }
-  .pin-tip-cap{
-    font-size:9.5px; letter-spacing:.06em; color:var(--ink-35);
-    text-align:center; padding:5px 2px 1px;
   }
 
   /* 마커를 눌렀을 때 뜨는 사진 창 */
@@ -269,7 +276,7 @@
     <div id="map-head">
       <span id="map-note">마커에 커서를 올리면 미리보기 · 눌러서 크게 보기</span>
     </div>
-    <div id="map"></div>
+    <div id="maps"></div>
     <div id="map-empty" hidden>좌표가 등록된 사진이 아직 없습니다.</div>
   </section>
 
@@ -312,7 +319,7 @@
   var empty = document.getElementById('empty');
   var mapSection = document.getElementById('map-section');
   var mapEmpty   = document.getElementById('map-empty');
-  var mapEl      = document.getElementById('map');
+  var mapsWrap   = document.getElementById('maps');
 
   function buildImageUrl(filename){ return R2_BASE + '/' + encodeURIComponent(filename); }
   function srcOf(post){
@@ -674,42 +681,44 @@
   });
 
   // ---- 지도 ----
-  function buildMap(located){
-    if (typeof L === 'undefined') return;      // Leaflet 로드 실패 시 조용히 건너뜀
-    mapSection.hidden = false;
+  // 지도 한 장의 고정 크기. 폭은 로고 4열 격자와 같다 (300*4 + 12*3).
+  // 창이 좁아지면 이 크기를 유지한 채 통째로 축소된다.
+  var MAP_W = 1236, MAP_H = 772;
+  var mapScalers = [];
 
-    if (!located.length){
-      mapEl.style.display = 'none';
-      mapEmpty.hidden = false;
-      return;
-    }
+  // 촬영 날짜를 YYYY-MM-DD 로 뽑는다. 없으면 'undated'.
+  function dateKeyOf(post){
+    var d = post.date || post.taken || post.createdAt || '';
+    var m = String(d).match(/(\d{4})\D?(\d{2})\D?(\d{2})/);
+    return m ? (m[1] + '-' + m[2] + '-' + m[3]) : 'undated';
+  }
 
-    var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var tileUrl = dark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  var pin = L.divIcon ? L.divIcon({
+    className: 'photo-pin',
+    html: '<span></span>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  }) : null;
 
-    var map = L.map(mapEl, { scrollWheelZoom:false, zoomControl:true });
-    L.tileLayer(tileUrl, {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
-    }).addTo(map);
-    // 스크롤은 페이지에 양보하고, 지도를 한 번 클릭한 뒤에만 휠 줌 허용
-    map.on('click', function(){ map.scrollWheelZoom.enable(); });
-    map.on('mouseout', function(){ map.scrollWheelZoom.disable(); });
-
-    var pin = L.divIcon({
-      className: 'photo-pin',
-      html: '<span></span>',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+  // 창이 좁아지면 지도를 통째로 축소한다 — 보이는 범위는 그대로 유지된다
+  function scaleMaps(){
+    var avail = mapSection.clientWidth;
+    if (!avail) return;
+    var s = Math.min(1, avail / MAP_W);
+    mapScalers.forEach(function(o){
+      o.inner.style.transform = 'scale(' + s + ')';
+      o.wrap.style.height = (MAP_H * s) + 'px';
     });
+  }
+  var scaleTimer = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(scaleTimer);
+    scaleTimer = setTimeout(scaleMaps, 100);
+  });
 
-    var latlngs = [];
-    located.forEach(function(item){
+  function addMarker(map, item){
       var p = item.post;
       var ll = [item.lat, item.lng];
-      latlngs.push(ll);
       var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
       // 커서를 올리면 축소본 미리보기.
       // 영상은 썸네일 파일을 따로 만들 필요 없이, 브라우저가 영상 앞부분만 조각으로
@@ -769,13 +778,6 @@
         media.alt = '';
       }
       tip.appendChild(media);
-      var label = labelOf(p, item.index);
-      if (label){
-        var tcap = document.createElement('div');
-        tcap.className = 'pin-tip-cap';
-        tcap.textContent = label;
-        tip.appendChild(tcap);
-      }
       m.bindTooltip(tip, {
         className:'pin-tip', direction:'top', offset:[0,-12], opacity:1
       });
@@ -788,13 +790,80 @@
           openLightbox(p, item.index);
         }
       });
+  }
+
+  function buildMaps(located){
+    if (typeof L === 'undefined') return;      // Leaflet 로드 실패 시 조용히 건너뜀
+    mapSection.hidden = false;
+
+    if (!located.length){
+      mapEmpty.hidden = false;
+      return;
+    }
+
+    var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var tileUrl = dark
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+    // 지도 한 장 = 하루. 같은 날 찍은 사진들을 한 지도에 모은다.
+    var byDate = {}, order = [];
+    located.forEach(function(item){
+      var key = dateKeyOf(item.post);
+      if (!byDate[key]){ byDate[key] = []; order.push(key); }
+      byDate[key].push(item);
+    });
+    // 최근 날짜가 위로 (날짜 없는 묶음은 맨 뒤)
+    order.sort(function(a, b){
+      if (a === 'undated') return 1;
+      if (b === 'undated') return -1;
+      return a < b ? 1 : (a > b ? -1 : 0);
     });
 
-    if (latlngs.length === 1){
-      map.setView(latlngs[0], 14);
-    } else {
-      map.fitBounds(L.latLngBounds(latlngs), { padding:[48,48], maxZoom:15 });
-    }
+    order.forEach(function(key){
+      var items = byDate[key];
+
+      var wrap  = document.createElement('div');
+      var inner = document.createElement('div');
+      wrap.className = 'map-wrap';
+      inner.className = 'map-inner';
+      inner.style.width  = MAP_W + 'px';
+      inner.style.height = MAP_H + 'px';
+      wrap.appendChild(inner);
+
+      // 날짜는 지도 오른쪽 위에. 축소에 영향받지 않도록 지도 바깥 층에 둔다.
+      var dateEl = document.createElement('div');
+      dateEl.className = 'map-date';
+      dateEl.textContent = (key === 'undated') ? '' : key.replace(/-/g, '.');
+      wrap.appendChild(dateEl);
+      mapsWrap.appendChild(wrap);
+
+      var map = L.map(inner, {
+        // 축척은 그날 사진들에 맞춰 정해지므로 날마다 다르다
+        zoomControl:false, dragging:false, scrollWheelZoom:false,
+        doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false
+      });
+      L.tileLayer(tileUrl, {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+      }).addTo(map);
+
+      var lls = [];
+      items.forEach(function(o){
+        addMarker(map, o);
+        lls.push([o.lat, o.lng]);
+      });
+      // 그날 사진이 모두 들어가도록 범위를 맞춘다
+      if (lls.length === 1){
+        map.setView(lls[0], 14);
+      } else {
+        map.fitBounds(L.latLngBounds(lls), { padding:[70, 70], maxZoom:16 });
+      }
+
+      mapScalers.push({ wrap: wrap, inner: inner });
+    });
+
+    scaleMaps();
   }
 
   // ---- 로드 ----
@@ -810,20 +879,43 @@
     .catch(function(){ empty.hidden = false; });
 
   // ---- 지도: places.json (워터마크 갤러리와는 별개의 사진 목록) ----
+  // places.json 은 날짜가 상위 단위다.
+  //   [ { "date": "2026-07-19", "items": [ {file, coord}, {file, coord}, ... ] }, ... ]
+  // 한 날짜 아래에 사진·영상을 여러 개, 각각 다른 좌표로 넣을 수 있다.
+  // (예전처럼 항목마다 date 를 적은 평평한 배열도 그대로 인식한다)
+  function flattenPlaces(raw){
+    var out = [];
+    (raw || []).forEach(function(entry){
+      if (!entry) return;
+      var list = entry.items || entry.photos;
+      if (Array.isArray(list)){
+        list.forEach(function(it){
+          if (!it) return;
+          var o = (typeof it === 'string') ? { file: it } : it;
+          if (!o.date) o.date = entry.date;      // 날짜는 상위에서 물려받는다
+          if (o.file || o.url) out.push(o);
+        });
+      } else if (entry.file || entry.url){
+        out.push(entry);
+      }
+    });
+    return out;
+  }
+
   fetch(PLACES_JSON + '?v=' + Date.now())
     .then(function(r){ return r.ok ? r.json() : []; })
-    .then(function(places){
-      places = (places || []).filter(function(p){ return p && (p.file || p.url); });
+    .then(function(raw){
+      var places = flattenPlaces(raw);
       // 좌표: places.json의 수동값 우선, 없으면 사진 EXIF에서 읽어온다
       return Promise.all(places.map(resolveCoords)).then(function(coords){
         var located = [];
         coords.forEach(function(c, i){
           if (c) located.push({ post: places[i], index: i, lat: c.lat, lng: c.lng });
         });
-        buildMap(located);
+        buildMaps(located);
       });
     })
-    .catch(function(){ buildMap([]); });
+    .catch(function(){ buildMaps([]); });
 })();
 </script>
 </body>

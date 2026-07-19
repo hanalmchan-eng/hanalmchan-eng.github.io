@@ -219,6 +219,13 @@
     display:block; width:150px; height:auto; max-height:190px;
     object-fit:cover;
   }
+  .pin-tip-cap{
+    font-size:9.5px; letter-spacing:.04em; line-height:1.5;
+    color:var(--ink-60); text-align:center;
+    padding:6px 3px 2px; max-width:150px;
+    word-break:keep-all;
+  }
+  .pin-tip-cap:empty{ display:none; }
   /* 영상 정지화면: 아직 못 받았을 때도 자리를 지키도록 최소 크기를 준다 */
   .leaflet-tooltip.pin-tip img.pin-poster{
     min-width:150px; min-height:84px;
@@ -297,6 +304,16 @@
   var POSTS_JSON  = 'posts.json';    // 워터마크 갤러리용 (위 격자)
   var PLACES_JSON = 'places.json';   // 지도용 — 워터마크 없는 별도 사진 목록
   var ELSES_URL   = 'elses.html';    // 영상 전용 창
+
+  // ── 지도 타일 ──
+  // 브이월드(국토교통부 공간정보 오픈플랫폼) 인증키를 넣으면 한국 지역이
+  // 훨씬 자세하게 나온다. 비워두면 OSM/CARTO 타일을 쓴다.
+  //   발급: https://www.vworld.kr  →  오픈API → 인증키 발급
+  //   신청 시 '활용 API'에서 반드시 [WMTS/TMS] 를 체크할 것.
+  //   레이어: 'gray'(회색) | 'Base'(일반) | 'midnight'(야간) | 'Satellite'(위성)
+  var VWORLD_KEY   = '';
+  var VWORLD_LAYER = 'gray';
+  var VWORLD_LAYER_DARK = 'midnight';
   var LOGO_W_RATIO  = 0.0936;      // 로고 너비 / 사진 너비
   var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
   // 로고 박스에서 잘라낼 여백 비율.
@@ -716,6 +733,62 @@
     scaleTimer = setTimeout(scaleMaps, 100);
   });
 
+  // ---- 좌표 → 주소 (역지오코딩) ----
+  // places.json 에 "address" 를 직접 적어두면 그것을 그대로 쓰고,
+  // 없으면 OpenStreetMap Nominatim 으로 한 번 조회한 뒤 브라우저에 저장해 재사용한다.
+  // Nominatim 은 초당 1회 이하로 쓰라는 이용 규칙이 있어 순서대로 천천히 요청한다.
+  var addrQueue = [], addrBusy = false;
+  function addrPump(){
+    if (addrBusy || !addrQueue.length) return;
+    addrBusy = true;
+    var job = addrQueue.shift();
+    job(function(){
+      setTimeout(function(){ addrBusy = false; addrPump(); }, 1100);
+    });
+  }
+  function addrCacheGet(key){
+    try { return localStorage.getItem('lmchan:addr:' + key); } catch (err){ return null; }
+  }
+  function addrCacheSet(key, v){
+    try { localStorage.setItem('lmchan:addr:' + key, v); } catch (err){}
+  }
+  function formatAddress(j){
+    if (!j) return '';
+    var a = j.address || {};
+    // 큰 단위 → 작은 단위 순으로 이어 붙인다
+    var parts = [
+      a.province || a.state,
+      a.city || a.county || a.town,
+      a.city_district || a.borough,
+      a.suburb || a.village || a.quarter,
+      a.neighbourhood,
+      a.road
+    ];
+    var out = [];
+    parts.forEach(function(p){ if (p && out.indexOf(p) < 0) out.push(p); });
+    return out.join(' ') || (j.display_name || '');
+  }
+  function resolveAddress(post, lat, lng, cb){
+    if (post.address){ cb(post.address); return; }          // 직접 적어둔 경우 우선
+    var key = lat.toFixed(5) + ',' + lng.toFixed(5);
+    var hit = addrCacheGet(key);
+    if (hit){ cb(hit); return; }
+    addrQueue.push(function(done){
+      var url = 'https://nominatim.openstreetmap.org/reverse' +
+                '?format=jsonv2&zoom=18&accept-language=ko' +
+                '&lat=' + lat + '&lon=' + lng;
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){
+          var text = formatAddress(j);
+          if (text){ addrCacheSet(key, text); cb(text); }
+          done();
+        })
+        .catch(function(){ done(); });
+    });
+    addrPump();
+  }
+
   function addMarker(map, item){
       var p = item.post;
       var ll = [item.lat, item.lng];
@@ -778,6 +851,15 @@
         media.alt = '';
       }
       tip.appendChild(media);
+
+      // 미리보기 아래에 그 위치의 주소
+      var tcap = document.createElement('div');
+      tcap.className = 'pin-tip-cap';
+      tip.appendChild(tcap);
+      resolveAddress(p, item.lat, item.lng, function(text){
+        tcap.textContent = text;
+      });
+
       m.bindTooltip(tip, {
         className:'pin-tip', direction:'top', offset:[0,-12], opacity:1
       });
@@ -802,9 +884,18 @@
     }
 
     var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var tileUrl = dark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    var tileUrl, tileAttr;
+    if (VWORLD_KEY){
+      // 브이월드 WMTS — 주소에서 z / y / x 순서에 주의
+      tileUrl = 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_KEY + '/' +
+                (dark ? VWORLD_LAYER_DARK : VWORLD_LAYER) + '/{z}/{y}/{x}.png';
+      tileAttr = '&copy; <a href="https://www.vworld.kr">VWorld</a>';
+    } else {
+      tileUrl = dark
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+      tileAttr = '&copy; OpenStreetMap &copy; CARTO';
+    }
 
     // 지도 한 장 = 하루. 같은 날 찍은 사진들을 한 지도에 모은다.
     var byDate = {}, order = [];
@@ -843,10 +934,7 @@
         zoomControl:false, dragging:false, scrollWheelZoom:false,
         doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false
       });
-      L.tileLayer(tileUrl, {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap &copy; CARTO'
-      }).addTo(map);
+      L.tileLayer(tileUrl, { maxZoom: 19, attribution: tileAttr }).addTo(map);
 
       var lls = [];
       items.forEach(function(o){

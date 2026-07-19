@@ -88,8 +88,14 @@
     width:100%;
     margin-top:56px;
   }
-  @media (max-width:1289px){ #grid{ grid-template-columns:repeat(2, var(--cell)); } }
-  @media (max-width:669px){  #grid{ grid-template-columns:min(var(--cell), 100%); } }
+  /* 2열·1열에서는 칸을 고정하지 않고 창 너비에 맞춰 늘린다.
+     열 사이 간격은 4열일 때(12px)의 1.5배인 18px. */
+  @media (max-width:1289px){
+    #grid{ grid-template-columns:repeat(2, 1fr); gap:18px; }
+  }
+  @media (max-width:669px){
+    #grid{ grid-template-columns:1fr; gap:18px; }
+  }
   .icon{
     display:flex; flex-direction:column; align-items:center; gap:8px;
     text-decoration:none; color:inherit;
@@ -223,8 +229,8 @@
   // 로고 박스에서 잘라낼 여백 비율.
   // 음수를 넣으면 반대로 그만큼 더 넓게 보여준다 (위아래로 여유를 주고 싶을 때).
   var CROP_TOP = -0.08, CROP_BOTTOM = -0.08, CROP_SIDE = -0.15;
-  // 로고 최대 높이. 칸이 좁으면 코드가 알아서 폭에 맞춰 줄인다.
-  var MARK_H = 190, MARK_MAX_W = 300;
+  // 로고는 칸 너비를 꽉 채우도록 그린다. MARK_H 는 지나치게 커지지 않게 막는 상한.
+  var MARK_H = 420, MARK_MAX_W = 300;
   var MAP_FALLBACK = [37.5665, 126.9780]; // 좌표가 하나도 없을 때 지도 중심
   // 갤러리 링크 앵커: 확장자를 뗀 파일명 (hanalmchan.html 쪽 indexFromHash와 짝을 이룸)
   function anchorFor(post, index){
@@ -260,6 +266,31 @@
   function labelOf(post, index){
     return post.place || post.caption || captionOf(post, index);
   }
+
+  // ---- 로고 크기 맞추기 ----
+  // 칸 너비를 꽉 채우되 MARK_H 를 넘지 않게 한다.
+  // 2열·1열에서는 칸 자체가 창 크기를 따라가므로 로고도 같이 커진다.
+  var fitted = [];
+  function fitMark(e){
+    var icon = e.mark.parentElement;
+    if (!icon) return;
+    // .icon 의 좌우 패딩(2px씩)을 뺀 실제 사용 가능 폭
+    var availW = (icon.clientWidth - 4) || MARK_MAX_W;
+    var boxW = availW, boxH = boxW / e.aspect;
+    if (boxH > MARK_H){ boxH = MARK_H; boxW = boxH * e.aspect; }
+    e.mark.style.width  = boxW + 'px';
+    e.mark.style.height = boxH + 'px';
+    var dispW = boxW / e.fw, dispH = boxH / e.fh;
+    e.img.style.width  = dispW + 'px';
+    e.img.style.height = dispH + 'px';
+    e.img.style.left   = (-e.fx * dispW) + 'px';
+    e.img.style.top    = (-e.fy * dispH) + 'px';
+  }
+  var fitTimer = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(function(){ fitted.forEach(fitMark); }, 100);
+  });
 
   // ---- 아이콘 (사진에 합성된 로고를 크롭해서 사용) ----
   function makeIcon(post, index){
@@ -305,18 +336,11 @@
         if (fx + fw > 1) fw = 1 - fx;
         if (fy + fh > 1) fh = 1 - fy;
         if (fw <= 0 || fh <= 0) return;
-        var boxAspect = (fw * iw) / (fh * ih);
-        // .icon 의 좌우 패딩(2px씩)을 뺀 실제 사용 가능 폭
-        var availW = (mark.parentElement.clientWidth - 4) || MARK_MAX_W;
-        var boxH = MARK_H, boxW = boxH * boxAspect;
-        if (boxW > availW){ boxW = availW; boxH = boxW / boxAspect; }
-        mark.style.width = boxW + 'px';
-        mark.style.height = boxH + 'px';
-        var dispW = boxW / fw, dispH = boxH / fh;
-        img.style.width  = dispW + 'px';
-        img.style.height = dispH + 'px';
-        img.style.left   = (-fx * dispW) + 'px';
-        img.style.top    = (-fy * dispH) + 'px';
+        // 이후 창 크기가 바뀌어도 다시 맞출 수 있도록 계산에 필요한 값을 보관
+        var entry = { mark:mark, img:img, fx:fx, fy:fy, fw:fw, fh:fh,
+                      aspect:(fw * iw) / (fh * ih) };
+        fitted.push(entry);
+        fitMark(entry);
         img.classList.add('is-ready');
         mark.classList.add('has-photo');
       };

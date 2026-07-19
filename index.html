@@ -9,8 +9,18 @@
 <style>
   @font-face{
     font-family:'LMCHan';
+    /* 폰트 파일을 어디에 두셨든 찾도록 후보 경로를 순서대로 시도한다.
+       앞에서 하나라도 성공하면 나머지는 무시된다. */
     src:url('fonts/LMCHan.woff2') format('woff2'),
-        url('fonts/LMCHan.otf') format('opentype');
+        url('LMCHan.woff2') format('woff2'),
+        url('font/LMCHan.woff2') format('woff2'),
+        url('assets/LMCHan.woff2') format('woff2'),
+        url('fonts/LMCHan.otf') format('opentype'),
+        url('LMCHan.otf') format('opentype'),
+        url('font/LMCHan.otf') format('opentype'),
+        url('assets/LMCHan.otf') format('opentype'),
+        url('fonts/LMCHan-Regular.otf') format('opentype'),
+        url('LMCHan-Regular.otf') format('opentype');
     font-weight:400;
     font-style:normal;
     font-display:swap;
@@ -22,8 +32,8 @@
     --ink-35:rgba(20,20,20,.35);
     --ink-16:rgba(20,20,20,.14);
     --ink-08:rgba(20,20,20,.07);
-    --cell:260px;
-    --gap:6px;
+    --grid-max:1360px;   /* 격자 전체 최대 너비 */
+    --gap:10px;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -62,13 +72,16 @@
     font-size:10px; color:var(--ink-35); letter-spacing:.04em; line-height:1.7;
     text-align:center;
   }
+  /* 화면 폭에 따라 4 → 2 → 1 열 */
   #grid{
     display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(var(--cell), 1fr));
+    grid-template-columns:repeat(4, 1fr);
     gap:var(--gap);
-    width:100%; max-width:calc(var(--cell) * 4 + var(--gap) * 3);
+    width:100%; max-width:var(--grid-max);
     margin-top:56px;
   }
+  @media (max-width:1100px){ #grid{ grid-template-columns:repeat(2, 1fr); } }
+  @media (max-width:640px){  #grid{ grid-template-columns:1fr; } }
   .icon{
     display:flex; flex-direction:column; align-items:center; gap:8px;
     text-decoration:none; color:inherit;
@@ -80,7 +93,7 @@
   .icon:focus-visible{ outline:1px solid var(--ink-35); outline-offset:2px; }
   .mark{
     position:relative; overflow:hidden;
-    width:100%; height:96px;
+    width:100%; height:210px;
     display:flex; align-items:center; justify-content:center;
   }
   .mark img{
@@ -102,7 +115,7 @@
 
   /* ── 지도 ── */
   #map-section{
-    width:100%; max-width:calc(var(--cell) * 4 + var(--gap) * 3);
+    width:100%; max-width:var(--grid-max);
     margin-top:96px;
   }
   #map-head{
@@ -157,10 +170,11 @@
   }
   .leaflet-tooltip.pin-tip::before{ display:none; }
 
-  @media (max-width:520px){
-    :root{ --cell:170px; --gap:4px; }
+  @media (max-width:640px){
+    :root{ --gap:6px; }
     body{ padding:64px 18px 72px; }
     #map{ height:52vh; }
+    #map-head{ flex-direction:column; gap:4px; }
   }
   @media (prefers-reduced-motion:reduce){
     .icon{ transition:none; }
@@ -202,7 +216,8 @@
   // 로고 박스에서 잘라낼 여백 비율.
   // 음수를 넣으면 반대로 그만큼 더 넓게 보여준다 (위아래로 여유를 주고 싶을 때).
   var CROP_TOP = -0.08, CROP_BOTTOM = -0.08, CROP_SIDE = 0.1;
-  var MARK_H = 96, MARK_MAX_W = 260;
+  // 로고 최대 높이. 칸이 좁으면 코드가 알아서 폭에 맞춰 줄인다.
+  var MARK_H = 210, MARK_MAX_W = 340;
   var MAP_FALLBACK = [37.5665, 126.9780]; // 좌표가 하나도 없을 때 지도 중심
   // 갤러리 링크 앵커: 확장자를 뗀 파일명 (hanalmchan.html 쪽 indexFromHash와 짝을 이룸)
   function anchorFor(post, index){
@@ -284,7 +299,8 @@
         if (fy + fh > 1) fh = 1 - fy;
         if (fw <= 0 || fh <= 0) return;
         var boxAspect = (fw * iw) / (fh * ih);
-        var availW = mark.parentElement.clientWidth || MARK_MAX_W;
+        // .icon 의 좌우 패딩(2px씩)을 뺀 실제 사용 가능 폭
+        var availW = (mark.parentElement.clientWidth - 4) || MARK_MAX_W;
         var boxH = MARK_H, boxW = boxH * boxAspect;
         if (boxW > availW){ boxW = availW; boxH = boxW / boxAspect; }
         mark.style.width = boxW + 'px';

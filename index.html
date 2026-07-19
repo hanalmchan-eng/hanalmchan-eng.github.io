@@ -182,8 +182,8 @@
   /* 지도 오른쪽 위의 촬영 날짜 — 지도 묶음의 제목 역할 */
   .map-date{
     position:absolute; top:16px; right:18px; z-index:500;
-    font-family:'LMCHan', Georgia, serif;
-    font-size:30px; letter-spacing:.1em;
+    font-size:24px; letter-spacing:.06em;
+    font-variant-numeric:tabular-nums;
     /* 지도 타일 위에서도 항상 읽히도록 반전 */
     color:#ffffff;
     mix-blend-mode:difference;
@@ -191,33 +191,39 @@
     pointer-events:none;
   }
   @media (max-width:669px){
-    .map-date{ font-size:22px; top:10px; right:12px; }
+    .map-date{ font-size:18px; top:10px; right:12px; }
     .map-info{ top:10px; left:12px; }
+    .map-info-addr{ font-size:16px; }
+    .map-info-note{ font-size:13.5px; }
   }
   /* 지도 왼쪽 위 미리보기 카드 — 마커에 커서를 대면 나타난다 */
+  /* 카드 배경을 두지 않는다. 글자는 배경을 반전시켜 그리므로
+     지도가 밝든 어둡든 항상 또렷하게 읽힌다.
+     (부모에 opacity 를 주면 반전이 카드 안에 갇히므로 visibility 로만 여닫는다) */
   .map-info{
     position:absolute; top:18px; left:20px; z-index:500;
     width:420px; max-width:calc(100% - 40px);
-    background:var(--paper);
-    border:1px solid var(--ink-16);
-    padding:10px;
     pointer-events:none;
-    opacity:0; transform:translateY(-4px);
-    transition:opacity .22s ease, transform .22s ease;
+    visibility:hidden;
   }
-  .map-info.show{ opacity:1; transform:translateY(0); }
+  .map-info.show{ visibility:visible; }
   .map-info img, .map-info video{
     display:block; width:100%; height:auto;
     max-height:300px; object-fit:cover;
     background:var(--ink-08);
   }
+  .map-info-addr, .map-info-note{
+    color:#ffffff;
+    mix-blend-mode:difference;
+    text-align:left;
+  }
   .map-info-addr{
-    margin-top:10px;
-    font-size:15px; letter-spacing:.02em; line-height:1.4; color:var(--ink);
+    margin-top:12px;
+    font-size:19px; letter-spacing:.02em; line-height:1.35;
   }
   .map-info-note{
-    margin-top:4px;
-    font-size:12.5px; line-height:1.5; color:var(--ink-60);
+    margin-top:5px;
+    font-size:16px; line-height:1.5;
     word-break:keep-all;
   }
   .map-info-addr:empty, .map-info-note:empty{ display:none; }
@@ -1018,7 +1024,9 @@
       function hideInfo(){
         if (infoEl) infoEl.classList.remove('show');
       }
-      m.on('mouseover', showInfo);
+      // 터치 화면에서는 탭 한 번에 mouseover 와 click 이 잇달아 들어온다.
+      // 그대로 두면 카드가 떴다가 곧바로 열려버리므로, 터치일 때는 mouseover 를 무시한다.
+      m.on('mouseover', function(){ if (!isTouch) showInfo(); });
       m.on('mouseout',  function(){ if (!isTouch) hideInfo(); });
 
       // 영상은 별도 창(elses.html)에서, 사진은 그 자리에서 크게.

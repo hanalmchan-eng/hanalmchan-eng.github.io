@@ -76,7 +76,8 @@
     background:var(--ink-08);
   }
   .icon:focus-visible{ outline:1px solid var(--ink-35); outline-offset:2px; }
-  /* 로고 마크가 들어갈 크롭 창 — 실제 크기는 JS가 사진 비율에 맞춰 지정 */
+  /* 로고 마크가 들어갈 크롭 창 — 실제 크기는 JS가 크롭 박스 비율에 맞춰 지정.
+     기본값은 로딩 전 자리만 잡아두는 용도. */
   .mark{
     position:relative; overflow:hidden;
     width:100%; height:34px;
@@ -131,6 +132,7 @@
   // 로고 마크만 타이트하게 보이도록 원본 로고 박스에서 더 잘라내는 비율
   var CROP_TOP = 0.2, CROP_BOTTOM = 0.2, CROP_SIDE = 0.1;
   var MARK_H = 34;                 // 아이콘 로고 높이(px) — CSS .mark height와 맞출 것
+  var MARK_MAX_W = 112;            // 로고 최대 너비(px) — 이보다 넓으면 높이를 줄여 통째로 맞춤
   // 갤러리 앵커 규칙. 갤러리 쪽 요소 id가 다르면 이 함수 한 줄만 고치면 됩니다.
   function anchorFor(post, index){
     if (post.id)   return String(post.id);
@@ -202,13 +204,21 @@
         var fw = (logoW * (1 - CROP_SIDE * 2)) / refW;
         var fh = (logoH * (1 - CROP_TOP - CROP_BOTTOM)) / refH;
         if (fw <= 0 || fh <= 0) return;
-        // 크롭 높이가 MARK_H가 되도록 이미지를 확대/축소
-        var dispH = MARK_H / fh;
-        var dispW = dispH * (iw / ih);
-        var cropW = fw * dispW;
+        // 크롭 박스의 실제 화면 비율 (사진의 가로세로비까지 반영)
+        var boxAspect = (fw * iw) / (fh * ih);           // 너비 / 높이
+        // 셀 안에 통째로 들어가도록 맞춤 — 잘려서 가운데 글자만 보이는 일이 없도록
+        var availW = mark.parentElement.clientWidth || MARK_MAX_W;
+        var boxH = MARK_H;
+        var boxW = boxH * boxAspect;
+        if (boxW > availW){ boxW = availW; boxH = boxW / boxAspect; }
+        mark.style.width  = boxW + 'px';
+        mark.style.height = boxH + 'px';
+        // 크롭 박스가 boxW × boxH가 되도록 이미지를 확대/축소
+        var dispW = boxW / fw;
+        var dispH = boxH / fh;
         img.style.width  = dispW + 'px';
         img.style.height = dispH + 'px';
-        img.style.left   = 'calc(50% - ' + (cropW / 2) + 'px - ' + (fx * dispW) + 'px)';
+        img.style.left   = (-fx * dispW) + 'px';
         img.style.top    = (-fy * dispH) + 'px';
         img.classList.add('is-ready');
         mark.classList.add('has-photo');

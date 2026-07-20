@@ -221,15 +221,19 @@
   .mm-dot-ring{ fill:none; stroke:var(--ink); stroke-width:1.4; opacity:.5; }
   /* 랜드커버 타일. 물=파랑, 들·숲=초록, 도시=회색이 서로 또렷이 구분되도록
      채도·대비를 올려 그린다. (바다와 육지가 헷갈리지 않는 게 핵심) */
-  .leaflet-tile-pane .base-tiles{ filter:saturate(1.45) contrast(1.14) brightness(1.0); }
+  .base-tiles, .leaflet-tile-pane .base-tiles{
+    filter:saturate(2.2) contrast(1.32) brightness(.98) !important;
+  }
   @media (prefers-color-scheme: dark){
-    .leaflet-tile-pane .base-tiles{ filter:saturate(1.2) contrast(1.08) brightness(.95); }
+    .base-tiles, .leaflet-tile-pane .base-tiles{
+      filter:saturate(1.65) contrast(1.2) brightness(.94) !important;
+    }
   }
   /* 지형 음영(hillshade) 오버레이 — 산·시골의 기복을 드러내되,
      바다·초록을 회색으로 덮지 않도록 불투명도를 더 낮춰 육지 질감 위주로만 얹는다. */
-  .leaflet-tile-pane .hill-tiles{ opacity:.18; mix-blend-mode:multiply; }
+  .hill-tiles, .leaflet-tile-pane .hill-tiles{ opacity:.1 !important; mix-blend-mode:multiply; }
   @media (prefers-color-scheme: dark){
-    .leaflet-tile-pane .hill-tiles{ opacity:.15; mix-blend-mode:screen; }
+    .hill-tiles, .leaflet-tile-pane .hill-tiles{ opacity:.1 !important; mix-blend-mode:screen; }
   }
   @media (max-width:669px){
     .map-date{ font-size:18px; bottom:10px; right:12px; }

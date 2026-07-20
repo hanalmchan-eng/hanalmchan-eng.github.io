@@ -221,15 +221,15 @@
   .mm-dot-ring{ fill:none; stroke:var(--ink); stroke-width:1.4; opacity:.5; }
   /* 랜드커버 타일. 물=파랑, 들·숲=초록, 도시=회색이 서로 또렷이 구분되도록
      채도·대비를 올려 그린다. (바다와 육지가 헷갈리지 않는 게 핵심) */
-  .leaflet-tile-pane .base-tiles{ filter:saturate(1.18) contrast(1.1) brightness(1.0); }
+  .leaflet-tile-pane .base-tiles{ filter:saturate(1.45) contrast(1.14) brightness(1.0); }
   @media (prefers-color-scheme: dark){
-    .leaflet-tile-pane .base-tiles{ filter:saturate(1.05) contrast(1.06) brightness(.95); }
+    .leaflet-tile-pane .base-tiles{ filter:saturate(1.2) contrast(1.08) brightness(.95); }
   }
   /* 지형 음영(hillshade) 오버레이 — 산·시골의 기복을 드러내되,
-     바다까지 회색으로 덮지 않도록 불투명도를 낮춰 육지 질감 위주로만 얹는다. */
-  .leaflet-tile-pane .hill-tiles{ opacity:.24; mix-blend-mode:multiply; }
+     바다·초록을 회색으로 덮지 않도록 불투명도를 더 낮춰 육지 질감 위주로만 얹는다. */
+  .leaflet-tile-pane .hill-tiles{ opacity:.18; mix-blend-mode:multiply; }
   @media (prefers-color-scheme: dark){
-    .leaflet-tile-pane .hill-tiles{ opacity:.18; mix-blend-mode:screen; }
+    .leaflet-tile-pane .hill-tiles{ opacity:.15; mix-blend-mode:screen; }
   }
   @media (max-width:669px){
     .map-date{ font-size:18px; bottom:10px; right:12px; }
@@ -358,10 +358,6 @@
 </style>
 </head>
 <body>
-  <!-- 임시 진단 표시줄. 문제 해결되면 이 div 와 아래 DEBUG 관련 줄을 지우면 된다. -->
-  <div id="debug" style="position:fixed;top:0;left:0;right:0;z-index:9999;
-       background:#111;color:#3f6;font:11px/1.6 monospace;padding:6px 10px;
-       white-space:pre-wrap;"></div>
   <section id="models-section">
     <div class="section-label">ENCOUNTERS, WATERMARKS</div>
     <!-- 인트로 문구: 처음엔 보이지만, 한 번 스크롤을 내리면 접혀 사라지고 다시 올려도 안 나온다 -->
@@ -398,8 +394,8 @@
 <script>
 (function(){
   'use strict';
-  // ====== 임시 진단 ======
-  var DEBUG = true;
+  // ====== 임시 진단 (꺼둠) ======
+  var DEBUG = false;
   var _dbgEl = document.getElementById('debug');
   var _posts = null, _ok = 0, _fail = 0, _lastErr = '';
   function dbgRender(){
@@ -441,7 +437,7 @@
   var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
   // 로고 박스에서 잘라낼 여백 비율.
   // 음수를 넣으면 반대로 그만큼 더 넓게 보여준다 (위아래로 여유를 주고 싶을 때).
-  var CROP_TOP = -0.08, CROP_BOTTOM = -0.08, CROP_SIDE = -0.05;
+  var CROP_TOP = -0.06, CROP_BOTTOM = -0.06, CROP_SIDE = -0.03;
   // 로고는 칸 너비를 꽉 채우도록 그린다. MARK_H 는 지나치게 커지지 않게 막는 상한.
   var MARK_H = 420, MARK_MAX_W = 300;
   var MAP_FALLBACK = [37.5665, 126.9780]; // 좌표가 하나도 없을 때 지도 중심
@@ -596,8 +592,9 @@
           var r = (W && H) ? regionFor(W, H) : null;
           if (!r){ img.onload = img.onerror = null; img.src = '';
                    _fail++; _lastErr='로고영역 계산실패'; dbgRender(); done(); return; }
-          var dpr = Math.min(window.devicePixelRatio || 1, 2);
-          var cw = Math.min(Math.round(MARK_MAX_W * dpr), Math.round(r.w));
+          // 로고를 원본 해상도 그대로(최대 900px) 담아 최대한 선명하게.
+          // 원본 속 로고 크기가 상한이라 그보다 더 선명해질 수는 없다.
+          var cw = Math.min(900, Math.round(r.w));
           var ch = Math.max(1, Math.round(cw * (r.h / r.w)));
           var cv = document.createElement('canvas');
           cv.width = cw; cv.height = ch;
@@ -1205,6 +1202,7 @@
       mapsWrap.appendChild(wrap);
       var map = L.map(inner, {
         // 축척은 그날 사진들에 맞춰 정해지므로 날마다 다르다
+        attributionControl:false,   // 하단 leaflet/OSM 표기 숨김
         zoomControl:false, dragging:false, scrollWheelZoom:false,
         doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false
       });

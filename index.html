@@ -406,8 +406,8 @@
   var PROXY_BASE = 'https://wsrv.nl/?url=';
   function proxify(fileUrl, params){
     if (!USE_PROXY || !/^https?:\/\//.test(fileUrl)) return fileUrl;
-    var host = fileUrl.replace(/^https?:\/\//, '');   // pub-….r2.dev/파일명
-    return PROXY_BASE + 'ssl:' + host + (params ? '&' + params : '');
+    // wsrv v5 는 https 원본을 URL 그대로 받는다 (예전 'ssl:' 접두어는 v5 에서 안 먹는다).
+    return PROXY_BASE + fileUrl + (params ? '&' + params : '');
   }
   var POSTS_JSON  = 'posts.json';    // 워터마크 갤러리용 (위 격자)
   var PLACES_JSON = 'places.json';   // 지도용 — 워터마크 없는 별도 사진 목록

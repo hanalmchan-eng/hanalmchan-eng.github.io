@@ -890,14 +890,18 @@
     }
     return { w: MAP_W, h: MAP_H, scale: Math.min(1, avail / MAP_W), narrow: false };
   }
+  // 지도 축척 상한. 숫자가 클수록 확대된다.
+  // 라벨 없는 타일은 15 이상으로 확대하면 건물 블록만 남아 온통 회색이 되므로,
+  // 물·숲·도시와 지형의 형태가 보이는 13 정도로 묶는다.
+  var VIEW_ZOOM = 13;
   function frameMap(o, m){
     if (!o.map) return;
     o.map.invalidateSize(false);
     var pad = m.narrow ? [34, 34] : [70, 70];
     if (o.single){
-      o.map.setView(o.single, 14);
+      o.map.setView(o.single, VIEW_ZOOM);
     } else if (o.bounds){
-      o.map.fitBounds(o.bounds, { padding: pad, maxZoom: 16 });
+      o.map.fitBounds(o.bounds, { padding: pad, maxZoom: VIEW_ZOOM });
     }
   }
   function scaleMaps(){

@@ -621,7 +621,8 @@
           _fail++; _lastErr='이미지 로드 실패(CORS 차단 의심)'; dbgRender();
           done();
         };
-        img.src = src;
+        // CORS 캐시 꼬임 방지: CORS 요청은 표식을 붙여 'CORS 없는 캐시'와 다른 항목으로 받는다.
+        img.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + 'cors=1';
       });
     }
     return a;

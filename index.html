@@ -109,14 +109,16 @@
     font-size:9.5px; color:var(--ink-35); letter-spacing:.04em; line-height:2;
     text-align:center;
   }
-  /* 칸 너비와 간격은 고정. 창이 좁아지면 크기가 줄어드는 대신 열 수만 4 → 3 → 2 → 1 로 바뀐다.
-     남는 공간은 justify-content:center 로 양옆에 균등 분배되어 항상 가운데 정렬된다. */
+  /* 격자 전체 폭은 지도와 똑같이 '콘텐츠 너비, 최대 1236px' 를 따른다.
+     칸은 고정 300px 이 아니라 1fr 로 나눠 어떤 창에서도 지도와 폭이 일치한다.
+     창이 좁아지면 열 수만 4 → 3 → 2 → 1 로 바뀐다. */
   #grid{
     display:grid;
-    grid-template-columns:repeat(4, var(--cell));
+    grid-template-columns:repeat(4, 1fr);
     justify-content:center;
     gap:var(--gap);
     width:100%;
+    max-width:calc(var(--cell) * 4 + var(--gap) * 3);
     margin-top:56px;
   }
   /* 3열·2열·1열에서는 칸을 고정하지 않고 창 너비에 맞춰 늘린다.

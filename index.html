@@ -159,6 +159,11 @@
     width:100%; max-width:calc(var(--cell) * 4 + var(--gap) * 3);
     margin-top:96px;
   }
+  /* #map-section 은 flex(가운데 정렬) 컨테이너라, 자식에게 너비 100% 를
+     명시하지 않으면 내용물 크기로 쪼그라든다 — 지도 폭이 0으로 무너지는 원인. */
+  #map-head, #maps{
+    width:100%;
+  }
   #map-head{
     display:flex; align-items:baseline; justify-content:space-between;
     margin-bottom:14px;
@@ -382,7 +387,7 @@
       <span id="map-note">
         마커에 커서를 대거나 눌러 미리보기 · 사진을 눌러 크게 보기<br>
         Hover or tap a marker to preview · click the photo to open<br>
-        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v13
+        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v14
       </span>
     </div>
     <div id="maps"></div>

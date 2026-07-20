@@ -109,28 +109,19 @@
     font-size:9.5px; color:var(--ink-35); letter-spacing:.04em; line-height:2;
     text-align:center;
   }
-  /* 격자 전체 폭은 지도와 똑같이 '콘텐츠 너비, 최대 1236px' 를 따른다.
-     칸은 고정 300px 이 아니라 1fr 로 나눠 어떤 창에서도 지도와 폭이 일치한다.
-     창이 좁아지면 열 수만 4 → 3 → 2 → 1 로 바뀐다. */
+  /* 로고 칸은 어떤 창 크기에서도 300px 고정 — 칸이 늘어나며 로고가
+     '확대'되는 일이 없다. 창이 좁아지면 칸 크기는 그대로 두고
+     열 수만 4 → 3 → 2 → 1 로 줄어들며(auto-fit), 남는 공간은
+     justify-content:center 로 양옆에 균등 분배된다.
+     max-width 는 아주 넓은 창에서 5열 이상이 되는 것을 막는다(최대 4열). */
   #grid{
     display:grid;
-    grid-template-columns:repeat(4, 1fr);
+    grid-template-columns:repeat(auto-fit, min(100%, var(--cell)));
     justify-content:center;
     gap:var(--gap);
     width:100%;
     max-width:calc(var(--cell) * 4 + var(--gap) * 3);
     margin-top:56px;
-  }
-  /* 3열·2열·1열에서는 칸을 고정하지 않고 창 너비에 맞춰 늘린다.
-     열 사이 간격은 4열일 때(12px)의 1.5배인 18px. */
-  @media (max-width:1289px){
-    #grid{ grid-template-columns:repeat(3, 1fr); gap:18px; }
-  }
-  @media (max-width:989px){
-    #grid{ grid-template-columns:repeat(2, 1fr); gap:18px; }
-  }
-  @media (max-width:669px){
-    #grid{ grid-template-columns:1fr; gap:18px; }
   }
   .icon{
     display:flex; flex-direction:column; align-items:center; gap:8px;
@@ -386,7 +377,7 @@
       <span id="map-note">
         마커에 커서를 대거나 눌러 미리보기 · 사진을 눌러 크게 보기<br>
         Hover or tap a marker to preview · click the photo to open<br>
-        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v11
+        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v12
       </span>
     </div>
     <div id="maps"></div>

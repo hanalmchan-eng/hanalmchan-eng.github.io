@@ -164,9 +164,17 @@
   #map-head, #maps{
     width:100%;
   }
+  /* 지도 안내문 — 가운데 정렬. 인트로처럼 한 번 보고 스크롤하면 접혀 사라진다. */
   #map-head{
-    display:flex; align-items:baseline; justify-content:space-between;
+    display:flex; align-items:baseline; justify-content:center;
     margin-bottom:14px;
+    overflow:hidden; max-height:120px;
+    transition:opacity .5s ease, max-height .6s ease,
+               margin-bottom .5s ease, transform .5s ease;
+  }
+  #map-head.gone{
+    opacity:0; max-height:0; margin-bottom:0;
+    transform:translateY(-8px); pointer-events:none;
   }
   #map-title{
     font-family:'LMCHan', Georgia, serif;
@@ -175,7 +183,7 @@
   }
   #map-note{
     font-size:9px; color:var(--ink-35); letter-spacing:.04em;
-    line-height:1.8; text-align:right;
+    line-height:1.8; text-align:center;
   }
   /* 지도는 컨테이너 너비를 100% 채우고 비율(1236:772)만 고정한다.
      고정 픽셀 + transform 축소 방식은 창이 좁을 때 옆으로 새는 원인이라 쓰지 않는다. */
@@ -387,7 +395,7 @@
       <span id="map-note">
         마커에 커서를 대거나 눌러 미리보기 · 사진을 눌러 크게 보기<br>
         Hover or tap a marker to preview · click the photo to open<br>
-        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v14
+        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v15
       </span>
     </div>
     <div id="maps"></div>
@@ -1272,6 +1280,29 @@
       });
     })
     .catch(function(){ buildMaps([]); });
+  // ---- 지도 안내문 접기 ----
+  // 안내문이 화면에 한 번 보인 뒤, 거기서 조금 더 스크롤하면 인트로처럼 접혀 사라진다.
+  (function(){
+    var head = document.getElementById('map-head');
+    if (!head || !('IntersectionObserver' in window)) return;
+    var seenAt = null;
+    function onScroll(){
+      if (Math.abs(window.pageYOffset - seenAt) > 60){
+        head.classList.add('gone');
+        window.removeEventListener('scroll', onScroll);
+      }
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting && seenAt === null){
+          seenAt = window.pageYOffset;
+          io.disconnect();
+          window.addEventListener('scroll', onScroll, { passive: true });
+        }
+      });
+    });
+    io.observe(head);
+  })();
   // ---- 인트로 접기 ----
   // 처음엔 안내 문구를 보여주되, 사용자가 한 번 아래로 스크롤하면 접어서 사라지게 하고
   // 이후 다시 위로 올려도 나타나지 않게 한다 (리스너는 한 번 쓰고 스스로 제거).

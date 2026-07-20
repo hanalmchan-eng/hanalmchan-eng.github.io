@@ -172,8 +172,8 @@
     font-size:9px; color:var(--ink-35); letter-spacing:.04em;
     line-height:1.8; text-align:right;
   }
-  /* 지도는 항상 같은 지리적 범위를 보여준다.
-     안쪽(.map-inner)은 픽셀 크기가 고정이고, 창이 좁아지면 통째로 축소만 된다. */
+  /* 지도는 컨테이너 너비를 100% 채우고 비율(1236:772)만 고정한다.
+     고정 픽셀 + transform 축소 방식은 창이 좁을 때 옆으로 새는 원인이라 쓰지 않는다. */
   .map-wrap{
     position:relative; width:100%; overflow:hidden;
     border:1px solid var(--ink-16); border-radius:2px;
@@ -182,9 +182,14 @@
   }
   .map-wrap:last-child{ margin-bottom:0; }
   .map-inner{
-    transform-origin:0 0;
+    width:100%;
+    aspect-ratio:1236 / 772;
     background:var(--paper);
     z-index:0;
+  }
+  /* 좁은 화면에서는 가로로 얇은 띠가 되지 않게 세로가 긴 비율로 */
+  @media (max-width:900px){
+    .map-inner{ aspect-ratio:4 / 5; }
   }
   /* 촬영 날짜 — 지도 묶음의 제목 역할. 미니맵과 안 겹치도록 오른쪽 아래로. */
   .map-date{
@@ -377,7 +382,7 @@
       <span id="map-note">
         마커에 커서를 대거나 눌러 미리보기 · 사진을 눌러 크게 보기<br>
         Hover or tap a marker to preview · click the photo to open<br>
-        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v12
+        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v13
       </span>
     </div>
     <div id="maps"></div>
@@ -811,9 +816,8 @@
     if (e.key === 'Escape' || e.key === 'Esc') closeLightbox();
   });
   // ---- 지도 ----
-  // 지도 한 장의 고정 크기. 폭은 로고 4열 격자와 같다 (300*4 + 12*3).
-  // 창이 좁아지면 이 크기를 유지한 채 통째로 축소된다.
-  var MAP_W = 1236, MAP_H = 772;
+  // 지도 크기는 CSS(너비 100% + 고정 비율)가 정한다.
+  // JS 는 창 크기가 바뀔 때 invalidateSize + 범위 재조정만 한다.
   var mapScalers = [];
   // 손가락으로 쓰는 화면인지 (커서 올리기가 없는 환경)
   var isTouch = false;
@@ -868,19 +872,7 @@
     iconSize: [16, 16],
     iconAnchor: [8, 8]
   }) : null;
-  // 넓은 화면: 1236×772 를 유지한 채 통째로 축소 → 보이는 범위가 항상 같다.
-  // 좁은 화면(휴대폰): 축소하면 얇은 띠가 되어버리므로, 화면 폭에 맞춰
-  //                   세로로 넉넉한 비율로 다시 그린다.
   var NARROW = 900;
-  function mapMetrics(){
-    var avail = mapSection.clientWidth || MAP_W;
-    if (window.innerWidth <= NARROW){
-      var w = Math.round(avail);
-      var h = Math.round(Math.min(w * 1.3, window.innerHeight * 0.68));
-      return { w: w, h: h, scale: 1, narrow: true };
-    }
-    return { w: MAP_W, h: MAP_H, scale: Math.min(1, avail / MAP_W), narrow: false };
-  }
   // 지도 축척 상한. 숫자가 클수록 확대된다.
   // 11 = 도시 전체와 주변 산·바다가 한눈에 들어오는 축척.
   // 라벨 없는 타일은 15 이상으로 확대하면 건물 블록만 남아 온통 회색이 된다.
@@ -896,14 +888,9 @@
     }
   }
   function scaleMaps(){
-    var m = mapMetrics();
-    if (!m.w) return;
+    var narrow = window.innerWidth <= NARROW;
     mapScalers.forEach(function(o){
-      o.inner.style.width  = m.w + 'px';
-      o.inner.style.height = m.h + 'px';
-      o.inner.style.transform = 'scale(' + m.scale + ')';
-      o.wrap.style.height = (m.h * m.scale) + 'px';
-      frameMap(o, m);
+      frameMap(o, { narrow: narrow });
     });
   }
   var scaleTimer = null;
@@ -1187,9 +1174,6 @@
       var inner = document.createElement('div');
       wrap.className = 'map-wrap';
       inner.className = 'map-inner';
-      var m0 = mapMetrics();
-      inner.style.width  = m0.w + 'px';
-      inner.style.height = m0.h + 'px';
       wrap.appendChild(inner);
       // 날짜는 지도 오른쪽 위에. 축소에 영향받지 않도록 지도 바깥 층에 둔다.
       var dateEl = document.createElement('div');

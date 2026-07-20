@@ -600,14 +600,24 @@
         if (post.width && post.height){
           withDims(post.width, post.height);
         } else {
+          // 크기를 모를 때: 먼저 프록시 헤더 읽기를 시도하고(가벼움),
+          // 그게 막히면 원본을 <img> 로 '한 번' 불러 크기만 읽는다.
+          // 화면에 붙이지 않으므로 원본이 통째로 펼쳐지지(디코드되지) 않아 메모리가 안전하고,
+          // 크기를 안 뒤에는 프록시로 로고만 잘라 보여주고 원본은 곧바로 버린다.
+          // 이 경로는 CORS 가 없어도 동작한다. (width/height 를 넣어두면 이 다운로드도 생략된다)
           fetchJpegSize(src).then(function(sz){
-            if (sz){ withDims(sz.w, sz.h); }
-            else {
-              // 크기를 못 읽음(서버가 Range/CORS 를 막은 경우 등) → 로고만 정확히는 못 자르니
-              // 최소한 원본을 통째로 받지 않도록 프록시로 크게 줄인 '전체 사진'을 보여준다.
-              // posts.json 에 width/height 를 넣어주면 이 경우에도 로고만 정확히 잘린다.
-              show(proxify(src, 'w=1000&output=jpg&q=82'), null);
-            }
+            if (sz){ withDims(sz.w, sz.h); return; }
+            var probe = new Image();
+            probe.decoding = 'async';
+            probe.onload = function(){
+              var w = probe.naturalWidth, h = probe.naturalHeight;
+              probe.onload = probe.onerror = null; probe.src = '';
+              if (w && h) withDims(w, h); else done();
+            };
+            probe.onerror = function(){
+              probe.onload = probe.onerror = null; done();
+            };
+            probe.src = src;
           });
         }
       });

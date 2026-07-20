@@ -749,7 +749,11 @@
     return null;
   }
   function fetchJpegSize(url){
-    return fetch(url, { headers: { 'Range': 'bytes=0-' + (EXIF_BYTES - 1) } })
+    // R2 원본은 브라우저에서 직접 읽으면 CORS 에 막힐 수 있으므로,
+    // CORS 를 허용하는 프록시(wsrv)를 거쳐 앞부분(헤더)만 받아 크기를 읽는다.
+    // 원본을 '디코드'하지 않고 바이트만 훑으므로 메모리를 거의 쓰지 않는다.
+    var u = proxify(url, 'output=jpg');
+    return fetch(u, { headers: { 'Range': 'bytes=0-131071' } })
       .then(function(r){ return r.ok ? r.arrayBuffer() : null; })
       .then(function(buf){ return buf ? parseJpegSize(buf) : null; })
       .catch(function(){ return null; });

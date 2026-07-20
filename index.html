@@ -397,6 +397,18 @@
   // ====== 설정 ======
   var GALLERY_URL = 'hanalmchan.html';
   var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
+  // ── 이미지 프록시 (wsrv.nl / images.weserv.nl) ──
+  // 원본(4000×6000, 펼치면 100MB 가까이)을 브라우저가 통째로 받지 않도록,
+  // 서버 쪽에서 로고 부분만 잘라(또는 작게 줄여) 받아온다. 업로드·R2 설정 불필요.
+  // 이게 아이폰이 죽던(그래서 두 번 그려지던) 문제의 핵심 해결책이다.
+  // 끄려면 USE_PROXY = false (그 경우 미리 잘라둔 logo 필드가 있어야 가볍다).
+  var USE_PROXY  = true;
+  var PROXY_BASE = 'https://wsrv.nl/?url=';
+  function proxify(fileUrl, params){
+    if (!USE_PROXY || !/^https?:\/\//.test(fileUrl)) return fileUrl;
+    var host = fileUrl.replace(/^https?:\/\//, '');   // pub-….r2.dev/파일명
+    return PROXY_BASE + 'ssl:' + host + (params ? '&' + params : '');
+  }
   var POSTS_JSON  = 'posts.json';    // 워터마크 갤러리용 (위 격자)
   var PLACES_JSON = 'places.json';   // 지도용 — 워터마크 없는 별도 사진 목록
   var ELSES_URL   = 'elses.html';    // 영상 전용 창
@@ -543,78 +555,61 @@
     var src = srcOf(post);
     if (src && typeof post.logoX === 'number' && typeof post.logoY === 'number'){
       enqueue(function(done){
-        // 로고 영역을 사진 픽셀 기준으로 계산한다
-        function region(iw, ih){
-          var refW = post.width  || iw;
-          var refH = post.height || ih;
+        // 로고 영역(원본 픽셀 기준)을 계산한다
+        function regionFor(refW, refH){
           // 로고 크기는 사진의 '짧은 변'을 기준으로 잡힌다.
-          // (너비 기준으로 잡으면 가로로 긴 사진에서만 크롭 박스가 과하게 커진다)
           var logoW = Math.min(refW, refH) * LOGO_W_RATIO;
           var logoH = logoW * LOGO_HW_RATIO;
           var sx = post.logoX + logoW * CROP_SIDE;
           var sy = post.logoY + logoH * CROP_TOP;
           var sw = logoW * (1 - CROP_SIDE * 2);
           var sh = logoH * (1 - CROP_TOP - CROP_BOTTOM);
-          var kx = iw / refW, ky = ih / refH;   // 좌표계가 다를 경우 환산
-          sx *= kx; sy *= ky; sw *= kx; sh *= ky;
           if (sx < 0){ sw += sx; sx = 0; }
           if (sy < 0){ sh += sy; sy = 0; }
-          if (sx + sw > iw) sw = iw - sx;
-          if (sy + sh > ih) sh = ih - sy;
-          return (sw > 0 && sh > 0) ? { x:sx, y:sy, w:sw, h:sh } : null;
+          if (sx + sw > refW) sw = refW - sx;
+          if (sy + sh > refH) sh = refH - sy;
+          return (sw > 0 && sh > 0)
+            ? { x:Math.round(sx), y:Math.round(sy), w:Math.round(sw), h:Math.round(sh) }
+            : null;
         }
-        // CORS 가 열려 있으면 캔버스로 옮겨 그려 원본을 즉시 놓아준다(가벼움).
-        // 열려 있지 않으면 CORS 없이 다시 받아 CSS 로 잘라 보여준다(무겁지만 확실히 보임).
-        function attempt(useCors){
+        // 작은 이미지를 받아 칸에 채운다 (원본이 아니라 잘린 로고라 수 KB 수준)
+        function show(url, aspect){
           var img = new Image();
-          img.decoding = 'async';
-          if (useCors) img.crossOrigin = 'anonymous';
+          img.decoding = 'async'; img.alt = '';
           img.onload = function(){
-            var iw = img.naturalWidth, ih = img.naturalHeight;
-            var r = (iw && ih) ? region(iw, ih) : null;
-            if (!r){ done(); return; }
-            if (useCors){
-              var dpr = Math.min(window.devicePixelRatio || 1, 2);
-              var cw = Math.min(Math.round(MARK_MAX_W * dpr), Math.round(r.w));
-              var ch = Math.max(1, Math.round(cw * (r.h / r.w)));
-              var cv = document.createElement('canvas');
-              cv.width = cw; cv.height = ch;
-              try {
-                cv.getContext('2d').drawImage(img, r.x, r.y, r.w, r.h, 0, 0, cw, ch);
-              } catch (err){
-                // 캔버스가 오염되어 그릴 수 없음 → CSS 방식으로 재시도
-                img.onload = img.onerror = null;
-                attempt(false);
-                return;
-              }
-              var e1 = { mark:mark, el:cv, mode:'canvas', aspect: r.w / r.h };
-              mark.appendChild(cv);
-              fitted.push(e1); fitMark(e1);
-              cv.classList.add('is-ready');
-              mark.classList.add('has-photo');
-              // 원본은 여기서 놓아준다 — 아이폰 메모리를 지키는 핵심
-              img.onload = img.onerror = null;
-              img.src = '';
-              done();
-            } else {
-              var e2 = { mark:mark, el:img, mode:'crop',
-                         fx:r.x / iw, fy:r.y / ih, fw:r.w / iw, fh:r.h / ih,
-                         aspect: r.w / r.h };
-              mark.appendChild(img);
-              fitted.push(e2); fitMark(e2);
-              img.classList.add('is-ready');
-              mark.classList.add('has-photo');
-              done();
-            }
+            var e = { mark:mark, el:img, mode:'canvas',
+                      aspect: aspect || (img.naturalWidth / img.naturalHeight) };
+            fitted.push(e); fitMark(e);
+            img.classList.add('is-ready');
+            mark.classList.add('has-photo');
+            done();
           };
-          img.onerror = function(){
-            img.onload = img.onerror = null;
-            if (useCors) attempt(false);   // CORS 미설정으로 실패한 경우
-            else done();
-          };
-          img.src = src;
+          img.onerror = done;
+          img.src = url;
+          mark.appendChild(img);
         }
-        attempt(true);
+        function withDims(refW, refH){
+          var r = regionFor(refW, refH);
+          if (!r){ done(); return; }
+          // 프록시로 원본에서 로고 영역만 잘라 받아온다.
+          // resize 를 걸지 않으므로 cx/cy 가 원본 좌표 그대로 적용된다.
+          show(proxify(src, 'cx=' + r.x + '&cy=' + r.y + '&cw=' + r.w + '&ch=' + r.h +
+                            '&output=jpg&q=85'), r.w / r.h);
+        }
+        // 크기를 알면 바로, 모르면 JPEG 헤더(앞부분만)에서 읽어 온다.
+        if (post.width && post.height){
+          withDims(post.width, post.height);
+        } else {
+          fetchJpegSize(src).then(function(sz){
+            if (sz){ withDims(sz.w, sz.h); }
+            else {
+              // 크기를 못 읽음(서버가 Range/CORS 를 막은 경우 등) → 로고만 정확히는 못 자르니
+              // 최소한 원본을 통째로 받지 않도록 프록시로 크게 줄인 '전체 사진'을 보여준다.
+              // posts.json 에 width/height 를 넣어주면 이 경우에도 로고만 정확히 잘린다.
+              show(proxify(src, 'w=1000&output=jpg&q=82'), null);
+            }
+          });
+        }
       });
     }
     return a;
@@ -729,6 +724,36 @@
       .then(function(buf){ return buf ? parseExifGps(buf) : null; })
       .catch(function(){ return null; });   // CORS 미설정·네트워크 실패 등
   }
+  // ---- JPEG 헤더에서 원본 크기 읽기 ----
+  // 로고를 정확히 자르려면 원본 가로·세로가 필요하다. 파일 앞부분(SOF 마커)만 읽으면
+  // 원본을 통째로 받지 않고도 크기를 알 수 있다. 실패하면 조용히 null.
+  function parseJpegSize(buf){
+    try{
+      var dv = new DataView(buf);
+      if (dv.getUint16(0) !== 0xFFD8) return null;   // JPEG 아님
+      var off = 2;
+      while (off + 9 <= dv.byteLength){
+        var marker = dv.getUint16(off);
+        if ((marker & 0xFF00) !== 0xFF00) return null;
+        // SOFn 마커에 크기가 들어있다 (0xC4/C8/CC 는 크기 마커가 아니라 제외)
+        if (marker >= 0xFFC0 && marker <= 0xFFCF &&
+            marker !== 0xFFC4 && marker !== 0xFFC8 && marker !== 0xFFCC){
+          var h = dv.getUint16(off + 5), w = dv.getUint16(off + 7);
+          return (w && h) ? { w:w, h:h } : null;
+        }
+        var size = dv.getUint16(off + 2);
+        if (size < 2) return null;
+        off += 2 + size;
+      }
+    } catch (e){}
+    return null;
+  }
+  function fetchJpegSize(url){
+    return fetch(url, { headers: { 'Range': 'bytes=0-' + (EXIF_BYTES - 1) } })
+      .then(function(r){ return r.ok ? r.arrayBuffer() : null; })
+      .then(function(buf){ return buf ? parseJpegSize(buf) : null; })
+      .catch(function(){ return null; });
+  }
   // 수동 좌표가 있으면 그것을 쓰고, 없으면 사진의 EXIF에서 읽는다.
   function resolveCoords(post){
     var manual = readCoords(post);
@@ -751,7 +776,8 @@
       vid.play().catch(function(){});
     } else {
       vid.hidden = true; vid.removeAttribute('src'); vid.load();
-      img.hidden = false; img.src = full;
+      img.hidden = false;
+      img.src = proxify(full, 'w=2000&output=jpg&q=86');   // 크게 보기도 프록시로 적당히 줄여서
       img.alt = labelOf(post, index);
     }
     cap.textContent = [post.place, post.caption].filter(Boolean).join(' · ');
@@ -1056,7 +1082,8 @@
         } else {
           media = document.createElement('img');
           media.alt = '';
-          media.src = srcOf(p);              // thumb 가 있으면 srcOf 가 그걸 쓴다
+          // 미리보기도 원본 대신 프록시로 줄여 받는다 (지도 메모리 절약)
+          media.src = proxify(srcOf(p), 'w=700&output=jpg&q=80');
         }
         // 미리보기 사진을 눌러야 크게 열린다
         media.addEventListener('click', function(e){

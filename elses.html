@@ -203,7 +203,11 @@
   .p-logo{
     position:absolute; right:18px; bottom:18px; z-index:5;
     width:110px; height:auto;
-    opacity:.8;
+    /* 배경을 반전시켜 그린다 — 검은 배경에선 밝게, 밝은 배경에선 어둡게.
+       로고 원본이 어두운 색이면 invert 로 한 번 뒤집어 흰색 기준으로 맞춘다. */
+    filter:invert(1);
+    mix-blend-mode:difference;
+    opacity:.28;   /* 아주 은은하게 — 더 약하게는 .2, 더 진하게는 .4 */
     pointer-events:none;
   }
   @media (max-width:669px){
@@ -285,7 +289,7 @@
       <span id="map-note">
         사진을 눌러 원본 다운로드<br>
         Click a photo to download the original<br>
-        写真をクリックでオリジナルをダウンロード · v22
+        写真をクリックでオリジナルをダウンロード · v24
       </span>
     </div>
     <div id="maps"></div>

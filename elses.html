@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <title>LMCHAN — WATERMARKS</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" type="image/png" href="logo_mask.png">
+<link rel="apple-touch-icon" href="logo_mask.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
@@ -197,15 +199,15 @@
     width:100vw; margin-left:calc(50% - 50vw);
     line-height:0; cursor:pointer;
   }
-  /* 사진 왼쪽 하단의 로고 (투명 PNG) — 클릭은 사진으로 통과한다 */
+  /* 사진 오른쪽 하단의 로고 (투명 PNG) — 클릭은 사진으로 통과한다 */
   .p-logo{
-    position:absolute; left:18px; bottom:18px; z-index:5;
+    position:absolute; right:18px; bottom:18px; z-index:5;
     width:110px; height:auto;
     opacity:.8;
     pointer-events:none;
   }
   @media (max-width:669px){
-    .p-logo{ left:12px; bottom:12px; width:84px; }
+    .p-logo{ right:12px; bottom:12px; width:84px; }
   }
   .p-photo img, .p-photo video{
     width:100%; height:auto; display:block;
@@ -283,7 +285,7 @@
       <span id="map-note">
         사진을 눌러 원본 다운로드<br>
         Click a photo to download the original<br>
-        写真をクリックでオリジナルをダウンロード · v21
+        写真をクリックでオリジナルをダウンロード · v22
       </span>
     </div>
     <div id="maps"></div>

@@ -761,11 +761,15 @@
       media.src = src;
     }
     wrap.appendChild(media);
-    // 왼쪽 하단 로고 (투명 PNG, 파일이 없으면 조용히 생략)
+    // 오른쪽 하단 로고 (투명 PNG, 파일이 없으면 조용히 생략)
+    // 크기·위치를 요소에 직접 박아 CSS 유실과 무관하게 항상 작게 유지한다.
     var lg = document.createElement('img');
     lg.className = 'p-logo';
     lg.alt = '';
     lg.decoding = 'async';
+    lg.style.cssText = 'position:absolute;right:14px;bottom:14px;z-index:5;' +
+      'width:44px;max-width:44px;height:auto;opacity:.16;' +
+      'filter:invert(1);mix-blend-mode:difference;pointer-events:none;';
     lg.src = 'logo_mask.png';
     lg.onerror = function(){ lg.remove(); };
     wrap.appendChild(lg);

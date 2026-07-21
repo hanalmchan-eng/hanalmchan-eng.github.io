@@ -57,6 +57,7 @@
   body{
     padding:20px 24px 96px;
     display:flex; flex-direction:column; align-items:center;
+    overflow-x:hidden;   /* 100vw 사진이 스크롤바 폭만큼 넘치는 것 방지 */
   }
   /* 각 섹션은 자기 라벨을 데리고 다닌다.
      라벨은 그 섹션이 화면에 있는 동안 위쪽에 붙어 따라오다가,
@@ -149,14 +150,17 @@
   }
   #empty{ font-size:11px; color:var(--ink-35); margin-top:40px; }
   /* ── STILLS, MAPS — 포스트: 글귀 → 날짜와 주소 → 사진 → 좌표 → 지도 ── */
+  /* 섹션은 ENCOUNTERS 와 같은 전체 폭 — 라벨 위치가 두 섹션에서 일치한다.
+     내용물(#maps 등)만 로고 격자와 같은 폭으로 가운데에 둔다. */
   #map-section{
-    width:100%; max-width:calc(var(--cell) * 4 + var(--gap) * 3);
+    width:100%;
     margin-top:96px;
   }
   /* #map-section 은 flex(가운데 정렬) 컨테이너라, 자식에게 너비 100% 를
      명시하지 않으면 내용물 크기로 쪼그라든다. */
   #map-head, #maps{
     width:100%;
+    max-width:calc(var(--cell) * 4 + var(--gap) * 3);
   }
   /* 안내문 — 가운데 정렬. 한 번 보인 뒤 화면 위로 지나가면 접혀 사라진다. */
   #map-head{
@@ -187,7 +191,11 @@
     font-size:15px; letter-spacing:.06em; color:var(--ink-60);
     font-variant-numeric:tabular-nums;
   }
-  .p-photo{ width:100%; line-height:0; cursor:pointer; }
+  /* 사진은 본문 여백을 뚫고 창 가로를 끝까지 채운다 (옆 빈 부분 없음) */
+  .p-photo{
+    width:100vw; margin-left:calc(50% - 50vw);
+    line-height:0; cursor:pointer;
+  }
   .p-photo img, .p-photo video{
     width:100%; height:auto; display:block;
     background:var(--ink-08);
@@ -264,7 +272,7 @@
       <span id="map-note">
         사진을 눌러 원본 다운로드<br>
         Click a photo to download the original<br>
-        写真をクリックでオリジナルをダウンロード · v19
+        写真をクリックでオリジナルをダウンロード · v20
       </span>
     </div>
     <div id="maps"></div>

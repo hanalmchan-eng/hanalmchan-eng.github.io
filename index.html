@@ -2,652 +2,143 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>LMCHAN — WATERMARKS</title>
+<title>LMCHAN</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
   @font-face{
     font-family:'LMCHan';
-    /* 폰트 파일을 어디에 두셨든 찾도록 후보 경로를 순서대로 시도한다.
-       앞에서 하나라도 성공하면 나머지는 무시된다. */
     src:url('fonts/LMCHan.woff2') format('woff2'),
         url('LMCHan.woff2') format('woff2'),
-        url('font/LMCHan.woff2') format('woff2'),
-        url('assets/LMCHan.woff2') format('woff2'),
         url('fonts/LMCHan.otf') format('opentype'),
-        url('LMCHan.otf') format('opentype'),
-        url('font/LMCHan.otf') format('opentype'),
-        url('assets/LMCHan.otf') format('opentype'),
-        url('fonts/LMCHan-Regular.otf') format('opentype'),
-        url('LMCHan-Regular.otf') format('opentype');
-    font-weight:400;
-    font-style:normal;
-    font-display:swap;
-  }
-  :root{
-    --paper:#ffffff;
-    --ink:#141414;
-    --ink-60:rgba(20,20,20,.6);
-    --ink-35:rgba(20,20,20,.35);
-    --ink-16:rgba(20,20,20,.14);
-    --ink-08:rgba(20,20,20,.07);
-    --cell:300px;        /* 로고 한 칸의 고정 너비 — 창 크기와 무관 */
-    --gap:12px;          /* 로고 사이 고정 간격 — 창 크기와 무관 */
-    --grid-max:1360px;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --paper:#111113;
-      --ink:#ececeb;
-      --ink-60:rgba(236,236,235,.62);
-      --ink-35:rgba(236,236,235,.35);
-      --ink-16:rgba(236,236,235,.16);
-      --ink-08:rgba(236,236,235,.08);
-    }
+        url('LMCHan.otf') format('opentype');
+    font-weight:400; font-style:normal; font-display:swap;
   }
   *{ margin:0; padding:0; box-sizing:border-box; }
   html,body{
-    min-height:100%;
-    background:var(--paper); color:var(--ink);
+    width:100%; min-height:100%;
+    background:#0c0c0d; color:#f2f2f0;
     font-family:Helvetica, Arial, sans-serif;
     -webkit-font-smoothing:antialiased;
-    transition:background-color .3s ease, color .3s ease;
   }
-  body{
-    padding:20px 24px 96px;
-    display:flex; flex-direction:column; align-items:center;
-  }
-  /* 좌상단 섹션 표시. 지금 보고 있는 쪽이 진하게 표시된다. */
-  /* 각 섹션은 자기 라벨을 데리고 다닌다.
-     라벨은 그 섹션이 화면에 있는 동안 위쪽에 붙어 따라오다가,
-     섹션이 끝나면 함께 밀려 올라가 사라진다 (position:sticky). */
-  section{
-    width:100%;
-    display:flex; flex-direction:column; align-items:center;
-  }
-  .section-label{
-    position:sticky; top:20px; z-index:600;
-    align-self:flex-start;
+  body{ padding:64px 0 120px; }
+  #brand{
+    position:fixed; top:20px; left:22px; z-index:50;
     font-family:'LMCHan', Georgia, serif;
-    font-size:26px; letter-spacing:.12em; white-space:nowrap;
-    margin-bottom:44px;
-    /* 뒤에 무엇이 지나가든 항상 읽히도록 배경색을 반전시켜 그린다.
-       흰 바탕에서는 검게, 어두운 사진 위에서는 밝게 보인다. */
-    color:#ffffff;
-    mix-blend-mode:difference;
-    -webkit-text-stroke:0.4px currentColor;
+    font-size:22px; letter-spacing:.14em;
+    color:#f2f2f0; opacity:.7;
   }
-  #models-section{ margin-bottom:96px; }
-  /* 본문 속 'LMCHAN' 만 로고 폰트로.
-     LMCHan 폰트에는 소문자 글리프가 없으므로 반드시 대문자로 쓸 것. */
-  .lm{
-    font-family:'LMCHan', Georgia, serif;
-    /* LMCHan 은 좁고 길어서 같은 크기로 두면 옆 본문보다 작아 보인다 — 1.2배로 보정 */
-    font-size:1.2em; letter-spacing:.06em;
-    color:var(--ink-60);
-    /* 진짜 볼드 자형이 없으므로 외곽선을 덧그려 굵기만 올린다 */
-    -webkit-text-stroke:0.3px currentColor;
+  /* ── 포스트: 글귀 → 날짜와 주소 → 사진 → 좌표 → 지도 ── */
+  .post{ margin:0 0 140px; }
+  .post:last-child{ margin-bottom:0; }
+  .phrase{
+    display:block; margin:0 auto 26px;
+    max-width:min(560px, 82vw); height:auto;
   }
-  /* 인트로 묶음 — 첫 스크롤 뒤 부드럽게 접혀 사라진다 (.gone) */
-  #intro{
-    display:flex; flex-direction:column; align-items:center;
-    overflow:hidden;
-    max-height:260px;
-    transition:opacity .5s ease, max-height .6s ease,
-               margin-bottom .5s ease, transform .5s ease;
+  .addr{
+    text-align:center; margin:0 0 22px;
+    font-size:15px; letter-spacing:.06em;
+    color:rgba(242,242,240,.85);
+    font-variant-numeric:tabular-nums;
+    padding:0 24px;
   }
-  #intro.gone{
-    opacity:0; max-height:0; margin-bottom:0;
-    transform:translateY(-8px); pointer-events:none;
+  .photo{ width:100%; line-height:0; cursor:pointer; }
+  .photo img, .photo video{
+    width:100%; height:auto; display:block;
+    background:rgba(242,242,240,.05);
   }
-  .byline{
-    font-size:17px; color:var(--ink-60); letter-spacing:.04em;
-    text-align:center; margin-bottom:12px;
-  }
-  .hint-text{
-    font-size:9.5px; color:var(--ink-35); letter-spacing:.04em; line-height:2;
-    text-align:center;
-  }
-  /* 로고 칸은 어떤 창 크기에서도 300px 고정 — 칸이 늘어나며 로고가
-     '확대'되는 일이 없다. 창이 좁아지면 칸 크기는 그대로 두고
-     열 수만 4 → 3 → 2 → 1 로 줄어들며(auto-fit), 남는 공간은
-     justify-content:center 로 양옆에 균등 분배된다.
-     max-width 는 아주 넓은 창에서 5열 이상이 되는 것을 막는다(최대 4열). */
-  #grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, min(100%, var(--cell)));
-    justify-content:center;
-    gap:var(--gap);
-    width:100%;
-    max-width:calc(var(--cell) * 4 + var(--gap) * 3);
-    margin-top:56px;
-  }
-  .icon{
-    display:flex; flex-direction:column; align-items:center; gap:8px;
-    text-decoration:none; color:inherit;
-    padding:10px 2px; border-radius:8px;
-    -webkit-tap-highlight-color:transparent;
-    transition:transform .28s cubic-bezier(.22,1,.36,1), background-color .28s ease;
-  }
-  .icon:hover, .icon:focus-visible{ transform:translateY(-4px); background:var(--ink-08); }
-  .icon:focus-visible{ outline:1px solid var(--ink-35); outline-offset:2px; }
-  .mark{
-    position:relative; overflow:hidden;
-    width:100%; height:150px;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .mark img, .mark canvas{
-    position:absolute; top:0; left:0; max-width:none; display:block;
-    opacity:0; transition:opacity .5s ease;
-  }
-  .mark img.is-ready, .mark canvas.is-ready{ opacity:1; }
-  .mark-fallback{
-    font-family:'LMCHan', Georgia, serif;
-    font-size:15px; letter-spacing:.03em;
-    color:var(--ink); white-space:nowrap;
-  }
-  .mark.has-photo .mark-fallback{ display:none; }
-  .cap{
-    font-size:9.5px; letter-spacing:.06em; color:var(--ink-35);
+  .coord{
+    text-align:center; margin:14px 0 26px;
+    font-size:11px; letter-spacing:.08em;
+    color:rgba(242,242,240,.55);
     font-variant-numeric:tabular-nums;
   }
-  #empty{ font-size:11px; color:var(--ink-35); margin-top:40px; }
-  /* ── 지도 ── */
-  /* 지도 폭 = 로고 4열 격자의 폭 */
-  #map-section{
-    width:100%; max-width:calc(var(--cell) * 4 + var(--gap) * 3);
-    margin-top:96px;
+  .map{
+    width:100%; aspect-ratio:16 / 9; max-height:70vh;
+    background:#0c0c0d;
   }
-  /* #map-section 은 flex(가운데 정렬) 컨테이너라, 자식에게 너비 100% 를
-     명시하지 않으면 내용물 크기로 쪼그라든다 — 지도 폭이 0으로 무너지는 원인. */
-  #map-head, #maps{
-    width:100%;
+  @media (max-width:669px){
+    .map{ aspect-ratio:4 / 5; }
+    .post{ margin-bottom:100px; }
   }
-  /* 지도 안내문 — 가운데 정렬. 인트로처럼 한 번 보고 스크롤하면 접혀 사라진다. */
-  #map-head{
-    display:flex; align-items:baseline; justify-content:center;
-    margin-bottom:14px;
-    overflow:hidden; max-height:120px;
-    transition:opacity .5s ease, max-height .6s ease,
-               margin-bottom .5s ease, transform .5s ease;
-  }
-  #map-head.gone{
-    opacity:0; max-height:0; margin-bottom:0;
-    transform:translateY(-8px); pointer-events:none;
-  }
-  #map-title{
-    font-family:'LMCHan', Georgia, serif;
-    font-size:26px; letter-spacing:.12em;
-    color:var(--ink);
-  }
-  #map-note{
-    font-size:9px; color:var(--ink-35); letter-spacing:.04em;
-    line-height:1.8; text-align:center;
-  }
-  /* 지도는 컨테이너 너비를 100% 채우고 비율(1236:772)만 고정한다.
-     고정 픽셀 + transform 축소 방식은 창이 좁을 때 옆으로 새는 원인이라 쓰지 않는다. */
-  .map-wrap{
-    position:relative; width:100%; overflow:hidden;
-    border:1px solid var(--ink-16); border-radius:2px;
-    background:var(--paper);
-    margin-bottom:40px;
-  }
-  .map-wrap:last-child{ margin-bottom:0; }
-  .map-inner{
-    width:100%;
-    aspect-ratio:1236 / 772;
-    background:var(--paper);
-    z-index:0;
-  }
-  /* 좁은 화면에서는 가로로 얇은 띠가 되지 않게 세로가 긴 비율로 */
-  @media (max-width:900px){
-    .map-inner{ aspect-ratio:4 / 5; }
-  }
-  /* 촬영 날짜 — 지도 묶음의 제목 역할. 미니맵과 안 겹치도록 오른쪽 아래로. */
-  .map-date{
-    position:absolute; bottom:14px; right:18px; z-index:500;
-    font-size:24px; letter-spacing:.06em;
-    font-variant-numeric:tabular-nums;
-    /* 지도 타일 위에서도 항상 읽히도록 반전 */
-    color:#ffffff;
-    mix-blend-mode:difference;
-    -webkit-text-stroke:0.4px currentColor;
-    pointer-events:none;
-  }
-  /* 오른쪽 위 미니맵 — 남한 어디쯤인지 한눈에 */
-  .map-mini{
-    position:absolute; top:14px; right:16px; z-index:500;
-    padding:5px 6px; line-height:0;
-    background:rgba(255,255,255,.60);
-    border:1px solid var(--ink-16); border-radius:2px;
-    pointer-events:none;
-  }
-  @media (prefers-color-scheme: dark){
-    .map-mini{ background:rgba(20,20,22,.55); }
-  }
-  .map-mini svg{ display:block; width:58px; height:90px; }
-  .mm-land{ fill:var(--ink); opacity:.15; }
-  .mm-dot{ fill:var(--ink); }
-  .mm-dot-ring{ fill:none; stroke:var(--ink); stroke-width:1.4; opacity:.5; }
-  /* 랜드커버 타일. 물=파랑, 들·숲=초록, 도시=회색이 서로 또렷이 구분되도록
-     채도·대비를 강하게 올려 그린다. (바다와 육지가 헷갈리지 않는 게 핵심)
-     다크 모드도 '같은 컬러 지도' 위에 어둡게 누르는 필터를 오버레이한다 —
-     채도를 먼저 올리고 밝기를 확 낮춰서, 어두우면서도
-     바다=진파랑 / 숲=진초록 / 도시=진회색으로 갈라져 보인다. */
+  /* 컬러 랜드커버 타일을 어둡게 눌러 페이지 톤에 맞춘다 */
   .base-tiles, .leaflet-tile-pane .base-tiles{
-    filter:saturate(4) contrast(1.6) brightness(.97) !important;
+    filter:saturate(2.8) brightness(.55) contrast(1.35) !important;
   }
-  @media (prefers-color-scheme: dark){
-    .base-tiles, .leaflet-tile-pane .base-tiles{
-      filter:saturate(2.8) brightness(.55) contrast(1.35) !important;
-    }
-  }
-  /* 지형 음영(hillshade) 오버레이 — 산·능선의 기복이 보이도록 얹는다. */
-  .hill-tiles, .leaflet-tile-pane .hill-tiles{ opacity:.14 !important; mix-blend-mode:multiply; }
-  @media (prefers-color-scheme: dark){
-    .hill-tiles, .leaflet-tile-pane .hill-tiles{ opacity:.2 !important; mix-blend-mode:multiply; }
-  }
-  @media (max-width:669px){
-    .map-date{ font-size:18px; bottom:10px; right:12px; }
-    .map-mini{ top:10px; right:12px; padding:4px 5px; }
-    .map-mini svg{ width:48px; height:75px; }
-    .map-info{ top:10px; left:12px; }
-    .map-info-addr{ font-size:16px; }
-    .map-info-note{ font-size:13.5px; }
-  }
-  /* 지도 왼쪽 위 미리보기 카드 — 마커에 커서를 대면 나타난다 */
-  /* 카드 배경을 두지 않는다. 글자는 배경을 반전시켜 그리므로
-     지도가 밝든 어둡든 항상 또렷하게 읽힌다.
-     (부모에 opacity 를 주면 반전이 카드 안에 갇히므로 visibility 로만 여닫는다) */
-  .map-info{
-    position:absolute; top:18px; left:20px; z-index:500;
-    width:420px; max-width:calc(100% - 40px);
-    pointer-events:none;
-    visibility:hidden;
-  }
-  .map-info.show{ visibility:visible; }
-  /* 카드 전체는 마우스를 통과시키되, 사진만 누를 수 있게 한다 */
-  .map-info img, .map-info video{
-    display:block; width:100%; height:auto;
-    max-height:300px; object-fit:cover;
-    background:var(--ink-08);
-    pointer-events:auto; cursor:zoom-in;
-  }
-  .map-info-addr, .map-info-note{
-    color:#ffffff;
-    mix-blend-mode:difference;
-    text-align:left;
-  }
-  .map-info-addr{
-    margin-top:12px;
-    font-size:19px; letter-spacing:.02em; line-height:1.35;
-  }
-  .map-info-note{
-    margin-top:5px;
-    font-size:16px; line-height:1.5;
-    word-break:keep-all;
-  }
-  .map-info-addr:empty, .map-info-note:empty{ display:none; }
-  #map-empty{
-    font-size:11px; color:var(--ink-35); text-align:center;
-    padding:40px 0;
-  }
-  /* Leaflet 기본 UI를 사이트 톤에 맞춰 정리 */
-  .leaflet-container{ background:var(--paper); font-family:Helvetica, Arial, sans-serif; }
-  .leaflet-control-attribution{
-    background:rgba(255,255,255,.7) !important;
-    font-size:9px !important; color:var(--ink-35) !important;
-  }
-  @media (prefers-color-scheme: dark){
-    .leaflet-control-attribution{ background:rgba(0,0,0,.5) !important; }
-  }
-  .leaflet-control-attribution a{ color:var(--ink-35) !important; }
-  .leaflet-bar a{
-    background:var(--paper) !important; color:var(--ink) !important;
-    border-bottom-color:var(--ink-16) !important;
-  }
-  .leaflet-bar{ border:1px solid var(--ink-16) !important; box-shadow:none !important; }
-  /* 사진 마커 */
-  .photo-pin{ background:none !important; border:none !important; }
-  .photo-pin span{
+  .leaflet-container{ background:#0c0c0d; }
+  .pin{ background:none !important; border:none !important; }
+  .pin span{
     display:block; width:12px; height:12px; border-radius:50%;
-    background:var(--ink); border:2px solid var(--paper);
-    box-shadow:0 0 0 1px var(--ink-16);
-    transition:transform .2s ease;
+    background:#f2f2f0; border:2px solid #0c0c0d;
+    box-shadow:0 0 0 1px rgba(242,242,240,.4);
   }
-  .photo-pin:hover span{ transform:scale(1.45); }
-  /* 마커 미리보기 툴팁 */
-  .leaflet-tooltip.pin-tip{
-    background:var(--paper); color:var(--ink);
-    border:1px solid var(--ink-16); border-radius:2px;
-    box-shadow:0 6px 20px -8px rgba(0,0,0,.35);
-    padding:5px;
+  #loading, #none{
+    text-align:center; padding:60px 24px;
+    font-size:12px; letter-spacing:.08em; color:rgba(242,242,240,.5);
+    line-height:2;
   }
-  .leaflet-tooltip.pin-tip::before{ display:none; }
-  .leaflet-tooltip.pin-tip img,
-  .leaflet-tooltip.pin-tip video{
-    display:block; width:150px; height:auto; max-height:190px;
-    object-fit:cover;
-  }
-  .pin-tip-cap{
-    font-size:9.5px; letter-spacing:.04em; line-height:1.5;
-    color:var(--ink-60); text-align:center;
-    padding:6px 3px 2px; max-width:150px;
-    word-break:keep-all;
-  }
-  .pin-tip-cap:empty{ display:none; }
-  /* 영상 정지화면: 아직 못 받았을 때도 자리를 지키도록 최소 크기를 준다 */
-  .leaflet-tooltip.pin-tip img.pin-poster{
-    min-width:150px; min-height:84px;
-    background:var(--ink-08);
-  }
-  /* 마커를 눌렀을 때 뜨는 사진 창 */
-  #lightbox{
-    position:fixed; inset:0; z-index:900;
-    display:none; align-items:center; justify-content:center;
-    flex-direction:column; gap:14px;
-    background:rgba(0,0,0,.88);
-    padding:32px; cursor:zoom-out;
-  }
-  #lightbox.show{ display:flex; }
-  #lightbox img, #lightbox video{
-    max-width:100%; max-height:82vh;
-    object-fit:contain; display:block;
-  }
-  #lightbox img[hidden], #lightbox video[hidden]{ display:none; }
-  /* 영상 재생 컨트롤을 누를 때 창이 닫히지 않도록 */
-  #lightbox video{ cursor:default; }
-  #lightbox-cap{
-    font-size:11px; letter-spacing:.06em; color:rgba(255,255,255,.7);
-    text-align:center;
-  }
-  @media (max-width:669px){
-    body{ padding:16px 18px 72px; }
-    .section-label{ font-size:20px; margin-bottom:32px; }
-    #map{ height:52vh; }
-    #map-head{ flex-direction:column; gap:4px; }
-  }
-  @media (prefers-reduced-motion:reduce){
-    .icon{ transition:none; }
-    .icon:hover{ transform:none; }
-  }
+  [hidden]{ display:none !important; }
 </style>
 </head>
 <body>
-  <section id="models-section">
-    <div class="section-label">ENCOUNTERS, WATERMARKS</div>
-    <!-- 인트로 문구: 처음엔 보이지만, 한 번 스크롤을 내리면 접혀 사라지고 다시 올려도 안 나온다 -->
-    <div id="intro">
-      <div class="byline">photos by <span class="lm">HAN ALEUM</span></div>
-      <div class="hint-text">
-        <span class="lm">LMCHAN</span> 워터마크를 눌러 해당 사진으로<br>
-        Tap an <span class="lm">LMCHAN</span> watermark to open that photo<br>
-        <span class="lm">LMCHAN</span> のウォーターマークをタップして写真へ
-      </div>
-    </div>
-    <div id="grid" role="list"></div>
-      <div id="empty" hidden>불러올 사진이 없습니다.<br>No photos yet.<br>写真がまだありません。</div>
-  </section>
-  <section id="map-section" hidden>
-    <div class="section-label">STILLS, MAPS</div>
-    <div id="map-head">
-      <span id="map-note">
-        마커에 커서를 대거나 눌러 미리보기 · 사진을 눌러 크게 보기<br>
-        Hover or tap a marker to preview · click the photo to open<br>
-        マーカーにカーソルまたはタップでプレビュー · 写真をクリックで拡大 · v18
-      </span>
-    </div>
-    <div id="maps"></div>
-    <div id="map-empty" hidden>좌표가 등록된 사진이 아직 없습니다.<br>No located photos yet.<br>座標のある写真がまだありません。</div>
-  </section>
-  <div id="lightbox">
-    <img id="lightbox-img" alt="">
-    <video id="lightbox-video" controls loop playsinline hidden></video>
-    <div id="lightbox-cap"></div>
-  </div>
+  <div id="brand">LMCHAN</div>
+  <main id="posts">
+    <div id="loading">불러오는 중...</div>
+    <div id="none" hidden>표시할 포스트가 없습니다.</div>
+  </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 (function(){
   'use strict';
-  // ====== 임시 진단 (꺼둠) ======
-  var DEBUG = false;
-  var _dbgEl = document.getElementById('debug');
-  var _posts = null, _ok = 0, _fail = 0, _lastErr = '';
-  function dbgRender(){
-    if (!DEBUG || !_dbgEl) return;
-    _dbgEl.textContent =
-      'posts.json: ' + (_posts == null ? '확인중…' : (_posts < 0 ? '실패!' : _posts + '개')) +
-      '  ·  로고 성공 ' + _ok + ' / 실패 ' + _fail +
-      (_lastErr ? '  ·  ' + _lastErr : '');
-  }
-  dbgRender();
-  // ====== 설정 ======
-  var GALLERY_URL = 'hanalmchan.html';
   var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
-  // ── 이미지 프록시 (wsrv.nl / images.weserv.nl) ──
-  // 원본(4000×6000, 펼치면 100MB 가까이)을 브라우저가 통째로 받지 않도록,
-  // 서버 쪽에서 로고 부분만 잘라(또는 작게 줄여) 받아온다. 업로드·R2 설정 불필요.
-  // 이게 아이폰이 죽던(그래서 두 번 그려지던) 문제의 핵심 해결책이다.
-  // 끄려면 USE_PROXY = false (그 경우 미리 잘라둔 logo 필드가 있어야 가볍다).
-  var USE_PROXY  = true;
-  var PROXY_BASE = 'https://wsrv.nl/?url=';
-  function proxify(fileUrl, params){
-    if (!USE_PROXY || !/^https?:\/\//.test(fileUrl)) return fileUrl;
-    // wsrv v5 는 https 원본을 URL 그대로 받는다 (예전 'ssl:' 접두어는 v5 에서 안 먹는다).
-    return PROXY_BASE + fileUrl + (params ? '&' + params : '');
+  var PLACES_JSON = 'places.json';
+  var CONTACT     = 'hanalmchan@gmail.com';   // 인물 사진 원본 구매 문의처
+  var MAP_ZOOM    = 11;                       // 포스트 지도의 축척
+  var posts   = document.getElementById('posts');
+  var loading = document.getElementById('loading');
+  var noneEl  = document.getElementById('none');
+  function buildUrl(name){ return R2_BASE + '/' + encodeURIComponent(name); }
+  function isVideo(name){
+    return /\.(mp4|mov|m4v|webm)(\?|$)/i.test(String(name || ''));
   }
-  var POSTS_JSON  = 'posts.json';    // 워터마크 갤러리용 (위 격자)
-  var PLACES_JSON = 'places.json';   // 지도용 — 워터마크 없는 별도 사진 목록
-  var ELSES_URL   = 'elses.html';    // 영상 전용 창
-  // ── 지도 타일 ──
-  // 브이월드(국토교통부 공간정보 오픈플랫폼) 인증키를 넣으면 한국 지역이
-  // 훨씬 자세하게 나온다. 비워두면 OSM/CARTO 타일을 쓴다.
-  //   발급: https://www.vworld.kr  →  오픈API → 인증키 발급
-  //   신청 시 '활용 API'에서 반드시 [WMTS/TMS] 를 체크할 것.
-  //   레이어: 'gray'(회색) | 'Base'(일반) | 'midnight'(야간) | 'Satellite'(위성)
-  var VWORLD_KEY   = '';
-  var VWORLD_LAYER = 'gray';
-  var VWORLD_LAYER_DARK = 'midnight';
-  var LOGO_W_RATIO  = 0.0936;      // 로고 너비 / 사진 너비
-  var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
-  // 로고 박스에서 잘라낼 여백 비율.
-  // 음수를 넣으면 반대로 그만큼 더 넓게 보여준다 (위아래로 여유를 주고 싶을 때).
-  var CROP_TOP = -0.06, CROP_BOTTOM = -0.06, CROP_SIDE = -0.03;
-  // 로고는 칸 너비를 꽉 채우도록 그린다. MARK_H 는 지나치게 커지지 않게 막는 상한.
-  var MARK_H = 420, MARK_MAX_W = 300;
-  var MAP_FALLBACK = [37.5665, 126.9780]; // 좌표가 하나도 없을 때 지도 중심
-  // 갤러리 링크 앵커: 확장자를 뗀 파일명 (hanalmchan.html 쪽 indexFromHash와 짝을 이룸)
-  function anchorFor(post, index){
-    if (post.file) return String(post.file).replace(/\.[^.]+$/, '');
-    return 'i=' + index;
+  function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
+  // 파일명 규칙: 사진이 2F9A6950.jpeg 면
+  //   글귀 = 2F9A6950.phrase.png / 폰트 = 2F9A6950.font.woff2
+  // phrase / font 필드가 있으면 그것을 우선한다.
+  function phraseUrl(p){
+    if (p.phrase) return /^https?:/.test(p.phrase) ? p.phrase : buildUrl(p.phrase);
+    return p.file ? buildUrl(stem(p.file) + '.phrase.png') : '';
   }
-  function hrefFor(post, index){
-    return GALLERY_URL + '#' + encodeURIComponent(anchorFor(post, index));
+  function fontUrl(p){
+    if (p.font) return /^https?:/.test(p.font) ? p.font : buildUrl(p.font);
+    return p.file ? buildUrl(stem(p.file) + '.font.woff2') : '';
   }
-  // ==================
-  var grid  = document.getElementById('grid');
-  var empty = document.getElementById('empty');
-  var mapSection = document.getElementById('map-section');
-  var mapEmpty   = document.getElementById('map-empty');
-  var mapsWrap   = document.getElementById('maps');
-  function buildImageUrl(filename){ return R2_BASE + '/' + encodeURIComponent(filename); }
-  function srcOf(post){
-    if (post.thumb) return /^https?:/.test(post.thumb) ? post.thumb : buildImageUrl(post.thumb);
-    if (post.file)  return buildImageUrl(post.file);
-    return post.url || '';
+  function dateOf(p){
+    var m = String(p.date || '').match(/(\d{4})\D?(\d{2})\D?(\d{2})/);
+    return m ? (m[1] + '.' + m[2] + '.' + m[3]) : '';
   }
-  function captionOf(post, index){
-    var d = post.date || post.taken || '';
-    if (d){
-      var m = String(d).match(/(\d{4})\D?(\d{2})\D?(\d{2})/);
-      if (m) return m[1].slice(2) + '.' + m[2] + '.' + m[3];
-      return String(d).slice(0, 10);
-    }
-    return String(index + 1).padStart(2, '0');
-  }
-  // 동영상 여부 (지도 항목은 사진·영상 둘 다 올 수 있다)
-  function isVideo(post){
-    var n = String(post.file || post.url || '').toLowerCase();
-    return /\.(mp4|mov|m4v|webm)(\?|$)/.test(n);
-  }
-  function labelOf(post, index){
-    return post.place || post.caption || captionOf(post, index);
-  }
-  // ---- 로고 크기 맞추기 ----
-  // 칸 너비를 꽉 채우되 MARK_H 를 넘지 않게 한다.
-  // 2열·1열에서는 칸 자체가 창 크기를 따라가므로 로고도 같이 커진다.
-  var fitted = [];
-  function fitMark(e){
-    var icon = e.mark.parentElement;
-    if (!icon) return;
-    // .icon 의 좌우 패딩(2px씩)을 뺀 실제 사용 가능 폭
-    var availW = (icon.clientWidth - 4) || MARK_MAX_W;
-    var boxW = availW, boxH = boxW / e.aspect;
-    if (boxH > MARK_H){ boxH = MARK_H; boxW = boxH * e.aspect; }
-    e.mark.style.width  = boxW + 'px';
-    e.mark.style.height = boxH + 'px';
-    if (e.mode === 'crop'){
-      // 원본 이미지를 CSS 로 밀어서 로고 부분만 보이게 하는 방식 (CORS 없이도 동작)
-      var dispW = boxW / e.fw, dispH = boxH / e.fh;
-      e.el.style.width  = dispW + 'px';
-      e.el.style.height = dispH + 'px';
-      e.el.style.left   = (-e.fx * dispW) + 'px';
-      e.el.style.top    = (-e.fy * dispH) + 'px';
-    } else {
-      // 이미 잘라놓은 캔버스·이미지는 칸을 그대로 채운다
-      e.el.style.width  = '100%';
-      e.el.style.height = '100%';
-      e.el.style.left = '0'; e.el.style.top = '0';
-    }
-  }
-  var fitTimer = null;
-  window.addEventListener('resize', function(){
-    clearTimeout(fitTimer);
-    fitTimer = setTimeout(function(){ fitted.forEach(fitMark); }, 100);
-  });
-  // ---- 원본을 한 장씩만 다루기 ----
-  // 원본 사진은 4000×6000 급이라 한 장을 펼치는 데만 메모리가 100MB 가까이 든다.
-  // 7장을 한꺼번에 열면 아이폰 사파리의 메모리 한계를 넘겨 버벅이거나 죽는다.
-  // 그래서 (1) 한 번에 한 장씩 순서대로 받고, (2) 로고 부분만 작은 캔버스에 옮겨 그린 뒤,
-  // (3) 원본은 곧바로 놓아준다. 화면에 남는 건 작은 캔버스뿐이다.
-  var queue = [], busy = false;
-  function enqueue(task){ queue.push(task); pump(); }
-  function pump(){
-    if (busy || !queue.length) return;
-    busy = true;
-    queue.shift()(function(){
-      busy = false;
-      setTimeout(pump, 0);   // 다음 장 전에 한 박자 쉬어 메모리 회수를 돕는다
+  // places.json: 날짜 상위 구조를 평평하게 편다 (평평한 배열도 그대로 인식)
+  function flattenPlaces(raw){
+    var out = [];
+    (raw || []).forEach(function(entry){
+      if (!entry) return;
+      var list = entry.items || entry.photos;
+      if (Array.isArray(list)){
+        list.forEach(function(it){
+          if (!it) return;
+          var o = (typeof it === 'string') ? { file: it } : it;
+          if (!o.date) o.date = entry.date;
+          if (o.file || o.url) out.push(o);
+        });
+      } else if (entry.file || entry.url){
+        out.push(entry);
+      }
     });
+    return out;
   }
-  // ---- 아이콘 (사진에 합성된 로고를 크롭해서 사용) ----
-  function makeIcon(post, index){
-    var a = document.createElement('a');
-    a.className = 'icon';
-    a.setAttribute('role', 'listitem');
-    a.href = hrefFor(post, index);
-    a.setAttribute('aria-label', labelOf(post, index) + ' — 사진 열기');
-    var mark = document.createElement('span');
-    mark.className = 'mark';
-    var fb = document.createElement('span');
-    fb.className = 'mark-fallback';
-    fb.textContent = 'LMCHAN';   // 소문자는 LMCHan 폰트에 글리프가 없다
-    mark.appendChild(fb);
-    var cap = document.createElement('span');
-    cap.className = 'cap';
-    cap.textContent = captionOf(post, index);
-    a.appendChild(mark); a.appendChild(cap);
-    // posts.json 에 미리 잘라둔 로고 이미지(logo)가 있으면 그걸 그대로 쓴다.
-    // 원본을 통째로 받아 크롭하지 않으므로 훨씬 가볍다 — 특히 아이폰에서.
-    if (post.logo){
-      enqueue(function(done){
-        var limg = new Image();
-        limg.decoding = 'async'; limg.alt = '';
-        limg.onload = function(){
-          if (limg.naturalWidth && limg.naturalHeight){
-            var entry = { mark:mark, el:limg, mode:'canvas',
-                          aspect: limg.naturalWidth / limg.naturalHeight };
-            fitted.push(entry); fitMark(entry);
-            limg.classList.add('is-ready');
-            mark.classList.add('has-photo');
-          }
-          done();
-        };
-        limg.onerror = done;
-        limg.src = /^https?:/.test(post.logo) ? post.logo : buildImageUrl(post.logo);
-        mark.appendChild(limg);
-      });
-      return a;
-    }
-    var src = srcOf(post);
-    if (src && typeof post.logoX === 'number' && typeof post.logoY === 'number'){
-      enqueue(function(done){
-        // 로고 영역(원본 픽셀 기준)을 계산한다. 로고 크기는 사진의 '짧은 변' 기준.
-        function regionFor(W, H){
-          var logoW = Math.min(W, H) * LOGO_W_RATIO;
-          var logoH = logoW * LOGO_HW_RATIO;
-          var sx = post.logoX + logoW * CROP_SIDE;
-          var sy = post.logoY + logoH * CROP_TOP;
-          var sw = logoW * (1 - CROP_SIDE * 2);
-          var sh = logoH * (1 - CROP_TOP - CROP_BOTTOM);
-          if (sx < 0){ sw += sx; sx = 0; }
-          if (sy < 0){ sh += sy; sy = 0; }
-          if (sx + sw > W) sw = W - sx;
-          if (sy + sh > H) sh = H - sy;
-          return (sw > 0 && sh > 0) ? { x:sx, y:sy, w:sw, h:sh } : null;
-        }
-        // R2 가 CORS 를 허용하므로(진단 2번 통과), 원본을 '한 장씩' 받아 로고 부분만
-        // 작은 캔버스로 옮겨 그린 뒤 원본은 곧바로 놓아준다. 화면엔 작은 캔버스만 남으므로
-        // 아이폰에서도 메모리가 안 터진다. (queue 가 한 번에 한 장씩만 처리한다)
-        var img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.decoding = 'async';
-        img.onload = function(){
-          var W = post.width || img.naturalWidth, H = post.height || img.naturalHeight;
-          var r = (W && H) ? regionFor(W, H) : null;
-          if (!r){ img.onload = img.onerror = null; img.src = '';
-                   _fail++; _lastErr='로고영역 계산실패'; dbgRender(); done(); return; }
-          // 로고를 원본 해상도 그대로(최대 900px) 담아 최대한 선명하게.
-          // 원본 속 로고 크기가 상한이라 그보다 더 선명해질 수는 없다.
-          var cw = Math.min(900, Math.round(r.w));
-          var ch = Math.max(1, Math.round(cw * (r.h / r.w)));
-          var cv = document.createElement('canvas');
-          cv.width = cw; cv.height = ch;
-          try {
-            cv.getContext('2d').drawImage(img, r.x, r.y, r.w, r.h, 0, 0, cw, ch);
-          } catch (err){
-            // 그리기 자체가 막힌 경우 — 조용히 건너뛴다
-            img.onload = img.onerror = null; img.src = '';
-            _fail++; _lastErr='draw 실패: ' + (err && err.name); dbgRender();
-            done(); return;
-          }
-          img.onload = img.onerror = null; img.src = '';   // 원본 즉시 해제 — 메모리 핵심
-          var e = { mark:mark, el:cv, mode:'canvas', aspect: r.w / r.h };
-          mark.appendChild(cv); fitted.push(e); fitMark(e);
-          cv.classList.add('is-ready'); mark.classList.add('has-photo');
-          _ok++; dbgRender();
-          done();
-        };
-        img.onerror = function(){
-          img.onload = img.onerror = null;
-          _fail++; _lastErr='이미지 로드 실패(CORS 차단 의심)'; dbgRender();
-          done();
-        };
-        // CORS 캐시 꼬임 방지: CORS 요청은 표식을 붙여 'CORS 없는 캐시'와 다른 항목으로 받는다.
-        img.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + 'cors=1';
-      });
-    }
-    return a;
-  }
-  // ---- 좌표 해석 ----
-  // 아래 표기를 모두 같은 것으로 받아들인다 (전부 십진수 도):
-  //   "lat": 37.86240, "lng": 127.17190
-  //   "coord": "북 37.86240°, 동 127.17190°"
-  //   "coord": "37.86240, 127.17190"
-  //   "coord": "N 37.8624, E 127.1719"   /  남·서·S·W 는 음수로 처리
-  // 도분초(37°51'44"N)는 지원하지 않는다 — 십진수로 바꿔서 넣을 것.
+  // 좌표 해석: "북 33.55007°, 동 126.69116°" / "33.55, 126.69" / "N 33.55, E 126.69"
   function parseCoordString(s){
     if (typeof s !== 'string') return null;
     var re = /([북남동서NSEWnsew])?\s*(-?\d+(?:\.\d+)?)\s*°?/g;
@@ -660,663 +151,169 @@
       else if (tag === '남' || tag === 'S') lat = -v;
       else if (tag === '동' || tag === 'E') lng = v;
       else if (tag === '서' || tag === 'W') lng = -v;
-      else loose.push(v);                 // 방위 표시가 없으면 '위도, 경도' 순으로 간주
+      else loose.push(v);
     }
     if (lat === null && loose.length) lat = loose.shift();
     if (lng === null && loose.length) lng = loose.shift();
     if (lat === null || lng === null) return null;
     return { lat: lat, lng: lng };
   }
-  function readCoords(p){
-    var lat = p.lat, lng = p.lng;
-    if (typeof lat === 'string') { var a = parseCoordString(lat); lat = a ? a.lat : null; }
-    if (typeof lng === 'string') { var b = parseCoordString(lng); lng = b ? (b.lng !== null ? b.lng : b.lat) : null; }
-    if (typeof lat !== 'number' || typeof lng !== 'number'){
-      var c = parseCoordString(p.coord || p.coords || p.latlng || '');
-      if (!c) return null;
-      lat = c.lat; lng = c.lng;
-    }
-    if (!isFinite(lat) || !isFinite(lng)) return null;
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-    return { lat: lat, lng: lng };
+  function coordsOf(p){
+    if (typeof p.lat === 'number' && typeof p.lng === 'number')
+      return { lat: p.lat, lng: p.lng };
+    return parseCoordString(p.coord || p.coords || p.latlng || '');
   }
-  // ---- 사진 안의 EXIF GPS 직접 읽기 ----
-  // 사진 앞부분(EXIF가 들어있는 구간)만 Range 요청으로 받아서 GPS 태그를 파싱한다.
-  // 원본 전체를 받지 않으므로 가볍고, 실패하면 조용히 null을 돌려준다.
-  var EXIF_BYTES = 262144; // 256KB — EXIF는 파일 맨 앞에 있으므로 이 정도면 충분
-  function typeSize(t){
-    return ({1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8})[t] || 1;
+  function coordText(p){
+    if (p.coord) return p.coord;
+    var c = coordsOf(p);
+    return c ? (c.lat.toFixed(5) + ', ' + c.lng.toFixed(5)) : '';
   }
-  function readRationalTriplet(dv, o, le){
-    var out = [];
-    for (var i = 0; i < 3; i++){
-      var num = dv.getUint32(o + i * 8, le);
-      var den = dv.getUint32(o + i * 8 + 4, le);
-      if (!den) return null;
-      out.push(num / den);
-    }
-    return out[0] + out[1] / 60 + out[2] / 3600;
+  // 포스트 전용 폰트 — 없으면 조용히 기본체
+  var fontSeq = 0;
+  function applyFont(p, el){
+    var url = fontUrl(p);
+    if (!url || !window.FontFace) return;
+    var name = 'PF' + (++fontSeq);
+    var ff = new FontFace(name, 'url("' + url + '")');
+    ff.load().then(function(f){
+      document.fonts.add(f);
+      el.style.fontFamily = "'" + name + "', 'LMCHan', Georgia, serif";
+    }).catch(function(){});
   }
-  function readTiffGps(dv, tiff){
-    var le = dv.getUint16(tiff) === 0x4949;
-    function g16(o){ return dv.getUint16(o, le); }
-    function g32(o){ return dv.getUint32(o, le); }
-    if (g16(tiff + 2) !== 42) return null;
-    var ifd0 = tiff + g32(tiff + 4);
-    var n = g16(ifd0), gpsOff = 0;
-    for (var i = 0; i < n; i++){
-      var e = ifd0 + 2 + i * 12;
-      if (g16(e) === 0x8825){ gpsOff = tiff + g32(e + 8); break; }
-    }
-    if (!gpsOff) return null;
-    var m = g16(gpsOff);
-    var latRef = 'N', lngRef = 'E', lat = null, lng = null;
-    for (var j = 0; j < m; j++){
-      var e2 = gpsOff + 2 + j * 12;
-      var tag = g16(e2), type = g16(e2 + 2), cnt = g32(e2 + 4);
-      var vo = (cnt * typeSize(type) > 4) ? (tiff + g32(e2 + 8)) : (e2 + 8);
-      if (tag === 1)      latRef = String.fromCharCode(dv.getUint8(vo));
-      else if (tag === 3) lngRef = String.fromCharCode(dv.getUint8(vo));
-      else if (tag === 2) lat = readRationalTriplet(dv, vo, le);
-      else if (tag === 4) lng = readRationalTriplet(dv, vo, le);
-    }
-    if (lat === null || lng === null) return null;
-    if (latRef === 'S') lat = -lat;
-    if (lngRef === 'W') lng = -lng;
-    if (!isFinite(lat) || !isFinite(lng)) return null;
-    return { lat: lat, lng: lng };
-  }
-  function parseExifGps(buf){
-    try {
-      var dv = new DataView(buf);
-      if (dv.byteLength < 8 || dv.getUint16(0) !== 0xFFD8) return null;
-      var off = 2;
-      while (off + 4 <= dv.byteLength){
-        var marker = dv.getUint16(off);
-        if ((marker & 0xFF00) !== 0xFF00) return null;
-        if (marker === 0xFFDA) return null;           // 이미지 데이터 시작 — EXIF 없음
-        var size = dv.getUint16(off + 2);
-        if (marker === 0xFFE1 && off + 10 <= dv.byteLength){
-          if (dv.getUint32(off + 4) === 0x45786966)   // "Exif"
-            return readTiffGps(dv, off + 10);
-        }
-        off += 2 + size;
+  // 원본 다운로드 — 일반적인 확인창(confirm) 그대로
+  function askDownload(p){
+    if (p.kind === 'person'){
+      if (window.confirm('인물 사진의 원본은 구매 문의로 제공됩니다.\n문의 메일을 작성하시겠습니까?')){
+        location.href = 'mailto:' + (p.buy || CONTACT) +
+          '?subject=' + encodeURIComponent('[LMCHAN] 원본 구매 문의 — ' + (p.file || ''));
       }
-    } catch (err){ /* 잘린 버퍼 등 — 조용히 포기 */ }
-    return null;
-  }
-  function fetchExifGps(url){
-    return fetch(url, { headers: { 'Range': 'bytes=0-' + (EXIF_BYTES - 1) } })
-      .then(function(r){ return r.ok ? r.arrayBuffer() : null; })
-      .then(function(buf){ return buf ? parseExifGps(buf) : null; })
-      .catch(function(){ return null; });   // CORS 미설정·네트워크 실패 등
-  }
-  // ---- JPEG 헤더에서 원본 크기 읽기 ----
-  // 로고를 정확히 자르려면 원본 가로·세로가 필요하다. 파일 앞부분(SOF 마커)만 읽으면
-  // 원본을 통째로 받지 않고도 크기를 알 수 있다. 실패하면 조용히 null.
-  function parseJpegSize(buf){
-    try{
-      var dv = new DataView(buf);
-      if (dv.getUint16(0) !== 0xFFD8) return null;   // JPEG 아님
-      var off = 2;
-      while (off + 9 <= dv.byteLength){
-        var marker = dv.getUint16(off);
-        if ((marker & 0xFF00) !== 0xFF00) return null;
-        // SOFn 마커에 크기가 들어있다 (0xC4/C8/CC 는 크기 마커가 아니라 제외)
-        if (marker >= 0xFFC0 && marker <= 0xFFCF &&
-            marker !== 0xFFC4 && marker !== 0xFFC8 && marker !== 0xFFCC){
-          var h = dv.getUint16(off + 5), w = dv.getUint16(off + 7);
-          return (w && h) ? { w:w, h:h } : null;
-        }
-        var size = dv.getUint16(off + 2);
-        if (size < 2) return null;
-        off += 2 + size;
-      }
-    } catch (e){}
-    return null;
-  }
-  function fetchJpegSize(url){
-    // R2 원본은 브라우저에서 직접 읽으면 CORS 에 막힐 수 있으므로,
-    // CORS 를 허용하는 프록시(wsrv)를 거쳐 앞부분(헤더)만 받아 크기를 읽는다.
-    // 원본을 '디코드'하지 않고 바이트만 훑으므로 메모리를 거의 쓰지 않는다.
-    var u = proxify(url, 'output=jpg');
-    return fetch(u, { headers: { 'Range': 'bytes=0-131071' } })
-      .then(function(r){ return r.ok ? r.arrayBuffer() : null; })
-      .then(function(buf){ return buf ? parseJpegSize(buf) : null; })
-      .catch(function(){ return null; });
-  }
-  // 수동 좌표가 있으면 그것을 쓰고, 없으면 사진의 EXIF에서 읽는다.
-  function resolveCoords(post){
-    var manual = readCoords(post);
-    if (manual) return Promise.resolve(manual);
-    var src = post.file ? buildImageUrl(post.file) : (post.url || '');
-    if (!src) return Promise.resolve(null);
-    return fetchExifGps(src);
-  }
-  // ---- 마커를 눌렀을 때 뜨는 사진 창 ----
-  function openLightbox(post, index){
-    var box = document.getElementById('lightbox');
-    var img = document.getElementById('lightbox-img');
-    var vid = document.getElementById('lightbox-video');
-    var cap = document.getElementById('lightbox-cap');
-    // 영상은 원본(file)을, 사진은 썸네일이 아닌 원본을 크게 보여준다
-    var full = post.file ? buildImageUrl(post.file) : (post.url || '');
-    if (isVideo(post)){
-      img.hidden = true; img.src = '';
-      vid.hidden = false; vid.src = full;
-      vid.play().catch(function(){});
-    } else {
-      vid.hidden = true; vid.removeAttribute('src'); vid.load();
-      img.hidden = false; img.src = full;
-      img.alt = labelOf(post, index);
-    }
-    cap.textContent = [post.place, post.caption].filter(Boolean).join(' · ');
-    box.classList.add('show');
-  }
-  function closeLightbox(){
-    var box = document.getElementById('lightbox');
-    box.classList.remove('show');
-    document.getElementById('lightbox-img').src = '';
-    var vid = document.getElementById('lightbox-video');
-    vid.pause(); vid.removeAttribute('src'); vid.load();
-  }
-  document.getElementById('lightbox').addEventListener('click', function(e){
-    // 영상 컨트롤(재생·볼륨)을 누른 경우에는 닫지 않는다
-    if (e.target && e.target.id === 'lightbox-video') return;
-    closeLightbox();
-  });
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape' || e.key === 'Esc') closeLightbox();
-  });
-  // ---- 지도 ----
-  // 지도 크기는 CSS(너비 100% + 고정 비율)가 정한다.
-  // JS 는 창 크기가 바뀔 때 invalidateSize + 범위 재조정만 한다.
-  var mapScalers = [];
-  // 손가락으로 쓰는 화면인지 (커서 올리기가 없는 환경)
-  var isTouch = false;
-  window.addEventListener('touchstart', function(){ isTouch = true; },
-                          { once: true, passive: true });
-  // 촬영 날짜를 YYYY-MM-DD 로 뽑는다. 없으면 'undated'.
-  function dateKeyOf(post){
-    var d = post.date || post.taken || post.createdAt || '';
-    var m = String(d).match(/(\d{4})\D?(\d{2})\D?(\d{2})/);
-    return m ? (m[1] + '-' + m[2] + '-' + m[3]) : 'undated';
-  }
-  // ---- 미니맵 ----
-  // 남한 실루엣(단순화한 국경선) 위에 촬영 지점을 점으로 찍어 '어디 부근인지'를 보여준다.
-  // 타일이 아니라 SVG 라 가볍고, 사이트의 잉크-온-페이퍼 톤과도 맞는다.
-  // 좌표→SVG 투영 상수는 남한 범위(경도 125.5~130, 위도 33~38.7)에 맞춰 고정되어 있다.
-  var MINI_LAND = 'M 40.51,1.54 L 52.79,22.23 L 56.31,33.60 L 56.42,53.81 L 51.06,63.45 ' +
-    'L 38.18,66.82 L 26.82,74.09 L 14.01,75.60 L 12.42,66.05 L 15.06,52.89 L 8.78,34.63 ' +
-    'L 19.34,31.68 L 9.59,16.67 L 10.48,15.08 L 16.83,15.70 L 22.37,7.79 L 32.42,6.94 ' +
-    'L 38.47,5.78 L 40.51,1.54 Z';
-  var MINI_NS = 'http://www.w3.org/2000/svg';
-  function miniProject(lat, lng){
-    var x = (lng - 125.5) * 0.8106 * 17.54;
-    var y = (38.7 - lat) * 17.54;
-    return [Math.max(2, Math.min(62, x)), Math.max(2, Math.min(98, y))];
-  }
-  function makeMiniMap(lat, lng){
-    var box = document.createElement('div');
-    box.className = 'map-mini';
-    var svg = document.createElementNS(MINI_NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 64 100');
-    var land = document.createElementNS(MINI_NS, 'path');
-    land.setAttribute('d', MINI_LAND); land.setAttribute('class', 'mm-land');
-    var jeju = document.createElementNS(MINI_NS, 'ellipse');   // 제주도
-    jeju.setAttribute('cx', '14.64'); jeju.setAttribute('cy', '93.31');
-    jeju.setAttribute('rx', '5.12');  jeju.setAttribute('ry', '3.16');
-    jeju.setAttribute('class', 'mm-land');
-    var p = miniProject(lat, lng);
-    var ring = document.createElementNS(MINI_NS, 'circle');
-    ring.setAttribute('cx', p[0].toFixed(1)); ring.setAttribute('cy', p[1].toFixed(1));
-    ring.setAttribute('r', '5'); ring.setAttribute('class', 'mm-dot-ring');
-    var dot = document.createElementNS(MINI_NS, 'circle');
-    dot.setAttribute('cx', p[0].toFixed(1)); dot.setAttribute('cy', p[1].toFixed(1));
-    dot.setAttribute('r', '2.6'); dot.setAttribute('class', 'mm-dot');
-    svg.appendChild(land); svg.appendChild(jeju);
-    svg.appendChild(ring); svg.appendChild(dot);
-    box.appendChild(svg);
-    return box;
-  }
-  var pin = L.divIcon ? L.divIcon({
-    className: 'photo-pin',
-    html: '<span></span>',
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
-  }) : null;
-  var NARROW = 900;
-  // 지도 축척 상한. 숫자가 클수록 확대된다.
-  // 11 = 도시 전체와 주변 산·바다가 한눈에 들어오는 축척.
-  // 라벨 없는 타일은 15 이상으로 확대하면 건물 블록만 남아 온통 회색이 된다.
-  var VIEW_ZOOM = 11;
-  function frameMap(o, m){
-    if (!o.map) return;
-    o.map.invalidateSize(false);
-    var pad = m.narrow ? [34, 34] : [70, 70];
-    if (o.single){
-      o.map.setView(o.single, VIEW_ZOOM);
-    } else if (o.bounds){
-      o.map.fitBounds(o.bounds, { padding: pad, maxZoom: VIEW_ZOOM });
-    }
-  }
-  function scaleMaps(){
-    var narrow = window.innerWidth <= NARROW;
-    mapScalers.forEach(function(o){
-      frameMap(o, { narrow: narrow });
-    });
-  }
-  var scaleTimer = null;
-  window.addEventListener('resize', function(){
-    clearTimeout(scaleTimer);
-    scaleTimer = setTimeout(scaleMaps, 100);
-  });
-  // ---- 좌표 → 주소 (역지오코딩) ----
-  // places.json 에 "address" 를 직접 적어두면 그것을 그대로 쓰고,
-  // 없으면 OpenStreetMap Nominatim 으로 한 번 조회한 뒤 브라우저에 저장해 재사용한다.
-  // Nominatim 은 초당 1회 이하로 쓰라는 이용 규칙이 있어 순서대로 천천히 요청한다.
-  var addrQueue = [], addrBusy = false;
-  function addrPump(){
-    if (addrBusy || !addrQueue.length) return;
-    addrBusy = true;
-    var job = addrQueue.shift();
-    job(function(){
-      setTimeout(function(){ addrBusy = false; addrPump(); }, 1100);
-    });
-  }
-  function addrCacheGet(key){
-    try { return localStorage.getItem('lmchan:road3:' + key); } catch (err){ return null; }
-  }
-  function addrCacheSet(key, v){
-    try { localStorage.setItem('lmchan:road3:' + key, v); } catch (err){}
-  }
-  function formatAddress(j){
-    if (!j) return '';
-    var a = j.address || {};
-    // 도로명 + 건물번호만 (예: "일주동로 14").
-    // 시·군·구·리 같은 행정구역 이름은 넣지 않는다.
-    if (!a.road) return '';
-    return a.house_number ? (a.road + ' ' + a.house_number) : a.road;
-  }
-  function resolveAddress(post, lat, lng, cb){
-    if (post.address){ cb(post.address); return; }          // 직접 적어둔 경우 우선
-    var key = lat.toFixed(5) + ',' + lng.toFixed(5);
-    var hit = addrCacheGet(key);
-    if (hit){ cb(hit); return; }
-    cb('…');   // 조회 중임을 표시 (빈 줄로 남지 않도록)
-    addrQueue.push(function(done){
-      // 도로명에 번호가 없으면 근처 건물번호를 찾아 붙인다 ("북촌북길" → "북촌북길 44")
-      function finish(text, via){
-        if (text && !/\d/.test(text)){
-          nearestHouseNumber(lat, lng, text, function(num){
-            settle(num ? (text + ' ' + num) : text, via + (num ? '+addr' : ''));
-          });
-        } else {
-          settle(text, via);
-        }
-      }
-      function settle(text, via){
-        var out = text || (lat.toFixed(5) + ', ' + lng.toFixed(5));  // 끝내 못 찾으면 좌표
-        if (text) addrCacheSet(key, out);
-        if (window.LMCHAN_DEBUG) console.log('[addr]', key, '→', out, '(' + via + ')');
-        cb(out);
-        done();
-      }
-      // 1) Nominatim — 그 지점의 도로명
-      var url = 'https://nominatim.openstreetmap.org/reverse' +
-                '?format=jsonv2&zoom=18&accept-language=ko' +
-                '&lat=' + lat + '&lon=' + lng;
-      fetch(url, { headers: { 'Accept': 'application/json' } })
-        .then(function(r){
-          if (!r.ok) throw new Error('nominatim ' + r.status);
-          return r.json();
-        })
-        .then(function(j){
-          var text = formatAddress(j);
-          if (text){ finish(text, 'nominatim'); return; }
-          tryPhoton();
-        })
-        .catch(function(err){
-          if (window.LMCHAN_DEBUG) console.warn('[addr] nominatim 실패', err);
-          tryPhoton();
-        });
-      // 2) Photon — 가장 가까운 지물의 거리명
-      function tryPhoton(){
-        fetch('https://photon.komoot.io/reverse?lang=default&lat=' + lat + '&lon=' + lng)
-          .then(function(r){
-            if (!r.ok) throw new Error('photon ' + r.status);
-            return r.json();
-          })
-          .then(function(j){
-            var f = j && j.features && j.features[0];
-            var pr = f && f.properties;
-            var text = pr && (pr.street || pr.name);
-            if (text){ finish(text, 'photon'); return; }
-            nearestRoad(lat, lng, function(t){ finish(t, 'overpass'); });
-          })
-          .catch(function(err){
-            if (window.LMCHAN_DEBUG) console.warn('[addr] photon 실패', err);
-            nearestRoad(lat, lng, function(t){ finish(t, 'overpass'); });
-          });
-      }
-    });
-    addrPump();
-  }
-  // 근처에서 건물번호(addr:housenumber)를 찾는다.
-  // 같은 도로명(addr:street)에 붙은 것을 우선하고, 없으면 가장 가까운 것을 쓴다.
-  function nearestHouseNumber(lat, lng, road, cb){
-    var radii = [80, 250, 700], i = 0;
-    function step(){
-      if (i >= radii.length){ cb(''); return; }
-      var r = radii[i++];
-      var q = '[out:json][timeout:20];(' +
-              'node(around:' + r + ',' + lat + ',' + lng + ')["addr:housenumber"];' +
-              'way(around:' + r + ',' + lat + ',' + lng + ')["addr:housenumber"];' +
-              ');out center 80;';
-      fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(q)
-      })
-        .then(function(res){ return res.ok ? res.json() : null; })
-        .then(function(j){
-          var els = (j && j.elements) || [];
-          var kx = Math.cos(lat * Math.PI / 180);
-          var best = '', bestD = Infinity, bestSame = false;
-          els.forEach(function(el){
-            var t = el.tags || {}, c = el.center || el;
-            if (!t['addr:housenumber'] || typeof c.lat !== 'number') return;
-            var dy = c.lat - lat, dx = (c.lon - lng) * kx;
-            var d = dy * dy + dx * dx;
-            var same = (t['addr:street'] === road);
-            // 같은 도로명이면 우선, 그 안에서 가장 가까운 것
-            if ((same && !bestSame) || (same === bestSame && d < bestD)){
-              bestD = d; best = t['addr:housenumber']; bestSame = same;
-            }
-          });
-          if (best) cb(best); else step();
-        })
-        .catch(function(){ step(); });
-    }
-    step();
-  }
-  // Overpass 로 반경을 넓혀가며 이름이 있는 도로를 찾는다
-  function nearestRoad(lat, lng, cb){
-    var radii = [150, 400, 1200], i = 0;
-    function step(){
-      if (i >= radii.length){ cb(''); return; }
-      var r = radii[i++];
-      var q = '[out:json][timeout:20];way(around:' + r + ',' + lat + ',' + lng +
-              ')["highway"]["name"];out center 40;';
-      fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(q)
-      })
-        .then(function(res){ return res.ok ? res.json() : null; })
-        .then(function(j){
-          var best = '', bestD = Infinity;
-          var els = (j && j.elements) || [];
-          var kx = Math.cos(lat * Math.PI / 180);
-          els.forEach(function(el){
-            var c = el.center || el;
-            var name = el.tags && el.tags.name;
-            if (!name || typeof c.lat !== 'number') return;
-            var dy = c.lat - lat, dx = (c.lon - lng) * kx;
-            var d = dy * dy + dx * dx;
-            if (d < bestD){ bestD = d; best = name; }
-          });
-          if (best) cb(best); else step();
-        })
-        .catch(function(){ step(); });
-    }
-    step();
-  }
-  function addMarker(map, item, infoEl){
-      var p = item.post;
-      var ll = [item.lat, item.lng];
-      var m = L.marker(ll, { icon: pin, title: labelOf(p, item.index) }).addTo(map);
-      // 커서를 대면 지도 왼쪽 위 카드에 사진과 설명이 뜬다.
-      // 사진은 처음 한 번만 받아두고 이후에는 그대로 재사용한다.
-      var media = null;
-      function openFull(){
-        if (isVideo(p)){
-          window.open(ELSES_URL + '?f=' + encodeURIComponent(p.file || ''),
-                      '_blank', 'noopener');
-        } else {
-          openLightbox(p, item.index);
-        }
-      }
-      function ensureMedia(){
-        if (media) return media;
-        if (isVideo(p)){
-          media = document.createElement('video');
-          media.muted = true; media.playsInline = true;
-          media.setAttribute('playsinline', '');
-          media.preload = 'metadata';
-          media.src = srcOf(p) + '#t=0.5';   // 앞부분만 받아 한 프레임을 보여준다
-        } else {
-          media = document.createElement('img');
-          media.alt = '';
-          media.src = srcOf(p);              // thumb 가 있으면 srcOf 가 그걸 쓴다
-        }
-        // 미리보기 사진을 눌러야 크게 열린다
-        media.addEventListener('click', function(e){
-          e.stopPropagation();
-          openFull();
-        });
-        // 마커에서 사진으로 커서를 옮기는 동안 카드가 사라지지 않도록
-        media.addEventListener('mouseenter', cancelHide);
-        media.addEventListener('mouseleave', function(){ if (!isTouch) scheduleHide(); });
-        return media;
-      }
-      function showInfo(){
-        if (!infoEl) return;
-        infoEl.innerHTML = '';
-        infoEl.appendChild(ensureMedia());
-        var a = document.createElement('div');
-        a.className = 'map-info-addr';
-        a.textContent = p.address || '';
-        infoEl.appendChild(a);
-        if (p.note || p.caption){
-          var n = document.createElement('div');
-          n.className = 'map-info-note';
-          n.textContent = p.note || p.caption;
-          infoEl.appendChild(n);
-        }
-        infoEl._owner = m;
-        infoEl.classList.add('show');
-      }
-      function hideInfo(){
-        if (infoEl) infoEl.classList.remove('show');
-      }
-      // 마커 → 사진으로 커서가 건너가는 짧은 순간에 닫히지 않도록 잠깐 유예한다
-      var hideTimer = null;
-      function scheduleHide(){
-        clearTimeout(hideTimer);
-        hideTimer = setTimeout(hideInfo, 260);
-      }
-      function cancelHide(){ clearTimeout(hideTimer); }
-      // 터치 화면에서는 탭 한 번에 mouseover 와 click 이 잇달아 들어온다.
-      // 그대로 두면 카드가 떴다가 곧바로 열려버리므로, 터치일 때는 mouseover 를 무시한다.
-      m.on('mouseover', function(){ if (!isTouch){ cancelHide(); showInfo(); } });
-      m.on('mouseout',  function(){ if (!isTouch) scheduleHide(); });
-      // 마커를 누르면 미리보기 카드가 뜨기만 한다. 크게 보는 건 사진을 눌러서.
-      m.on('click', showInfo);
-  }
-  function buildMaps(located){
-    if (typeof L === 'undefined') return;      // Leaflet 로드 실패 시 조용히 건너뜀
-    mapSection.hidden = false;
-    if (!located.length){
-      mapEmpty.hidden = false;
       return;
     }
-    var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var tileUrl, tileAttr, baseClass = '', HILL_URL = '';
-    if (VWORLD_KEY){
-      // 브이월드 WMTS — 주소에서 z / y / x 순서에 주의
-      tileUrl = 'https://api.vworld.kr/req/wmts/1.0.0/' + VWORLD_KEY + '/' +
-                (dark ? VWORLD_LAYER_DARK : VWORLD_LAYER) + '/{z}/{y}/{x}.png';
-      tileAttr = '&copy; <a href="https://www.vworld.kr">VWorld</a>';
-    } else {
-      // 랜드커버가 칠해진 Voyager — 도시=회색, 들·숲=초록, 물=파랑, 글자는 없음.
-      // 다크 모드에서도 이 컬러 타일을 그대로 쓰고, CSS 필터(어둡게 누르는 오버레이)로
-      // 다크 톤을 만든다. 무채색 dark 타일은 색 정보가 없어 무엇을 해도 구분이 안 된다.
-      tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
-      tileAttr = '&copy; OpenStreetMap &copy; CARTO';
-      baseClass = 'base-tiles';
-      // 지형 음영 (ESRI World Hillshade, 무료·키 불필요) — 산악·시골의 기복을 은은히 얹는다.
-      HILL_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}';
-    }
-    // 지도 한 장 = 하루. 같은 날 찍은 사진들을 한 지도에 모은다.
-    var byDate = {}, order = [];
-    located.forEach(function(item){
-      var key = dateKeyOf(item.post);
-      if (!byDate[key]){ byDate[key] = []; order.push(key); }
-      byDate[key].push(item);
-    });
-    // 최근 날짜가 위로 (날짜 없는 묶음은 맨 뒤)
-    order.sort(function(a, b){
-      if (a === 'undated') return 1;
-      if (b === 'undated') return -1;
-      return a < b ? 1 : (a > b ? -1 : 0);
-    });
-    order.forEach(function(key){
-      var items = byDate[key];
-      var wrap  = document.createElement('div');
-      var inner = document.createElement('div');
-      wrap.className = 'map-wrap';
-      inner.className = 'map-inner';
-      wrap.appendChild(inner);
-      // 날짜는 지도 오른쪽 위에. 축소에 영향받지 않도록 지도 바깥 층에 둔다.
-      var dateEl = document.createElement('div');
-      dateEl.className = 'map-date';
-      dateEl.textContent = (key === 'undated') ? '' : key.replace(/-/g, '.');
-      wrap.appendChild(dateEl);
-      // 왼쪽 위 설명란 — 마커에 커서를 대면 그 위치의 주소가 여기 뜬다
-      var infoEl = document.createElement('div');
-      infoEl.className = 'map-info';
-      wrap.appendChild(infoEl);
-      mapsWrap.appendChild(wrap);
-      var map = L.map(inner, {
-        // 축척은 그날 사진들에 맞춰 정해지므로 날마다 다르다
-        attributionControl:false,   // 하단 leaflet/OSM 표기 숨김
-        zoomControl:false, dragging:false, scrollWheelZoom:false,
-        doubleClickZoom:false, touchZoom:false, boxZoom:false, keyboard:false
+    if (!window.confirm('다운로드 하시겠습니까?')) return;
+    var url = p.file ? buildUrl(p.file) : (p.url || '');
+    if (!url) return;
+    fetch(url)
+      .then(function(r){
+        if (!r.ok) throw new Error(r.status);
+        return r.blob();
+      })
+      .then(function(blob){
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = p.file || 'LMCHAN';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+      })
+      .catch(function(){
+        window.open(url, '_blank', 'noopener');   // 막히면 새 탭으로라도 원본을 연다
       });
-      L.tileLayer(tileUrl, { maxZoom: 20, attribution: tileAttr, className: baseClass }).addTo(map);
-      if (HILL_URL){
-        L.tileLayer(HILL_URL, { maxZoom: 16, className: 'hill-tiles', attribution: '' }).addTo(map);
-      }
-      // 지도 빈 곳을 누르면 설명 카드를 닫는다
-      map.on('click', function(){ infoEl.classList.remove('show'); });
-      var lls = [];
-      items.forEach(function(o){
-        addMarker(map, o, infoEl);
-        lls.push([o.lat, o.lng]);
-      });
-      // 미니맵: 그날 지점들의 중심을 남한 실루엣 위에 점으로 찍어 우상단에 붙인다
-      if (lls.length){
-        var clat = 0, clng = 0;
-        lls.forEach(function(q){ clat += q[0]; clng += q[1]; });
-        wrap.appendChild(makeMiniMap(clat / lls.length, clng / lls.length));
-      }
-      // 그날 사진이 모두 들어가도록 범위를 맞춘다.
-      // 실제 적용은 scaleMaps() 가 화면 크기를 보고 처리한다.
-      mapScalers.push({
-        wrap: wrap, inner: inner, map: map,
-        single: (lls.length === 1) ? lls[0] : null,
-        bounds: (lls.length > 1) ? L.latLngBounds(lls) : null
-      });
-    });
-    scaleMaps();
   }
-  // ---- 로드 ----
-  fetch(POSTS_JSON + '?v=' + Date.now())
-    .then(function(r){ return r.json(); })
-    .then(function(posts){
-      posts = (posts || []).filter(function(p){ return p && (p.file || p.url); });
-      _posts = posts.length; dbgRender();
-      if (!posts.length){ empty.hidden = false; return; }
-      var frag = document.createDocumentFragment();
-      posts.forEach(function(p, i){ frag.appendChild(makeIcon(p, i)); });
-      grid.appendChild(frag);
-    })
-    .catch(function(){ _posts = -1; dbgRender(); empty.hidden = false; });
-  // ---- 지도: places.json (워터마크 갤러리와는 별개의 사진 목록) ----
-  // places.json 은 날짜가 상위 단위다.
-  //   [ { "date": "2026-07-19", "items": [ {file, coord}, {file, coord}, ... ] }, ... ]
-  // 한 날짜 아래에 사진·영상을 여러 개, 각각 다른 좌표로 넣을 수 있다.
-  // (예전처럼 항목마다 date 를 적은 평평한 배열도 그대로 인식한다)
-  function flattenPlaces(raw){
-    var out = [];
-    (raw || []).forEach(function(entry){
-      if (!entry) return;
-      var list = entry.items || entry.photos;
-      if (Array.isArray(list)){
-        list.forEach(function(it){
-          if (!it) return;
-          var o = (typeof it === 'string') ? { file: it } : it;
-          if (!o.date) o.date = entry.date;      // 날짜는 상위에서 물려받는다
-          if (o.file || o.url) out.push(o);
-        });
-      } else if (entry.file || entry.url){
-        out.push(entry);
-      }
+  var pin = L.divIcon ? L.divIcon({
+    className: 'pin', html: '<span></span>',
+    iconSize: [16, 16], iconAnchor: [8, 8]
+  }) : null;
+  var maps = [];
+  function makeMap(el, c){
+    var map = L.map(el, {
+      attributionControl:false, zoomControl:false,
+      dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
+      touchZoom:false, boxZoom:false, keyboard:false
     });
-    return out;
+    L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
+      { maxZoom: 20, className: 'base-tiles' }
+    ).addTo(map);
+    L.marker([c.lat, c.lng], { icon: pin }).addTo(map);
+    map.setView([c.lat, c.lng], MAP_ZOOM);
+    maps.push({ map: map, c: c });
+    return map;
+  }
+  var resizeTimer = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function(){
+      maps.forEach(function(o){
+        o.map.invalidateSize(false);
+        o.map.setView([o.c.lat, o.c.lng], MAP_ZOOM);
+      });
+    }, 120);
+  });
+  // ── 포스트: 글귀 → 날짜와 주소 → 사진 → 좌표 → 지도 ──
+  function makePost(p){
+    var sec = document.createElement('section');
+    sec.className = 'post';
+    // 글귀 (파일이 없으면 자리 없이 조용히 넘어간다)
+    var ph = phraseUrl(p);
+    if (ph){
+      var pimg = document.createElement('img');
+      pimg.className = 'phrase';
+      pimg.alt = '';
+      pimg.decoding = 'async';
+      pimg.src = ph;
+      pimg.onerror = function(){ pimg.remove(); };
+      sec.appendChild(pimg);
+    }
+    // 날짜와 주소 — 포스트 전용 폰트
+    var addr = document.createElement('div');
+    addr.className = 'addr';
+    addr.textContent = [dateOf(p), p.address || ''].filter(Boolean).join(' · ');
+    if (addr.textContent){
+      applyFont(p, addr);
+      sec.appendChild(addr);
+    }
+    // 사진 (누르면 다운로드 확인창)
+    var wrap = document.createElement('div');
+    wrap.className = 'photo';
+    var src = p.file ? buildUrl(p.file) : (p.url || '');
+    var media;
+    if (isVideo(p.file || p.url)){
+      media = document.createElement('video');
+      media.muted = true; media.loop = true; media.autoplay = true;
+      media.playsInline = true; media.setAttribute('playsinline', '');
+      media.preload = 'metadata';
+      media.src = src;
+    } else {
+      media = document.createElement('img');
+      media.alt = p.address || '';
+      media.loading = 'lazy';
+      media.decoding = 'async';
+      media.src = src;
+    }
+    wrap.appendChild(media);
+    wrap.addEventListener('click', function(){ askDownload(p); });
+    sec.appendChild(wrap);
+    // 좌표
+    var co = document.createElement('div');
+    co.className = 'coord';
+    co.textContent = coordText(p);
+    if (co.textContent) sec.appendChild(co);
+    // 지도
+    var c = coordsOf(p);
+    if (c && typeof L !== 'undefined'){
+      var mapEl = document.createElement('div');
+      mapEl.className = 'map';
+      sec.appendChild(mapEl);
+      // 크기가 잡힌 뒤 지도를 만든다
+      setTimeout(function(){ makeMap(mapEl, c); }, 0);
+    }
+    return sec;
   }
   fetch(PLACES_JSON + '?v=' + Date.now())
-    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(r){ return r.json(); })
     .then(function(raw){
-      var places = flattenPlaces(raw);
-      // 좌표: places.json의 수동값 우선, 없으면 사진 EXIF에서 읽어온다
-      return Promise.all(places.map(resolveCoords)).then(function(coords){
-        var located = [];
-        coords.forEach(function(c, i){
-          if (c) located.push({ post: places[i], index: i, lat: c.lat, lng: c.lng });
-        });
-        buildMaps(located);
-      });
+      var items = flattenPlaces(raw);
+      loading.hidden = true;
+      if (!items.length){ noneEl.hidden = false; return; }
+      var frag = document.createDocumentFragment();
+      items.forEach(function(p){ frag.appendChild(makePost(p)); });
+      posts.appendChild(frag);
     })
-    .catch(function(){ buildMaps([]); });
-  // ---- 지도 안내문 접기 ----
-  // 인트로와 같은 감각: 한 번 화면에 보였다가 → 스크롤로 화면 밖에 나간 순간 접는다.
-  // 접히는 장면은 화면 밖에서 일어나므로 눈에는 '자연스럽게 사라진' 것으로 보인다.
-  (function(){
-    var head = document.getElementById('map-head');
-    if (!head || !('IntersectionObserver' in window)) return;
-    var seen = false;
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        if (entry.intersectionRatio >= 0.95){
-          // 안내문 '전체'가 화면 안에 들어왔을 때만 실제로 본 것으로 친다
-          seen = true;
-        } else if (!entry.isIntersecting && seen &&
-                   entry.boundingClientRect.top < 0){
-          // 본 다음, 아래로 스크롤해 '위쪽으로' 지나쳐 나갔을 때만 조용히 접는다.
-          // (아래쪽으로 다시 나가거나 레이아웃이 흔들린 경우에는 접지 않는다)
-          head.classList.add('gone');
-          io.disconnect();
-        }
-      });
-    }, { threshold: [0, 0.95] });
-    io.observe(head);
-  })();
-  // ---- 인트로 접기 ----
-  // 처음엔 안내 문구를 보여주되, 사용자가 한 번 아래로 스크롤하면 접어서 사라지게 하고
-  // 이후 다시 위로 올려도 나타나지 않게 한다 (리스너는 한 번 쓰고 스스로 제거).
-  (function(){
-    var intro = document.getElementById('intro');
-    if (!intro) return;
-    function onScroll(){
-      if (window.pageYOffset > 40){
-        intro.classList.add('gone');
-        window.removeEventListener('scroll', onScroll);
-      }
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-  })();
+    .catch(function(){
+      loading.hidden = true;
+      noneEl.hidden = false;
+    });
 })();
 </script>
 </body>

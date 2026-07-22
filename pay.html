@@ -102,6 +102,8 @@
     </div>
 
     <div class="steps">
+      <b>결제는 토스 앱에서만 진행됩니다.</b><br>
+      <span style="color:var(--ink-35)">Payment via the Toss app only · 決済はTossアプリのみ</span><br><br>
       <b>진행 순서</b><br>
       1. QR을 스캔해 표시된 금액을 송금해요.<br>
       2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
@@ -126,14 +128,14 @@
 
     // ▶ QR을 눌렀을 때(모바일 등) 이동할 송금 링크. QR 안에 담긴 주소와 같은 값입니다.
     //    카카오페이/토스에서 '링크 복사'로 얻은 주소를 넣으세요. 비워두면 QR은 이미지로만 보입니다.
-    PAY_LINK: '',   // 예: 'https://qr.kakaopay.com/xxxxxxxx' 또는 'https://toss.me/xxxx'
+    PAY_LINK: 'supertoss://send?amount=35000&bank=KB%EA%B5%AD%EB%AF%BC%EC%9D%80%ED%96%89&accountNo=72560200130824&origin=qr',
 
     // 판매할 사진
     R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
     PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. 전체 URL을 넣어도 됩니다.
     TITLE:      'STILLS · 2F9A6950',   // 상품명
     DESC:       '워터마크 없는 고해상도 원본\nHigh-resolution · watermark-free',
-    PRICE:      30000,                 // 표시 가격(원)
+    PRICE:      35000,                 // 표시 가격(원) — 토스 링크의 amount(35000)와 맞춤
 
     CONTACT:    'hanalmchan@gmail.com'
   };

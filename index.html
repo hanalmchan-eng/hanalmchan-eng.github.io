@@ -79,7 +79,7 @@
     mix-blend-mode:difference;
     -webkit-text-stroke:0.4px currentColor;
   }
-  #models-section{ margin-bottom:96px; }
+  #models-section{ margin-top:96px; }
   /* 본문 속 'LMCHAN' 만 로고 폰트로. (LMCHan 에는 소문자 글리프가 없다) */
   .lm{
     font-family:'LMCHan', Georgia, serif;
@@ -156,7 +156,6 @@
      내용물(#maps 등)만 로고 격자와 같은 폭으로 가운데에 둔다. */
   #map-section{
     width:100%;
-    margin-top:96px;
   }
   /* #map-section 은 flex(가운데 정렬) 컨테이너라, 자식에게 너비 100% 를
      명시하지 않으면 내용물 크기로 쪼그라든다. */
@@ -268,9 +267,21 @@
 </style>
 </head>
 <body>
+  <section id="map-section" hidden>
+    <div class="section-label">STILLS, MAPS</div>
+    <div id="map-head">
+      <span id="map-note">
+        사진을 눌러 원본 다운로드<br>
+        Click a photo to download the original<br>
+        写真をクリックでオリジナルをダウンロード · v27
+      </span>
+    </div>
+    <div id="maps"></div>
+    <div id="map-empty" hidden>등록된 포스트가 아직 없습니다.<br>No posts yet.<br>投稿がまだありません。</div>
+  </section>
   <section id="models-section">
     <div class="section-label">ENCOUNTERS, WATERMARKS</div>
-    <!-- 인트로 문구: 처음엔 보이지만, 한 번 스크롤을 내리면 접혀 사라진다 -->
+    <!-- 인트로 문구: 한 번 다 보인 뒤 화면 위로 지나가면 접혀 사라진다 -->
     <div id="intro">
       <div class="byline">photos by <span class="lm">HAN ALEUM</span></div>
       <div class="hint-text">
@@ -281,18 +292,6 @@
     </div>
     <div id="grid" role="list"></div>
       <div id="empty" hidden>불러올 사진이 없습니다.<br>No photos yet.<br>写真がまだありません。</div>
-  </section>
-  <section id="map-section" hidden>
-    <div class="section-label">STILLS, MAPS</div>
-    <div id="map-head">
-      <span id="map-note">
-        사진을 눌러 원본 다운로드<br>
-        Click a photo to download the original<br>
-        写真をクリックでオリジナルをダウンロード · v26
-      </span>
-    </div>
-    <div id="maps"></div>
-    <div id="map-empty" hidden>등록된 포스트가 아직 없습니다.<br>No posts yet.<br>投稿がまだありません。</div>
   </section>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -840,16 +839,24 @@
     io.observe(head);
   })();
   // ---- 인트로 접기 ----
+  // 섹션이 아래로 내려갔으므로, 안내문과 같은 규칙을 쓴다:
+  // 전체가 화면에 한 번 보인 뒤 → 위쪽으로 지나쳐 나가면 조용히 접는다.
   (function(){
     var intro = document.getElementById('intro');
-    if (!intro) return;
-    function onScroll(){
-      if (window.pageYOffset > 40){
-        intro.classList.add('gone');
-        window.removeEventListener('scroll', onScroll);
-      }
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
+    if (!intro || !('IntersectionObserver' in window)) return;
+    var seen = false;
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.intersectionRatio >= 0.95){
+          seen = true;
+        } else if (!entry.isIntersecting && seen &&
+                   entry.boundingClientRect.top < 0){
+          intro.classList.add('gone');
+          io.disconnect();
+        }
+      });
+    }, { threshold: [0, 0.95] });
+    io.observe(intro);
   })();
 })();
 </script>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>LMCHAN — 원본 구매</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" type="image/png" href="logo_mask.png">
+<link rel="apple-touch-icon" href="logo_mask.png">
+<style>
+  @font-face{
+    font-family:'LMCHan';
+    src:url('fonts/LMCHan.woff2') format('woff2'),
+        url('LMCHan.woff2') format('woff2'),
+        url('fonts/LMCHan.otf') format('opentype'),
+        url('LMCHan.otf') format('opentype');
+    font-weight:400; font-style:normal; font-display:swap;
+  }
+  :root{
+    --paper:#ffffff; --ink:#141414;
+    --ink-60:rgba(20,20,20,.6); --ink-35:rgba(20,20,20,.35);
+    --ink-16:rgba(20,20,20,.14); --ink-08:rgba(20,20,20,.07);
+    --accent:#141414;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#111113; --ink:#ececeb;
+      --ink-60:rgba(236,236,235,.62); --ink-35:rgba(236,236,235,.35);
+      --ink-16:rgba(236,236,235,.16); --ink-08:rgba(236,236,235,.08);
+      --accent:#ececeb;
+    }
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{
+    min-height:100%; background:var(--paper); color:var(--ink);
+    font-family:Helvetica, Arial, sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  body{ padding:28px 20px 80px; display:flex; flex-direction:column; align-items:center; }
+  .wrap{ width:100%; max-width:520px; }
+  .brand{
+    font-family:'LMCHan', Georgia, serif; font-size:24px; letter-spacing:.12em;
+    text-align:center; margin-bottom:6px; -webkit-text-stroke:.3px currentColor;
+  }
+  .sub{
+    font-size:10px; color:var(--ink-35); letter-spacing:.06em; text-align:center;
+    line-height:1.9; margin-bottom:34px;
+  }
+  /* 상품 카드 */
+  .item{
+    display:flex; gap:16px; align-items:center;
+    padding:14px; border:1px solid var(--ink-16); border-radius:4px;
+    margin-bottom:28px;
+  }
+  .item .thumb{
+    width:96px; height:96px; flex:0 0 96px; border-radius:2px;
+    background:var(--ink-08) center/cover no-repeat; overflow:hidden;
+  }
+  .item .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .item .meta{ flex:1; min-width:0; }
+  .item .t-title{ font-size:15px; letter-spacing:.03em; margin-bottom:4px; }
+  .item .t-sub{ font-size:11px; color:var(--ink-35); letter-spacing:.04em; line-height:1.7; }
+  .item .t-price{
+    font-size:17px; margin-top:10px; font-variant-numeric:tabular-nums; letter-spacing:.02em;
+  }
+  /* 구매자 이메일 — 원본 수동 전달용 */
+  .field{ margin-bottom:24px; }
+  .field label{
+    display:block; font-size:11px; color:var(--ink-60);
+    letter-spacing:.05em; margin-bottom:8px;
+  }
+  .field input{
+    width:100%; padding:12px 14px; font-size:15px;
+    background:transparent; color:var(--ink);
+    border:1px solid var(--ink-16); border-radius:4px; outline:none;
+    -webkit-appearance:none;
+  }
+  .field input:focus{ border-color:var(--ink-35); }
+  .field .hint{ font-size:10px; color:var(--ink-35); margin-top:7px; letter-spacing:.04em; line-height:1.7; }
+  /* 토스 결제위젯 렌더 영역 */
+  #payment-method, #agreement{ margin-bottom:12px; }
+  /* 결제 버튼 */
+  #pay-btn{
+    width:100%; margin-top:18px; padding:16px; border:none; border-radius:4px;
+    background:var(--accent); color:var(--paper);
+    font-size:15px; letter-spacing:.06em; cursor:pointer;
+    transition:opacity .2s ease;
+  }
+  #pay-btn:disabled{ opacity:.4; cursor:default; }
+  #pay-btn:not(:disabled):hover{ opacity:.85; }
+  .foot{
+    font-size:10px; color:var(--ink-35); text-align:center;
+    letter-spacing:.04em; line-height:1.9; margin-top:26px;
+  }
+  .foot a{ color:var(--ink-60); }
+  #msg{ font-size:12px; color:var(--ink-60); text-align:center; margin-top:16px; min-height:1em; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">LMCHAN</div>
+    <div class="sub">
+      사진 원본 구매 · Original print purchase<br>
+      写真オリジナルの購入
+    </div>
+
+    <div class="item">
+      <div class="thumb"><img id="thumb" alt=""></div>
+      <div class="meta">
+        <div class="t-title" id="p-title">—</div>
+        <div class="t-sub" id="p-sub"></div>
+        <div class="t-price" id="p-price"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="email">받으실 이메일 · Email for delivery</label>
+      <input id="email" type="email" inputmode="email" autocomplete="email"
+             placeholder="you@example.com">
+      <div class="hint">
+        결제 후 원본 파일을 이 주소로 보내드립니다.<br>
+        The original file is sent to this address after payment.
+      </div>
+    </div>
+
+    <div id="payment-method"></div>
+    <div id="agreement"></div>
+
+    <button id="pay-btn" disabled>결제하기 · Pay</button>
+    <div id="msg"></div>
+
+    <div class="foot">
+      문의 · Contact <a id="contact-link" href="#">—</a><br>
+      결제는 토스페이먼츠로 안전하게 처리됩니다.
+    </div>
+  </div>
+
+<script src="https://js.tosspayments.com/v2/standard"></script>
+<script>
+(function(){
+  'use strict';
+
+  // ==================== 설정 (여기만 바꾸면 됩니다) ====================
+  var CONFIG = {
+    // 토스페이먼츠 '결제위젯 연동' 클라이언트 키.
+    // 개발자센터 > 내 상점 > API 키 에서 발급. 우선 아래는 토스 공개 테스트 키입니다.
+    CLIENT_KEY: 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm',
+
+    // 판매할 사진 (STILLS, MAPS 에 올라온 한 장)
+    R2_BASE: 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
+    PHOTO_FILE: '2F9A6950.jpeg',        // R2 파일명. 전체 URL을 직접 넣어도 됩니다.
+    TITLE:      'STILLS · 2F9A6950',    // 상품명
+    SUBTITLE:   '원본 파일 (고해상도)\nHigh-resolution original',
+    PRICE:      30000,                  // 판매가 (원). 가격은 여기서 조절하세요.
+
+    // 결제 성공/실패 후 이동할 페이지 (같은 폴더에 done.html 이 있어야 함)
+    SUCCESS_URL: location.origin + location.pathname.replace(/[^\/]*$/, '') + 'done.html',
+    FAIL_URL:    location.origin + location.pathname.replace(/[^\/]*$/, '') + 'done.html',
+
+    CONTACT: 'hanalmchan@gmail.com'
+  };
+  // ===================================================================
+
+  var $ = function(id){ return document.getElementById(id); };
+  var msg = $('msg');
+
+  // 사진 URL
+  function photoUrl(){
+    var f = CONFIG.PHOTO_FILE;
+    return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
+  }
+  function won(n){ return '₩' + Number(n).toLocaleString('ko-KR'); }
+
+  // 상품 카드 채우기
+  $('thumb').src = photoUrl();
+  $('p-title').textContent = CONFIG.TITLE;
+  $('p-sub').innerHTML = String(CONFIG.SUBTITLE).replace(/\n/g,'<br>');
+  $('p-price').textContent = won(CONFIG.PRICE);
+  $('contact-link').textContent = CONFIG.CONTACT;
+  $('contact-link').href = 'mailto:' + CONFIG.CONTACT;
+
+  // 무작위 주문번호 / 고객키 생성
+  function rand(n){
+    var s = '', c = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz0123456789';
+    for (var i=0;i<n;i++) s += c[Math.floor(Math.random()*c.length)];
+    return s;
+  }
+  var orderId = 'LMCHAN-' + Date.now() + '-' + rand(6);
+  var customerKey = 'ck_' + rand(20);
+
+  var payBtn = $('pay-btn');
+  var emailInput = $('email');
+  var widgets = null, ready = false;
+
+  // 토스페이먼츠 초기화 + 결제위젯 렌더
+  try {
+    var tossPayments = TossPayments(CONFIG.CLIENT_KEY);
+    widgets = tossPayments.widgets({ customerKey: customerKey });
+
+    widgets.setAmount({ currency: 'KRW', value: CONFIG.PRICE })
+      .then(function(){
+        return Promise.all([
+          widgets.renderPaymentMethods({ selector: '#payment-method', variantKey: 'DEFAULT' }),
+          widgets.renderAgreement({ selector: '#agreement', variantKey: 'AGREEMENT' })
+        ]);
+      })
+      .then(function(){
+        ready = true;
+        refresh();
+      })
+      .catch(function(err){
+        msg.textContent = '결제 모듈을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+        console.error(err);
+      });
+  } catch (e){
+    msg.textContent = '결제 모듈 초기화 오류: ' + (e && e.message);
+    console.error(e);
+  }
+
+  // 이메일 형식 검사 + 버튼 활성화
+  function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+  function refresh(){
+    payBtn.disabled = !(ready && validEmail(emailInput.value.trim()));
+  }
+  emailInput.addEventListener('input', refresh);
+
+  // 결제 요청
+  payBtn.addEventListener('click', function(){
+    var email = emailInput.value.trim();
+    if (!ready || !validEmail(email)) return;
+    payBtn.disabled = true;
+    msg.textContent = '결제창을 여는 중…';
+    widgets.requestPayment({
+      orderId: orderId,
+      orderName: CONFIG.TITLE + ' 원본',
+      customerEmail: email,
+      successUrl: CONFIG.SUCCESS_URL,
+      failUrl: CONFIG.FAIL_URL,
+      metadata: { photo: CONFIG.PHOTO_FILE, deliverTo: email }
+    }).catch(function(err){
+      payBtn.disabled = false;
+      msg.textContent = (err && err.code === 'USER_CANCEL')
+        ? '결제가 취소되었습니다.'
+        : ('결제 요청 오류: ' + (err && err.message));
+    });
+  });
+})();
+</script>
+</body>
+</html>

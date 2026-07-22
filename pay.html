@@ -65,6 +65,7 @@
   .btn[hidden]{ display:none; }
   /* 송금 QR */
   .qr-box{ display:flex; flex-direction:column; align-items:center; margin-bottom:4px; }
+  .qr-box a{ display:block; width:100%; text-decoration:none; }
   .qr-box img{
     width:100%; max-width:100%; height:auto; display:block;
     background:#fff; padding:16px; border-radius:8px; border:1px solid var(--ink-16);
@@ -87,7 +88,7 @@
   <div class="wrap">
     <div class="brand">LMCHAN</div>
     <div class="sub">
-      사진 원본 구매 · Original purchase<br>写真オリジナルの購入
+      워터마크 없는 원본 구매 · Watermark-free original<br>ウォーターマークなしのオリジナル
     </div>
 
     <div class="photo"><img id="photo" alt=""></div>
@@ -96,7 +97,7 @@
     <div class="price" id="price"></div>
 
     <div class="qr-box">
-      <img id="qr" alt="송금 QR 코드">
+      <a id="qr-link"><img id="qr" alt="송금 QR 코드"></a>
       <div class="qr-cap" id="qr-cap">카카오페이 · 토스로 스캔해 송금</div>
     </div>
 
@@ -123,11 +124,15 @@
     //    파일명만 넣으면 아래 R2_BASE 에서 불러오고, http로 시작하면 그 주소를 그대로 씁니다.
     QR_IMAGE: 'pay-qr.png',
 
+    // ▶ QR을 눌렀을 때(모바일 등) 이동할 송금 링크. QR 안에 담긴 주소와 같은 값입니다.
+    //    카카오페이/토스에서 '링크 복사'로 얻은 주소를 넣으세요. 비워두면 QR은 이미지로만 보입니다.
+    PAY_LINK: '',   // 예: 'https://qr.kakaopay.com/xxxxxxxx' 또는 'https://toss.me/xxxx'
+
     // 판매할 사진
     R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
     PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. 전체 URL을 넣어도 됩니다.
     TITLE:      'STILLS · 2F9A6950',   // 상품명
-    DESC:       '원본 파일 (고해상도)\nHigh-resolution original',
+    DESC:       '워터마크 없는 고해상도 원본\nHigh-resolution · watermark-free',
     PRICE:      30000,                 // 표시 가격(원)
 
     CONTACT:    'hanalmchan@gmail.com'
@@ -155,6 +160,15 @@
   qr.onerror = function(){
     $('qr-cap').textContent = 'QR 이미지를 불러오지 못했습니다 (' + CONFIG.QR_IMAGE + ').';
   };
+  // QR을 누르면 송금 링크로 이동 (모바일에서 스캔이 어려울 때 유용)
+  var qrLink = $('qr-link');
+  if (CONFIG.PAY_LINK){
+    qrLink.href = CONFIG.PAY_LINK;
+    qrLink.target = '_blank';
+    qrLink.rel = 'noopener';
+    qrLink.style.cursor = 'pointer';
+    $('qr-cap').textContent = 'QR 스캔 · 또는 눌러서 송금';
+  }
   $('contact').textContent = CONFIG.CONTACT;
   $('contact').href = 'mailto:' + CONFIG.CONTACT;
 })();

@@ -691,24 +691,28 @@
         window.open(url, '_blank', 'noopener');   // 막히면 새 탭으로라도 원본을 연다
       });
   }
-  // 사진 클릭 시 동작: 클릭(사용자 동작) 그 순간에 원본을 저장한 뒤 글 페이지로 이동.
-  // 저장을 클릭 시점에 하는 이유: 다음 페이지에서 자동 저장하면 브라우저가 막을 수 있어서.
+  // 사진 클릭 시 동작: "다운로드 하시겠습니까?" 를 묻고,
+  // 확인/취소 어느 쪽이든 글 페이지(words.html)로는 이동한다.
+  // 확인을 누르면 클릭 시점(사용자 동작)에 원본 저장을 시작한다.
   function onPhotoClick(p){
     var f = p.file || '';
     var go = function(){ location.href = WORDS_URL + '?file=' + encodeURIComponent(f); };
-    if (!f){ go(); return; }
-    var url = buildImageUrl(f);
-    fetch(url)
-      .then(function(r){ if(!r.ok) throw new Error(r.status); return r.blob(); })
-      .then(function(blob){
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = f;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-        go();   // 저장이 시작되면 글 페이지로
-      })
-      .catch(function(){ go(); });   // 저장 실패해도 글 페이지로는 이동
+    if (f && window.confirm('다운로드 하시겠습니까?')){
+      var url = buildImageUrl(f);
+      fetch(url)
+        .then(function(r){ if(!r.ok) throw new Error(r.status); return r.blob(); })
+        .then(function(blob){
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = f;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+          go();   // 저장이 시작되면 글 페이지로
+        })
+        .catch(function(){ go(); });   // 저장 실패해도 글 페이지로는 이동
+    } else {
+      go();   // 취소해도 글 페이지로는 이동
+    }
   }
   // ---- 포스트 지도 ----
   var pin = L.divIcon ? L.divIcon({

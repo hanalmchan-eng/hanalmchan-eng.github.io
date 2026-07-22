@@ -273,7 +273,7 @@
       <span id="map-note">
         사진을 눌러 원본 다운로드<br>
         Click a photo to download the original<br>
-        写真をクリックでオリジナルをダウンロード · v27
+        写真をクリックでオリジナルをダウンロード
       </span>
     </div>
     <div id="maps"></div>
@@ -657,10 +657,8 @@
   // ---- 다운로드 — 일반적인 확인창(confirm) ----
   function askDownload(p){
     if (p.kind === 'person'){
-      if (window.confirm('인물 사진의 원본은 구매 문의로 제공됩니다.\n문의 메일을 작성하시겠습니까?')){
-        location.href = 'mailto:' + (p.buy || CONTACT) +
-          '?subject=' + encodeURIComponent('[LMCHAN] 원본 구매 문의 — ' + (p.file || ''));
-      }
+      // 인물 사진은 결제 페이지로
+      location.href = 'buy.html?f=' + encodeURIComponent(p.file || '');
       return;
     }
     if (!window.confirm('다운로드 하시겠습니까?')) return;

@@ -706,10 +706,10 @@
           a.href = URL.createObjectURL(blob);
           a.download = f;
           document.body.appendChild(a); a.click(); a.remove();
-          setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-          go();   // 저장이 시작되면 글 페이지로
+          // 저장이 실제로 시작될 시간을 준 뒤에 페이지를 넘긴다 (바로 넘기면 취소됨)
+          setTimeout(function(){ URL.revokeObjectURL(a.href); go(); }, 1200);
         })
-        .catch(function(){ go(); });   // 저장 실패해도 글 페이지로는 이동
+        .catch(function(){ go(); });   // 저장 실패(CORS 등)해도 글 페이지로는 이동
     } else {
       go();   // 취소해도 글 페이지로는 이동
     }

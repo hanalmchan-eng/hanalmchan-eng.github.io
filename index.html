@@ -698,18 +698,17 @@
     var f = p.file || '';
     var go = function(){ location.href = WORDS_URL + '?file=' + encodeURIComponent(f); };
     if (f && window.confirm('다운로드 하시겠습니까?')){
+      // 클릭 그 순간(동기)에 이미지를 연다 — CORS와 무관하게 항상 반응한다.
+      // 같은 출처면 바로 저장되고, 다른 출처(R2)면 새 탭에 원본이 열려 저장할 수 있다.
       var url = buildImageUrl(f);
-      fetch(url)
-        .then(function(r){ if(!r.ok) throw new Error(r.status); return r.blob(); })
-        .then(function(blob){
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = f;
-          document.body.appendChild(a); a.click(); a.remove();
-          // 저장이 실제로 시작될 시간을 준 뒤에 페이지를 넘긴다 (바로 넘기면 취소됨)
-          setTimeout(function(){ URL.revokeObjectURL(a.href); go(); }, 1200);
-        })
-        .catch(function(){ go(); });   // 저장 실패(CORS 등)해도 글 페이지로는 이동
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = f;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      // 새 탭이 뜬 뒤 원래 창은 글 페이지로 이동
+      setTimeout(go, 300);
     } else {
       go();   // 취소해도 글 페이지로는 이동
     }

@@ -17,14 +17,14 @@
     --paper:#ffffff; --ink:#141414;
     --ink-60:rgba(20,20,20,.6); --ink-35:rgba(20,20,20,.35);
     --ink-16:rgba(20,20,20,.14); --ink-08:rgba(20,20,20,.07);
-    --accent:#141414;
+    --kakao:#FEE500; --kakao-ink:#191600;
+    --toss:#0064FF; --toss-ink:#ffffff;
   }
   @media (prefers-color-scheme: dark){
     :root{
       --paper:#111113; --ink:#ececeb;
       --ink-60:rgba(236,236,235,.62); --ink-35:rgba(236,236,235,.35);
       --ink-16:rgba(236,236,235,.16); --ink-08:rgba(236,236,235,.08);
-      --accent:#ececeb;
     }
   }
   *{ margin:0; padding:0; box-sizing:border-box; }
@@ -51,28 +51,34 @@
   .desc{ font-size:11px; color:var(--ink-35); letter-spacing:.04em; text-align:center; line-height:1.8; margin-bottom:16px; }
   .price{
     font-size:22px; text-align:center; font-variant-numeric:tabular-nums;
-    letter-spacing:.02em; margin-bottom:24px;
+    letter-spacing:.02em; margin-bottom:22px;
   }
-  /* 간편결제 링크 버튼 */
-  #pay-btn{
-    display:block; width:100%; padding:16px; border:none; border-radius:4px;
-    background:var(--accent); color:var(--paper); text-align:center;
-    font-size:15px; letter-spacing:.05em; text-decoration:none; cursor:pointer;
-    transition:opacity .2s ease;
+  /* 송금 버튼 */
+  .btn{
+    display:block; width:100%; padding:15px; border:none; border-radius:4px;
+    text-align:center; font-size:15px; letter-spacing:.03em; text-decoration:none;
+    cursor:pointer; margin-bottom:10px; transition:opacity .2s ease;
   }
-  #pay-btn:hover{ opacity:.85; }
-  .pays{
-    display:flex; align-items:center; justify-content:center; gap:10px;
-    font-size:10px; color:var(--ink-35); letter-spacing:.05em; margin-top:14px;
+  .btn:hover{ opacity:.88; }
+  .btn.kakao{ background:var(--kakao); color:var(--kakao-ink); }
+  .btn.toss{ background:var(--toss); color:var(--toss-ink); }
+  .btn[hidden]{ display:none; }
+  /* 송금 QR */
+  .qr-box{ display:flex; flex-direction:column; align-items:center; margin-bottom:4px; }
+  .qr-box img{
+    width:220px; max-width:70%; height:auto; display:block;
+    background:#fff; padding:14px; border-radius:8px; border:1px solid var(--ink-16);
   }
+  .qr-cap{ font-size:11px; color:var(--ink-35); letter-spacing:.05em; margin-top:12px; }
   .steps{
     border:1px solid var(--ink-16); border-radius:4px; padding:16px 18px;
-    margin-top:26px; font-size:11px; color:var(--ink-60); line-height:1.95; letter-spacing:.02em;
+    margin-top:22px; font-size:11px; color:var(--ink-60); line-height:2; letter-spacing:.02em;
   }
   .steps b{ color:var(--ink); font-weight:600; }
+  .steps .em{ color:var(--ink); }
   .foot{
     font-size:10px; color:var(--ink-35); text-align:center;
-    letter-spacing:.04em; line-height:1.9; margin-top:24px;
+    letter-spacing:.04em; line-height:1.9; margin-top:22px;
   }
   .foot a{ color:var(--ink-60); }
 </style>
@@ -89,14 +95,17 @@
     <div class="desc" id="desc"></div>
     <div class="price" id="price"></div>
 
-    <a id="pay-btn" href="#">간편결제로 구매하기</a>
-    <div class="pays">카카오페이 · 네이버페이 · 토스페이</div>
+    <div class="qr-box">
+      <img id="qr" alt="송금 QR 코드">
+      <div class="qr-cap" id="qr-cap">카카오페이 · 토스로 스캔해 송금</div>
+    </div>
 
     <div class="steps">
       <b>진행 순서</b><br>
-      1. 위 버튼을 눌러 간편결제로 결제해요.<br>
-      2. 결제 시 남기신 이메일로 원본 파일을 보내드려요.<br>
-      3. 문의는 아래 메일로 주세요.
+      1. QR을 스캔해 표시된 금액을 송금해요.<br>
+      2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
+      3. 확인 후 그 이메일로 원본 파일을 보내드려요.<br>
+      <span style="color:var(--ink-35)">메모를 못 남기셨다면 아래 메일로 알려주세요.</span>
     </div>
 
     <div class="foot">
@@ -110,19 +119,21 @@
 
   // ==================== 설정 (여기만 바꾸면 됩니다) ====================
   var CONFIG = {
-    // ▶ 토스페이먼츠 상점관리자 > 링크페이 에서 만든 '결제 링크' 주소를 붙여넣으세요.
-    //    (링크페이 상품을 만들면 https://s.tosspayments.com/xxxx 형태의 주소가 나옵니다)
-    //    아직 없으면 우선 샘플 링크가 열립니다.
-    PAY_LINK: 'https://s.tosspayments.com/BgWHSiWAcP9',
+    // ▶ 카카오페이 / 토스 '송금 요청' 링크를 붙여넣으세요.
+    //    - 카카오페이: 카카오톡 > 카카오페이 > 송금 > '받기(정산·송금 요청)' 로 링크 생성
+    //    - 토스: 토스 앱 > 송금 > '받을 링크(받기)' 로 링크 생성
+    //    비워두면(''), 해당 버튼은 자동으로 숨겨집니다. 둘 중 하나만 써도 됩니다.
+    KAKAO_LINK: '',   // 예: 'https://qr.kakaopay.com/xxxxxxxx'
+    TOSS_LINK:  '',   // 예: 'https://toss.me/xxxx'
 
     // 판매할 사진
-    R2_BASE:   'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
-    PHOTO_FILE:'2F9A6950.jpeg',        // R2 파일명. 전체 URL을 넣어도 됩니다.
-    TITLE:     'STILLS · 2F9A6950',    // 상품명
-    DESC:      '원본 파일 (고해상도)\nHigh-resolution original',
-    PRICE:     30000,                  // 표시용 가격(원) — 실제 청구금액은 링크페이에서 설정한 금액
+    R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
+    PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. 전체 URL을 넣어도 됩니다.
+    TITLE:      'STILLS · 2F9A6950',   // 상품명
+    DESC:       '원본 파일 (고해상도)\nHigh-resolution original',
+    PRICE:      30000,                 // 표시 가격(원)
 
-    CONTACT:   'hanalmchan@gmail.com'
+    CONTACT:    'hanalmchan@gmail.com'
   };
   // ===================================================================
 
@@ -131,14 +142,17 @@
     var f = CONFIG.PHOTO_FILE;
     return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
   }
+  function setLink(btn, url){
+    if (url){ btn.href = url; btn.target = '_blank'; btn.rel = 'noopener'; btn.hidden = false; }
+    else { btn.hidden = true; }
+  }
 
   $('photo').src = photoUrl();
   $('title').textContent = CONFIG.TITLE;
   $('desc').innerHTML = String(CONFIG.DESC).replace(/\n/g,'<br>');
   $('price').textContent = '₩' + Number(CONFIG.PRICE).toLocaleString('ko-KR');
-  $('pay-btn').href = CONFIG.PAY_LINK;
-  $('pay-btn').target = '_blank';
-  $('pay-btn').rel = 'noopener';
+  setLink($('kakao-btn'), CONFIG.KAKAO_LINK);
+  setLink($('toss-btn'),  CONFIG.TOSS_LINK);
   $('contact').textContent = CONFIG.CONTACT;
   $('contact').href = 'mailto:' + CONFIG.CONTACT;
 })();

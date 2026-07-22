@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>LMCHAN — WORDS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" type="image/png" href="logo_mask.png">
+<link rel="apple-touch-icon" href="logo_mask.png">
+<style>
+  @font-face{
+    font-family:'LMCHan';
+    src:url('fonts/LMCHan.woff2') format('woff2'), url('LMCHan.woff2') format('woff2'),
+        url('fonts/LMCHan.otf') format('opentype'), url('LMCHan.otf') format('opentype');
+    font-weight:400; font-style:normal; font-display:swap;
+  }
+  :root{
+    --paper:#ffffff; --ink:#141414;
+    --ink-60:rgba(20,20,20,.6); --ink-35:rgba(20,20,20,.35);
+    --ink-16:rgba(20,20,20,.14); --ink-08:rgba(20,20,20,.07);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#111113; --ink:#ececeb;
+      --ink-60:rgba(236,236,235,.62); --ink-35:rgba(236,236,235,.35);
+      --ink-16:rgba(236,236,235,.16); --ink-08:rgba(236,236,235,.08);
+    }
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{
+    width:100%; height:100%; overflow:hidden;
+    background:var(--paper); color:var(--ink);
+    font-family:Helvetica, Arial, sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  #bar{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px; pointer-events:none;
+  }
+  #bar > *{ pointer-events:auto; }
+  #brand{
+    font-family:'LMCHan', Georgia, serif; font-size:20px; letter-spacing:.12em;
+    text-decoration:none; -webkit-text-stroke:.3px currentColor;
+    mix-blend-mode:difference; color:#fff;
+  }
+  #bar-right{ display:flex; align-items:center; gap:16px; }
+  #save-btn{
+    font-size:12px; letter-spacing:.05em; color:var(--ink-60);
+    background:transparent; border:1px solid var(--ink-16); border-radius:4px;
+    padding:7px 12px; cursor:pointer;
+  }
+  #save-btn:hover{ background:var(--ink-08); color:var(--ink); }
+  #back-link{
+    font-family:'LMCHan', Georgia, serif; font-size:20px; letter-spacing:.14em;
+    text-decoration:none; mix-blend-mode:difference; color:#fff; opacity:.8;
+  }
+  #back-link:hover{ opacity:1; }
+  #viewer{ position:fixed; top:56px; left:0; right:0; bottom:0; width:100%; }
+  #viewer iframe{ border:0; }
+  #state{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; font-size:12px; color:var(--ink-35); letter-spacing:.04em;
+    line-height:2; padding:24px;
+  }
+  #state[hidden]{ display:none; }
+  #state a{ color:var(--ink-60); }
+  #toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(10px);
+    z-index:200; font-size:12px; letter-spacing:.04em;
+    background:var(--ink); color:var(--paper); padding:10px 16px; border-radius:6px;
+    opacity:0; transition:opacity .3s ease, transform .3s ease; pointer-events:none; white-space:nowrap;
+  }
+  #toast.show{ opacity:.92; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <div id="bar">
+    <a id="brand" href="index.html">LMCHAN</a>
+    <div id="bar-right">
+      <button id="save-btn" type="button">원본 저장</button>
+      <a id="back-link" href="index.html">AWAY</a>
+    </div>
+  </div>
+
+  <div id="state">글을 불러오는 중…<br>loading…</div>
+  <div id="viewer"></div>
+  <div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  // ==================== 설정 ====================
+  var CONFIG = {
+    R2_BASE: 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
+    DEFAULT_EPUB: 'words.epub'   // 사진별 EPUB이 없을 때 쓸 공통 EPUB
+  };
+  // =============================================
+
+  var $ = function(id){ return document.getElementById(id); };
+  function assetUrl(f){
+    return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
+  }
+  function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
+
+  var qp = new URLSearchParams(location.search);
+  var file = qp.get('file') || '';
+  var st   = stem(file);
+  if (st){
+    $('back-link').href = 'index.html#' + encodeURIComponent(st);
+    $('brand').href = 'index.html#' + encodeURIComponent(st);
+  }
+
+  var stateEl = $('state');
+  function showState(html){ stateEl.hidden = false; stateEl.innerHTML = html; }
+
+  // ---- 원본 저장 (버튼용 백업) ----
+  function saveOriginal(){
+    if (!file){ toast('저장할 사진이 지정되지 않았어요'); return; }
+    var url = assetUrl(file);
+    fetch(url)
+      .then(function(r){ if(!r.ok) throw new Error(r.status); return r.blob(); })
+      .then(function(blob){
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = file;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+        toast('원본을 저장했어요');
+      })
+      .catch(function(){ window.open(url, '_blank', 'noopener'); toast('새 탭에서 원본을 열었어요'); });
+  }
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  }
+  $('save-btn').addEventListener('click', saveOriginal);
+  // 원본 저장은 이전 페이지(사진 클릭 시점)에서 이미 시작됩니다. 안 됐으면 위 '원본 저장' 버튼.
+
+  // ---- EPUB 렌더링 (실제 에러를 화면에 표시) ----
+  var epubUrlPrimary = st ? assetUrl(st + '.words.epub') : assetUrl(CONFIG.DEFAULT_EPUB);
+  var epubUrlFallback = assetUrl(CONFIG.DEFAULT_EPUB);
+
+  // 먼저 fetch로 파일이 실제로 열리는지(=CORS/존재) 확인한다.
+  function tryLoad(url, isFallback){
+    fetch(url, { method: 'GET' })
+      .then(function(r){
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.arrayBuffer();
+      })
+      .then(function(buf){ renderEpub(buf, url); })
+      .catch(function(err){
+        var msg = String(err && err.message || err);
+        if (!isFallback && url !== epubUrlFallback){
+          // 사진별 EPUB이 없거나 못 열면 공통 EPUB 시도
+          tryLoad(epubUrlFallback, true);
+          return;
+        }
+        // CORS 인지, 없음인지 구분해서 안내
+        var isCors = /Failed to fetch|NetworkError|CORS/i.test(msg);
+        showState(
+          '글을 불러오지 못했습니다.<br><br>' +
+          '<b>' + (isCors ? 'CORS 또는 네트워크 차단' : msg) + '</b><br><br>' +
+          (isCors
+            ? 'R2 CORS 에 <code>GET</code> 과 함께 <code>HEAD</code>·<code>ExposeHeaders</code> 를 넣어보세요.<br>'
+            : '파일 이름을 확인하세요: <br>' + (st ? st + '.words.epub' : 'words.epub') + '<br>') +
+          '<br><a href="' + epubUrlPrimary + '" target="_blank" rel="noopener">EPUB 파일 직접 열어보기 →</a>'
+        );
+      });
+  }
+
+  function renderEpub(bufferOrUrl, srcUrl){
+    if (typeof ePub === 'undefined'){
+      showState('EPUB 뷰어(epub.js)를 불러오지 못했습니다.<br>네트워크를 확인해주세요.');
+      return;
+    }
+    var book, rendition;
+    try {
+      // arraybuffer 로 직접 열면 CORS/range 문제를 피할 수 있다.
+      book = ePub(bufferOrUrl);
+    } catch(e){
+      showState('EPUB 을 여는 중 오류: <b>' + (e && e.message || e) + '</b>');
+      return;
+    }
+    rendition = book.renderTo('viewer', {
+      width:'100%', height:'100%', flow:'scrolled', manager:'continuous', spread:'none'
+    });
+    try {
+      var ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#141414';
+      rendition.themes.register('site', {
+        'body': { 'color': ink, 'background': 'transparent', 'padding': '8px 6px 60px' },
+        'img': { 'max-width': '100%' }, 'p': { 'line-height': '1.7' }
+      });
+      rendition.themes.select('site');
+    } catch(e){}
+
+    var done = false;
+    rendition.display().then(function(){ done = true; stateEl.hidden = true; })
+      .catch(function(e){ if(!done) showState('EPUB 표시 오류: <b>' + (e && e.message || e) + '</b>'); });
+
+    book.opened && book.opened.catch(function(e){
+      if(!done) showState('EPUB 해석 오류(파일 형식 확인): <b>' + (e && e.message || e) + '</b>');
+    });
+  }
+
+  // epub.js 는 arraybuffer 를 직접 받으면 가장 안정적이다.
+  tryLoad(epubUrlPrimary, !st);
+
+  // 예상 못한 스크립트 오류도 화면에 노출
+  window.addEventListener('error', function(e){
+    if (stateEl.hidden) return;
+    showState('오류: <b>' + (e.message || e) + '</b>');
+  });
+})();
+</script>
+</body>
+</html>

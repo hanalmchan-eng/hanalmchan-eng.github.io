@@ -134,6 +134,12 @@
   };
   // ===================================================================
 
+  // 갤러리에서 넘어온 사진 정보(?file=…&title=…&price=…)로 덮어쓴다.
+  var qp = new URLSearchParams(location.search);
+  if (qp.get('file'))  CONFIG.PHOTO_FILE = qp.get('file');
+  if (qp.get('title')) CONFIG.TITLE = qp.get('title');
+  if (qp.get('price')) CONFIG.PRICE = Number(qp.get('price')) || CONFIG.PRICE;
+
   var $ = function(id){ return document.getElementById(id); };
   function photoUrl(){
     var f = CONFIG.PHOTO_FILE;

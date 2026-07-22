@@ -271,9 +271,9 @@
     <div class="section-label">STILLS, MAPS</div>
     <div id="map-head">
       <span id="map-note">
-        사진을 눌러 원본 구매<br>
-        Click a photo to purchase the original<br>
-        写真をクリックでオリジナルを購入 · v28
+        사진을 눌러 원본 저장 · 이어서 글로<br>
+        Click a photo to save the original, then read<br>
+        写真をクリックで保存、そして言葉へ · v29
       </span>
     </div>
     <div id="maps"></div>
@@ -314,8 +314,9 @@
   var GALLERY_URL = 'hanalmchan.html';
   var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
   var CONTACT     = 'hanalmchan@gmail.com';   // 인물 사진 원본 구매 문의처
-  var PAY_URL     = 'pay.html';   // ★ STILLS, MAPS 사진을 누르면 이동할 결제 페이지
-  var DEFAULT_PRICE = 30000;      // ★ 사진에 price 가 없을 때 결제 페이지로 넘길 기본 가격(원)
+  var WORDS_URL   = 'words.html'; // ★ STILLS, MAPS 사진을 누르면 이동할 글 페이지 (원본 저장 + EPUB 글)
+  var PAY_URL     = 'pay.html';   // (참고) 결제 페이지 — 지금 maps 는 결제 대신 words 로 간다
+  var DEFAULT_PRICE = 30000;      // (참고) 결제 방식으로 되돌릴 때 쓸 기본 가격(원)
   // ── 이미지 프록시 (wsrv.nl) ── 원본을 통째로 받지 않기 위한 장치
   var USE_PROXY  = true;
   var PROXY_BASE = 'https://wsrv.nl/?url=';
@@ -690,10 +691,11 @@
         window.open(url, '_blank', 'noopener');   // 막히면 새 탭으로라도 원본을 연다
       });
   }
-  // 사진 클릭 시 동작을 한 곳에서 결정한다.
+  // 사진 클릭 시 동작: maps 사진은 글 페이지(words.html)로 이동한다.
+  // 원본 저장은 words.html 에서 처리(자동 저장 + 저장 버튼)하므로 여기선 이동만 한다.
   function onPhotoClick(p){
-    if (p.free === true) downloadOriginal(p);   // 무료 사진은 그대로 다운로드
-    else goPay(p);                              // 그 외에는 결제 페이지로
+    var f = p.file || '';
+    location.href = WORDS_URL + '?file=' + encodeURIComponent(f);
   }
   // ---- 포스트 지도 ----
   var pin = L.divIcon ? L.divIcon({

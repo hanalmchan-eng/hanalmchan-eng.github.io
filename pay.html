@@ -119,12 +119,9 @@
 
   // ==================== 설정 (여기만 바꾸면 됩니다) ====================
   var CONFIG = {
-    // ▶ 카카오페이 / 토스 '송금 요청' 링크를 붙여넣으세요.
-    //    - 카카오페이: 카카오톡 > 카카오페이 > 송금 > '받기(정산·송금 요청)' 로 링크 생성
-    //    - 토스: 토스 앱 > 송금 > '받을 링크(받기)' 로 링크 생성
-    //    비워두면(''), 해당 버튼은 자동으로 숨겨집니다. 둘 중 하나만 써도 됩니다.
-    KAKAO_LINK: '',   // 예: 'https://qr.kakaopay.com/xxxxxxxx'
-    TOSS_LINK:  '',   // 예: 'https://toss.me/xxxx'
+    // ▶ 송금 QR 이미지 파일명. 이 QR 이미지를 pay.html 과 같은 폴더에 넣으세요.
+    //    (방금 주신 카카오페이/토스 받기 QR 이미지를 아래 이름으로 저장하면 됩니다)
+    QR_IMAGE: 'pay-qr.png',
 
     // 판매할 사진
     R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
@@ -142,17 +139,15 @@
     var f = CONFIG.PHOTO_FILE;
     return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
   }
-  function setLink(btn, url){
-    if (url){ btn.href = url; btn.target = '_blank'; btn.rel = 'noopener'; btn.hidden = false; }
-    else { btn.hidden = true; }
-  }
-
   $('photo').src = photoUrl();
   $('title').textContent = CONFIG.TITLE;
   $('desc').innerHTML = String(CONFIG.DESC).replace(/\n/g,'<br>');
   $('price').textContent = '₩' + Number(CONFIG.PRICE).toLocaleString('ko-KR');
-  setLink($('kakao-btn'), CONFIG.KAKAO_LINK);
-  setLink($('toss-btn'),  CONFIG.TOSS_LINK);
+  var qr = $('qr');
+  qr.src = CONFIG.QR_IMAGE;
+  qr.onerror = function(){
+    $('qr-cap').textContent = 'QR 이미지(' + CONFIG.QR_IMAGE + ')를 같은 폴더에 넣어주세요.';
+  };
   $('contact').textContent = CONFIG.CONTACT;
   $('contact').href = 'mailto:' + CONFIG.CONTACT;
 })();

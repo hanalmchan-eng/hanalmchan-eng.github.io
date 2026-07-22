@@ -691,11 +691,24 @@
         window.open(url, '_blank', 'noopener');   // 막히면 새 탭으로라도 원본을 연다
       });
   }
-  // 사진 클릭 시 동작: maps 사진은 글 페이지(words.html)로 이동한다.
-  // 원본 저장은 words.html 에서 처리(자동 저장 + 저장 버튼)하므로 여기선 이동만 한다.
+  // 사진 클릭 시 동작: 클릭(사용자 동작) 그 순간에 원본을 저장한 뒤 글 페이지로 이동.
+  // 저장을 클릭 시점에 하는 이유: 다음 페이지에서 자동 저장하면 브라우저가 막을 수 있어서.
   function onPhotoClick(p){
     var f = p.file || '';
-    location.href = WORDS_URL + '?file=' + encodeURIComponent(f);
+    var go = function(){ location.href = WORDS_URL + '?file=' + encodeURIComponent(f); };
+    if (!f){ go(); return; }
+    var url = buildImageUrl(f);
+    fetch(url)
+      .then(function(r){ if(!r.ok) throw new Error(r.status); return r.blob(); })
+      .then(function(blob){
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = f;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+        go();   // 저장이 시작되면 글 페이지로
+      })
+      .catch(function(){ go(); });   // 저장 실패해도 글 페이지로는 이동
   }
   // ---- 포스트 지도 ----
   var pin = L.divIcon ? L.divIcon({

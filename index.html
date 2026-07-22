@@ -271,9 +271,9 @@
     <div class="section-label">STILLS, MAPS</div>
     <div id="map-head">
       <span id="map-note">
-        사진을 눌러 원본 다운로드<br>
-        Click a photo to download the original<br>
-        写真をクリックでオリジナルをダウンロード · v27
+        사진을 눌러 원본 구매<br>
+        Click a photo to purchase the original<br>
+        写真をクリックでオリジナルを購入 · v28
       </span>
     </div>
     <div id="maps"></div>
@@ -314,6 +314,8 @@
   var GALLERY_URL = 'hanalmchan.html';
   var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
   var CONTACT     = 'hanalmchan@gmail.com';   // 인물 사진 원본 구매 문의처
+  var PAY_URL     = 'pay.html';   // ★ STILLS, MAPS 사진을 누르면 이동할 결제 페이지
+  var DEFAULT_PRICE = 30000;      // ★ 사진에 price 가 없을 때 결제 페이지로 넘길 기본 가격(원)
   // ── 이미지 프록시 (wsrv.nl) ── 원본을 통째로 받지 않기 위한 장치
   var USE_PROXY  = true;
   var PROXY_BASE = 'https://wsrv.nl/?url=';
@@ -654,15 +656,19 @@
       el.style.fontFamily = "'" + name + "', 'LMCHan', Georgia, serif";
     }).catch(function(){});
   }
-  // ---- 다운로드 — 일반적인 확인창(confirm) ----
-  function askDownload(p){
-    if (p.kind === 'person'){
-      if (window.confirm('인물 사진의 원본은 구매 문의로 제공됩니다.\n문의 메일을 작성하시겠습니까?')){
-        location.href = 'mailto:' + (p.buy || CONTACT) +
-          '?subject=' + encodeURIComponent('[LMCHAN] 원본 구매 문의 — ' + (p.file || ''));
-      }
-      return;
-    }
+  // ---- STILLS, MAPS 사진을 누르면 결제 페이지로 이동 ----
+  // 어떤 사진인지 결제 페이지(pay.html)로 넘긴다: ?file=…&title=…&price=…
+  // 사진에 free:true 를 주면 결제 대신 기존처럼 원본을 바로 다운로드한다.
+  function goPay(p){
+    var params = new URLSearchParams();
+    if (p.file) params.set('file', p.file);
+    var title = p.title || p.address || stem(p.file) || 'LMCHAN';
+    params.set('title', title);
+    params.set('price', String(p.price || DEFAULT_PRICE));
+    location.href = PAY_URL + '?' + params.toString();
+  }
+  // ---- (참고) 원본 바로 다운로드 — free:true 인 사진에만 사용 ----
+  function downloadOriginal(p){
     if (!window.confirm('다운로드 하시겠습니까?')) return;
     var url = p.file ? buildImageUrl(p.file) : (p.url || '');
     if (!url) return;
@@ -683,6 +689,11 @@
       .catch(function(){
         window.open(url, '_blank', 'noopener');   // 막히면 새 탭으로라도 원본을 연다
       });
+  }
+  // 사진 클릭 시 동작을 한 곳에서 결정한다.
+  function onPhotoClick(p){
+    if (p.free === true) downloadOriginal(p);   // 무료 사진은 그대로 다운로드
+    else goPay(p);                              // 그 외에는 결제 페이지로
   }
   // ---- 포스트 지도 ----
   var pin = L.divIcon ? L.divIcon({
@@ -741,7 +752,7 @@
       applyFont(p, addr);
       sec.appendChild(addr);
     }
-    // 사진 (누르면 다운로드 확인창)
+    // 사진 (누르면 결제 페이지로 이동)
     var wrap = document.createElement('div');
     wrap.className = 'p-photo';
     var src = p.file ? buildImageUrl(p.file) : (p.url || '');
@@ -772,7 +783,7 @@
     lg.src = 'logo_mask.png';
     lg.onerror = function(){ lg.remove(); };
     wrap.appendChild(lg);
-    wrap.addEventListener('click', function(){ askDownload(p); });
+    wrap.addEventListener('click', function(){ onPhotoClick(p); });
     sec.appendChild(wrap);
     // 좌표
     var co = document.createElement('div');

@@ -66,8 +66,8 @@
   /* 송금 QR */
   .qr-box{ display:flex; flex-direction:column; align-items:center; margin-bottom:4px; }
   .qr-box img{
-    width:220px; max-width:70%; height:auto; display:block;
-    background:#fff; padding:14px; border-radius:8px; border:1px solid var(--ink-16);
+    width:100%; max-width:100%; height:auto; display:block;
+    background:#fff; padding:16px; border-radius:8px; border:1px solid var(--ink-16);
   }
   .qr-cap{ font-size:11px; color:var(--ink-35); letter-spacing:.05em; margin-top:12px; }
   .steps{
@@ -119,8 +119,8 @@
 
   // ==================== 설정 (여기만 바꾸면 됩니다) ====================
   var CONFIG = {
-    // ▶ 송금 QR 이미지 파일명. 이 QR 이미지를 pay.html 과 같은 폴더에 넣으세요.
-    //    (방금 주신 카카오페이/토스 받기 QR 이미지를 아래 이름으로 저장하면 됩니다)
+    // ▶ 송금 QR 이미지. R2 파일명(예: 'pay-qr.png')이나 전체 URL을 넣으세요.
+    //    파일명만 넣으면 아래 R2_BASE 에서 불러오고, http로 시작하면 그 주소를 그대로 씁니다.
     QR_IMAGE: 'pay-qr.png',
 
     // 판매할 사진
@@ -141,18 +141,19 @@
   if (qp.get('price')) CONFIG.PRICE = Number(qp.get('price')) || CONFIG.PRICE;
 
   var $ = function(id){ return document.getElementById(id); };
-  function photoUrl(){
-    var f = CONFIG.PHOTO_FILE;
+  // R2 파일명이면 R2_BASE 를 붙이고, http로 시작하면 그대로 쓴다.
+  function assetUrl(f){
     return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
   }
+  function photoUrl(){ return assetUrl(CONFIG.PHOTO_FILE); }
   $('photo').src = photoUrl();
   $('title').textContent = CONFIG.TITLE;
   $('desc').innerHTML = String(CONFIG.DESC).replace(/\n/g,'<br>');
   $('price').textContent = '₩' + Number(CONFIG.PRICE).toLocaleString('ko-KR');
   var qr = $('qr');
-  qr.src = CONFIG.QR_IMAGE;
+  qr.src = assetUrl(CONFIG.QR_IMAGE);
   qr.onerror = function(){
-    $('qr-cap').textContent = 'QR 이미지(' + CONFIG.QR_IMAGE + ')를 같은 폴더에 넣어주세요.';
+    $('qr-cap').textContent = 'QR 이미지를 불러오지 못했습니다 (' + CONFIG.QR_IMAGE + ').';
   };
   $('contact').textContent = CONFIG.CONTACT;
   $('contact').href = 'mailto:' + CONFIG.CONTACT;

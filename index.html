@@ -625,6 +625,23 @@
     });
     return out;
   }
+  // ---- 랜덤 한 장 고르기 (새로고침마다 직전 사진은 최대한 피함) ----
+  // 최근에 보여준 사진을 브라우저에 기억해 두고, 나머지를 다 볼 때까지 다시 안 뽑는다.
+  function pickOneRandom(list){
+    if (!list || list.length <= 1) return list || [];
+    var KEY = 'lmchan_recent_maps';
+    var idOf = function(p){ return String((p && (p.file || p.url)) || ''); };
+    var recent = [];
+    try { recent = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e){}
+    var pool = list.filter(function(p){ return recent.indexOf(idOf(p)) === -1; });
+    if (!pool.length) pool = list.slice();          // 다 봤으면 초기화
+    var chosen = pool[Math.floor(Math.random() * pool.length)];
+    recent.push(idOf(chosen));
+    var remember = list.length - 1;                 // 나머지를 다 볼 때까지 반복 안 함
+    while (recent.length > remember) recent.shift();
+    try { localStorage.setItem(KEY, JSON.stringify(recent)); } catch(e){}
+    return [chosen];
+  }
   // ---- 포스트 재료: 파일명 규칙 ----
   // 사진이 2F9A6950.jpeg 면 글귀 = 2F9A6950.phrase.png / 폰트 = 2F9A6950.font.woff2
   // phrase / font 필드가 있으면 그것을 우선한다.
@@ -837,6 +854,8 @@
       var places = flattenPlaces(raw);
       mapSection.hidden = false;
       if (!places.length){ mapEmpty.hidden = false; return; }
+      // 한 장만 랜덤으로 (직전 사진은 최대한 피함)
+      places = pickOneRandom(places);
       // 좌표: 수동값 우선, 없으면 사진 EXIF 에서 읽는다
       return Promise.all(places.map(resolveCoords)).then(function(coords){
         var frag = document.createDocumentFragment();

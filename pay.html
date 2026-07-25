@@ -63,8 +63,15 @@
   /* 제공 파일 목록: 작고 흐린 회색 */
   .desc{
     font-size:11px; color:var(--ink-35); letter-spacing:.04em; text-align:center;
-    line-height:1.9; margin-bottom:18px; min-height:1px;
+    line-height:1.9; margin-bottom:10px; min-height:1px;
   }
+  /* 구매방식 / 배포 여부 배지 — O/X 로 간단히 표시 */
+  .flags{
+    font-size:10px; color:var(--ink-60); letter-spacing:.05em; text-align:center;
+    line-height:1.8; margin-bottom:18px; font-variant-numeric:tabular-nums;
+  }
+  .flags[hidden]{ display:none; }
+  .flags b{ color:var(--ink); font-weight:700; }
   /* 가격: 어두운 배지 위에 항상 흰 텍스트 (라이트/다크 모드 무관) */
   .price-wrap{ text-align:center; margin-bottom:22px; }
   .price-wrap[hidden]{ display:none; }
@@ -132,6 +139,9 @@
     <!-- 제공 파일 목록. 판매중이면 실제 구성(원문 그대로), 아니면 언어별 안내 문구 -->
     <div class="desc" id="desc"></div>
 
+    <!-- 직접구매/대행구매, 배포허용/배포금지를 O·X 로 표시. 판매중일 때만 노출 -->
+    <div class="flags" id="flags" hidden></div>
+
     <!-- 가격: 선택된 언어에 따라 원/달러/엔 중 하나로 표시. 판매 여부와 무관하게 항상 노출 -->
     <div class="price-wrap">
       <div class="price" id="price"></div>
@@ -143,10 +153,10 @@
       <div class="qr-cap" id="qr-cap"></div>
     </div>
 
-    <!-- 판매중일 때만: 결제 진행 안내 (선택된 언어로 표시) -->
+    <!-- 판매중일 때만: 결제 진행 안내 (선택된 언어로, 구매방식에 맞게 표시) -->
     <div class="steps" id="steps" hidden></div>
 
-    <!-- 구매 전 유의사항: 항상 노출, 선택된 언어로 표시 -->
+    <!-- 구매 전 유의사항: 항상 노출, 선택된 언어와 구매방식/배포여부에 맞게 표시 -->
     <div class="notice" id="notice"></div>
 
 <script>
@@ -183,6 +193,15 @@
     return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
   }
 
+  // posts.json 의 product 에 아래 두 필드를 넣으면 이 페이지가 자동으로 반영합니다.
+  // "directPurchase": "O"  → 구매자가 작가(HAN ALEUM)에게 직접 결제
+  // "directPurchase": "X"  → 구매자가 모델에게 직접 송금 (대행), 값이 없으면 기본 X
+  // "distribution":   "O"  → 배포 허용
+  // "distribution":   "X"  → 배포 금지, 값이 없으면 기본 X
+  function flagVal(v){
+    return v === true || v === 'O' || v === 'o' || v === '○' || v === 1;
+  }
+
   // ===== 다국어 문구 =====
   var I18N = {
     ko: {
@@ -190,54 +209,60 @@
       notForSale: '현재 판매중이 아닙니다.',
       qrCapDefault: '스캔해서 오픈채팅으로 문의',
       qrCapWithLink: 'QR 스캔 · 또는 눌러서 오픈채팅 문의',
-      fxNote: '환율 기준 $1 = ₩1,500 · ¥100 = ₩1,000',
-      noticeHTML:
-        '<b>구매 전 유의사항</b><br><br>' +
-        '· 구매자가 모델에게 직접 송금하는 방식입니다.<br><br>' +
-        '· 모델의 요청에 따라 배포 금지를 요청했습니다.',
-      stepsHTML:
-        '<b>결제는 카카오톡 오픈채팅에서 진행됩니다.</b><br><br>' +
-        '<b>진행 순서</b><br>' +
-        '1. 위 QR로 오픈채팅 1:1 대화를 시작해요.<br>' +
-        '2. 사진을 받으실 이메일 주소를 알려주세요.<br>' +
-        '3. 모델님을 초대해 직접 송금을 요청드려요.<br>' +
-        '4. 송금이 확인되면 알려주신 이메일로 원본 파일을 보내드려요.'
+      flagPurchase: '직접구매',
+      flagDistribution: '배포',
+      noticeTitle: '구매 전 유의사항',
+      noticeDirect: '· 구매자가 작가(HAN ALEUM)에게 직접 결제하는 방식입니다.',
+      noticeAgency: '· 구매자가 모델에게 직접 송금하는 방식입니다.',
+      noticeDistAllow: '· 배포가 허용된 사진입니다.',
+      noticeDistBan: '· 모델의 요청에 따라 배포 금지를 요청했습니다.',
+      stepsHead: '<b>결제는 카카오톡 오픈채팅에서 진행됩니다.</b><br><br><b>진행 순서</b><br>',
+      steps1: '1. 위 QR로 오픈채팅 1:1 대화를 시작해요.<br>',
+      steps2: '2. 사진을 받으실 이메일 주소를 알려주세요.<br>',
+      stepsDirect3: '3. 안내해드리는 계좌로 결제해주세요.<br>',
+      stepsDirect4: '4. 결제가 확인되면 알려주신 이메일로 원본 파일을 보내드려요.',
+      stepsAgency3: '3. 모델님을 초대해 직접 송금을 요청드려요.<br>',
+      stepsAgency4: '4. 송금이 확인되면 알려주신 이메일로 원본 파일을 보내드려요.'
     },
     en: {
       sub: 'Watermark-free retouched photos, extra originals & footage',
       notForSale: 'Not currently for sale.',
       qrCapDefault: 'Scan to open chat and inquire',
       qrCapWithLink: 'Scan the QR, or tap to open chat',
-      fxNote: 'Rate used: $1 = ₩1,500 · ¥100 = ₩1,000',
-      noticeHTML:
-        '<b>Before you buy</b><br><br>' +
-        '· Buyers transfer payment directly to the model.<br><br>' +
-        "· Distribution is prohibited at the model's request.",
-      stepsHTML:
-        '<b>Payment is handled via KakaoTalk Open Chat.</b><br><br>' +
-        '<b>How it works</b><br>' +
-        '1. Start a 1:1 chat using the QR above.<br>' +
-        "2. Share the email address you'd like the photos sent to.<br>" +
-        "3. We'll invite the model and request a direct transfer.<br>" +
-        "4. Once the transfer is confirmed, we'll send the original files to that email."
+      flagPurchase: 'Direct purchase',
+      flagDistribution: 'Distribution',
+      noticeTitle: 'Before you buy',
+      noticeDirect: '· Buyers pay the photographer (HAN ALEUM) directly.',
+      noticeAgency: '· Buyers transfer payment directly to the model.',
+      noticeDistAllow: '· Distribution of this photo is permitted.',
+      noticeDistBan: "· Distribution is prohibited at the model's request.",
+      stepsHead: '<b>Payment is handled via KakaoTalk Open Chat.</b><br><br><b>How it works</b><br>',
+      steps1: '1. Start a 1:1 chat using the QR above.<br>',
+      steps2: "2. Share the email address you'd like the photos sent to.<br>",
+      stepsDirect3: '3. Pay using the account details we provide.<br>',
+      stepsDirect4: "4. Once payment is confirmed, we'll send the original files to that email.",
+      stepsAgency3: "3. We'll invite the model and request a direct transfer.<br>",
+      stepsAgency4: "4. Once the transfer is confirmed, we'll send the original files to that email."
     },
     ja: {
       sub: '透かしなしの補正済み写真・追加オリジナル・撮影映像の購入',
       notForSale: '現在販売しておりません。',
       qrCapDefault: 'スキャンしてオープンチャットへ',
       qrCapWithLink: 'QRをスキャン、またはタップでチャット',
-      fxNote: 'レート基準 $1 = ₩1,500 · ¥100 = ₩1,000',
-      noticeHTML:
-        '<b>ご購入前に</b><br><br>' +
-        '· 購入者がモデルに直接送金する方式です。<br><br>' +
-        '· モデルの要望により配布を禁止しています。',
-      stepsHTML:
-        '<b>決済はカカオトークのオープンチャットで行います。</b><br><br>' +
-        '<b>進め方</b><br>' +
-        '1. 上のQRからオープンチャットで1:1トークを始めてください。<br>' +
-        '2. 写真を受け取るメールアドレスを教えてください。<br>' +
-        '3. モデルを招待して直接送金をお願いします。<br>' +
-        '4. 送金が確認できましたら、そのメールに元データをお送りします。'
+      flagPurchase: '直接購入',
+      flagDistribution: '配布',
+      noticeTitle: 'ご購入前に',
+      noticeDirect: '· 購入者が撮影者(HAN ALEUM)に直接お支払いする方式です。',
+      noticeAgency: '· 購入者がモデルに直接送金する方式です。',
+      noticeDistAllow: '· この写真は配布が許可されています。',
+      noticeDistBan: '· モデルの要望により配布を禁止しています。',
+      stepsHead: '<b>決済はカカオトークのオープンチャットで行います。</b><br><br><b>進め方</b><br>',
+      steps1: '1. 上のQRからオープンチャットで1:1トークを始めてください。<br>',
+      steps2: '2. 写真を受け取るメールアドレスを教えてください。<br>',
+      stepsDirect3: '3. ご案内する口座へお支払いください。<br>',
+      stepsDirect4: '4. お支払いが確認できましたら、そのメールに元データをお送りします。',
+      stepsAgency3: '3. モデルを招待して直接送金をお願いします。<br>',
+      stepsAgency4: '4. 送金が確認できましたら、そのメールに元データをお送りします。'
     }
   };
 
@@ -256,6 +281,23 @@
     return '₩' + Math.round(krw).toLocaleString('ko-KR');
   }
 
+  function buildNotice(t, direct, dist){
+    return '<b>' + t.noticeTitle + '</b><br><br>' +
+      (direct ? t.noticeDirect : t.noticeAgency) + '<br><br>' +
+      (dist ? t.noticeDistAllow : t.noticeDistBan);
+  }
+
+  function buildSteps(t, direct){
+    return t.stepsHead + t.steps1 + t.steps2 +
+      (direct ? (t.stepsDirect3 + t.stepsDirect4) : (t.stepsAgency3 + t.stepsAgency4));
+  }
+
+  function buildFlags(t, direct, dist){
+    return t.flagPurchase + ' <b>' + (direct ? 'O' : 'X') + '</b>' +
+      '&nbsp;&nbsp;·&nbsp;&nbsp;' +
+      t.flagDistribution + ' <b>' + (dist ? 'O' : 'X') + '</b>';
+  }
+
   function applyLang(lang){
     currentLang = lang;
     var t = I18N[lang];
@@ -267,8 +309,6 @@
 
     $('sub').textContent = t.sub;
     $('qr-cap').textContent = CONFIG.PAY_LINK ? t.qrCapWithLink : t.qrCapDefault;
-    $('notice').innerHTML = t.noticeHTML;
-    $('steps').innerHTML = t.stepsHTML;
 
     renderProduct(lastProduct); // 언어에 따라 "판매중 아님" 문구 등을 다시 그림
   }
@@ -299,9 +339,13 @@
     qrLink.style.cursor = 'pointer';
   }
 
-  // ===== 제공 파일 / 가격 =====
+  // ===== 제공 파일 / 가격 / 구매방식 / 배포여부 =====
   // posts.json 의 각 항목에 아래와 같은 "product" 필드를 넣어두면 자동으로 반영됩니다:
-  // "product": { "desc": "...", "price": 95000 }
+  // "product": {
+  //   "desc": "...", "price": 95000,
+  //   "directPurchase": "O" | "X",   // O = 작가에게 직접 결제, X(기본) = 모델에게 대행 송금
+  //   "distribution": "O" | "X"      // O = 배포 허용, X(기본) = 배포 금지
+  // }
   // desc는 원문(한국어) 그대로 노출되고, 가격만 원/달러/엔으로 자동 환산됩니다.
   function renderProduct(product){
     lastProduct = product;
@@ -310,11 +354,19 @@
     var priceNum = product ? (Number(product.price) || 0) : 0;
     var forSale = !!(priceNum > 0 && desc.length > 0);
 
-    $('desc').innerHTML = forSale ? desc.replace(/\n/g, '<br>') : t.notForSale;
+    var direct = flagVal(product && product.directPurchase);
+    var dist   = flagVal(product && product.distribution);
 
+    $('desc').innerHTML = forSale ? desc.replace(/\n/g, '<br>') : t.notForSale;
     $('price').textContent = fmtPrice(priceNum, currentLang);
 
+    $('flags').innerHTML = buildFlags(t, direct, dist);
+    $('flags').hidden = !forSale;
+
+    $('steps').innerHTML = buildSteps(t, direct);
     $('steps').hidden = !forSale;
+
+    $('notice').innerHTML = buildNotice(t, direct, dist);
   }
 
   applyLang('ko');

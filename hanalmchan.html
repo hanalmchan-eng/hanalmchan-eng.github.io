@@ -74,20 +74,18 @@
   #nav a { color: inherit; text-decoration: none; margin-left: 12px; }
   #nav a:hover { color: #888888; }
   /* 서가(index.html)로 돌아가는 링크 / 구매(결제) 링크 공통:
-     텍스트에 blend-mode를 거는 대신, 뒤 배경을 실제로 반전시키는
-     작은 패치(backdrop-filter: invert)를 깔아서 어떤 사진 위에서도
-     또렷하게 보이도록 한다. */
+     뒤 배경 전체를 반전시키는 사각 패치 대신, 글자 모양 자체에만
+     mix-blend-mode: difference 를 걸어 글자 픽셀만 반전되어 보이도록 한다.
+     -webkit-text-stroke 로 획을 덧그려 글자를 더 두껍게 표현한다. */
   #back-link, #order-link {
     position: fixed; z-index: 100;
     font-family: 'LMCHan', Georgia, serif;
     font-size: 22px; letter-spacing: 0.14em;
     color: #ffffff;
+    -webkit-text-stroke: 0.7px currentColor;
     text-decoration: none;
     padding: 5px 10px;
-    border-radius: 8px;
-    backdrop-filter: invert(1);
-    -webkit-backdrop-filter: invert(1);
-    text-shadow: 0 0 3px rgba(0,0,0,.5), 0 0 3px rgba(0,0,0,.5);
+    mix-blend-mode: difference;
     opacity: 0.9;
     transition: opacity 0.3s ease;
   }

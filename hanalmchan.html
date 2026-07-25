@@ -764,11 +764,11 @@
     var friction = 0.93;
     function step() {
       velX *= friction; velY *= friction;
-      tx += velX; ty += velY;
-      var bx = tx, by = ty;
-      updateTransform();
-      if (tx === bx && Math.abs(velX) > 0.1) velX = 0;
-      if (ty === by && Math.abs(velY) > 0.1) velY = 0;
+      var targetX = tx + velX, targetY = ty + velY;
+      tx = targetX; ty = targetY;
+      updateTransform(); // clampPosition() 안에서 tx/ty 가 벽에 걸리면 값이 바뀐다
+      if (tx !== targetX) velX = 0; // 벽에 부딪힌 축만 감속 없이 즉시 정지
+      if (ty !== targetY) velY = 0;
       if (Math.abs(velX) < 0.1 && Math.abs(velY) < 0.1) { momentumRAF = null; return; }
       momentumRAF = requestAnimationFrame(step);
     }

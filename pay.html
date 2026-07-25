@@ -102,11 +102,6 @@
   }
   .steps b{ color:var(--ink); font-weight:600; }
   .steps .em{ color:var(--ink); }
-  .foot{
-    font-size:10px; color:var(--ink-35); text-align:center;
-    letter-spacing:.04em; line-height:1.9; margin-top:22px;
-  }
-  .foot a{ color:var(--ink-60); }
 </style>
 </head>
 <body>
@@ -142,13 +137,8 @@
       1. QR을 스캔해 표시된 금액을 송금해요.<br>
       2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
       3. 확인 후 그 이메일로 원본 파일을 보내드려요.<br>
-      <span style="color:var(--ink-35)">메모를 못 남기셨다면 아래 메일로 알려주세요.</span>
+      <span style="color:var(--ink-35)">메모를 못 남기셨다면 위 QR로 오픈채팅에 알려주세요.</span>
     </div>
-
-    <div class="foot">
-      문의 · Contact <a id="contact" href="#">—</a>
-    </div>
-  </div>
 
 <script>
 (function(){
@@ -159,16 +149,14 @@
     // ▶ 송금 QR 이미지. GitHub Pages(hanalmchan-eng.github.io)에 올린 파일을 직접 가져옵니다.
     //   레포 루트에 pay-qr.png 를 올리면 아래 URL로 바로 접근됩니다.
     //   하위 폴더(예: images/pay-qr.png)에 올렸다면 경로만 맞게 수정하세요.
-    QR_IMAGE: 'https://hanalmchan-eng.github.io/pay-qr.PNG',
+    QR_IMAGE: 'https://hanalmchan-eng.github.io/pay-qr.png',
 
     // ▶ QR을 눌렀을 때(모바일 등) 이동할 링크.
     PAY_LINK: 'https://open.kakao.com/me/HANALMCHAN',
 
     R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
     PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. ?file= 로 넘어오면 덮어씀
-    TITLE:      'STILLS',              // ?title= 로 넘어오면 덮어씀 (없으면 posts.json의 caption 사용)
-
-    CONTACT:    'hanalmchan@gmail.com'
+    TITLE:      'STILLS'               // ?title= 로 넘어오면 덮어씀 (없으면 posts.json의 caption 사용)
   };
   // ===================================================================
 
@@ -192,7 +180,7 @@
   $('title').textContent = CONFIG.TITLE;
 
   var qr = $('qr');
-  qr.src = assetUrl(CONFIG.QR_IMAGE);
+  qr.src = assetUrl(CONFIG.QR_IMAGE) + '?v=' + Date.now();
   qr.onerror = function(){
     $('qr-cap').textContent = 'QR 이미지를 불러오지 못했습니다 (' + CONFIG.QR_IMAGE + ').';
   };
@@ -205,8 +193,6 @@
     qrLink.style.cursor = 'pointer';
     $('qr-cap').textContent = 'QR 스캔 · 또는 눌러서 오픈채팅 문의';
   }
-  $('contact').textContent = CONFIG.CONTACT;
-  $('contact').href = 'mailto:' + CONFIG.CONTACT;
 
   // ===== 제공 파일 / 가격 =====
   // posts.json 의 각 항목에 아래와 같은 "product" 필드를 넣어두면 자동으로 반영됩니다:

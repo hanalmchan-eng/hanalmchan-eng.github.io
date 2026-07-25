@@ -83,10 +83,13 @@
   .btn[hidden]{ display:none; }
   /* 송금 QR */
   .qr-box{ display:flex; flex-direction:column; align-items:center; margin-bottom:4px; }
-  .qr-box a{ display:block; width:100%; text-decoration:none; }
+  .qr-box a{
+    display:block; width:100%; text-decoration:none;
+    border-radius:16px; overflow:hidden; border:1px solid var(--ink-16);
+  }
   .qr-box img{
     width:100%; max-width:100%; height:auto; display:block;
-    background:#fff; padding:16px; border-radius:8px; border:1px solid var(--ink-16);
+    background:#fff;
     transition:filter .2s ease;
   }
   @media (prefers-color-scheme: dark){
@@ -153,8 +156,10 @@
 
   // ==================== 설정 (여기만 바꾸면 됩니다) ====================
   var CONFIG = {
-    // ▶ 송금 QR 이미지. R2 파일명(예: 'pay-qr.png')이나 전체 URL을 넣으세요.
-    QR_IMAGE: 'pay-qr.png',
+    // ▶ 송금 QR 이미지. GitHub Pages(hanalmchan-eng.github.io)에 올린 파일을 직접 가져옵니다.
+    //   레포 루트에 pay-qr.png 를 올리면 아래 URL로 바로 접근됩니다.
+    //   하위 폴더(예: images/pay-qr.png)에 올렸다면 경로만 맞게 수정하세요.
+    QR_IMAGE: 'https://hanalmchan-eng.github.io/pay-qr.PNG',
 
     // ▶ QR을 눌렀을 때(모바일 등) 이동할 링크.
     PAY_LINK: 'https://open.kakao.com/me/HANALMCHAN',

@@ -64,11 +64,14 @@
     font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.02em;
     padding:10px 22px; border-radius:6px;
   }
-  /* 항상 노출되는 구매 방식 안내 (맨 아래) */
-  .how{
-    text-align:center; font-size:11px; color:var(--ink-35);
+  /* 구매 전 유의사항: 페이지 맨 마지막 */
+  .notice{
+    text-align:center; font-size:11px; color:var(--ink-60);
     letter-spacing:.03em; line-height:1.9; margin-top:28px;
   }
+  .notice b{ color:var(--ink); font-weight:600; }
+  .notice .kr{ color:var(--ink); }
+  .notice .tr{ color:var(--ink-35); }
   .steps[hidden]{ display:none; }
   /* 송금 버튼 */
   .btn{
@@ -94,7 +97,7 @@
   @media (prefers-color-scheme: dark){
     .qr-box img{ filter:invert(1); }
   }
-  .qr-cap{ font-size:11px; color:var(--ink-35); letter-spacing:.05em; margin-top:12px; }
+  .qr-cap{ font-size:11px; color:var(--ink-35); letter-spacing:.05em; line-height:1.7; margin-top:12px; }
   .steps{
     border:1px solid var(--ink-16); border-radius:4px; padding:16px 18px;
     margin-top:22px; font-size:11px; color:var(--ink-60); line-height:2; letter-spacing:.02em;
@@ -136,11 +139,13 @@
       <span style="color:var(--ink-35)">메모를 못 남기셨다면 위 QR로 오픈채팅에 알려주세요.</span>
     </div>
 
-    <!-- 구매 방식 안내: 채팅 문의(QR) 아래, 맨 마지막. 항상 노출, 3개 언어 -->
-    <div class="how">
-      구매자가 모델에게 직접 송금하는 방식입니다.<br>
-      Buyers transfer payment directly to the model.<br>
-      購入者がモデルに直接送金する方式です。
+    <!-- 구매 전 유의사항: 채팅 문의(QR) 아래, 페이지 맨 마지막. 항상 노출 -->
+    <div class="notice">
+      <b>구매 전 유의사항</b><br><br>
+      · <span class="kr">구매자가 모델에게 직접 송금하는 방식입니다.</span><br>
+      <span class="tr">Buyers transfer payment directly to the model.<br>購入者がモデルに直接送金する方式です。</span><br><br>
+      · <span class="kr">모델의 요청에 따라 배포 금지를 요청했습니다.</span><br>
+      <span class="tr">Distribution is prohibited at the model's request.<br>モデルの要望により配布を禁止しています。</span>
     </div>
 
 <script>
@@ -197,7 +202,7 @@
     qrLink.target = '_blank';
     qrLink.rel = 'noopener';
     qrLink.style.cursor = 'pointer';
-    $('qr-cap').textContent = 'QR 스캔 · 또는 눌러서 오픈채팅 문의';
+    $('qr-cap').innerHTML = 'QR 스캔 · 또는 눌러서 오픈채팅 문의<br>Scan the QR, or tap to open chat';
   }
 
   // ===== 제공 파일 / 가격 =====

@@ -104,6 +104,14 @@
   }
   .steps b{ color:var(--ink); font-weight:600; }
   .steps .em{ color:var(--ink); }
+  .steps-lang{ display:flex; justify-content:center; gap:6px; margin-bottom:14px; }
+  .lang-btn{
+    font-size:10px; letter-spacing:.04em; padding:4px 11px; border-radius:20px;
+    border:1px solid var(--ink-16); background:transparent; color:var(--ink-35);
+    cursor:pointer; font-family:inherit;
+  }
+  .lang-btn.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .steps-body[hidden]{ display:none; }
 </style>
 </head>
 <body>
@@ -130,13 +138,38 @@
 
     <!-- 판매중일 때만: 결제 진행 안내 -->
     <div class="steps" id="steps" hidden>
-      <b>결제는 토스 앱에서만 진행됩니다.</b><br>
-      <span style="color:var(--ink-35)">Payment via the Toss app only · 決済はTossアプリのみ</span><br><br>
-      <b>진행 순서</b><br>
-      1. QR을 스캔해 표시된 금액을 송금해요.<br>
-      2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
-      3. 확인 후 그 이메일로 원본 파일을 보내드려요.<br>
-      <span style="color:var(--ink-35)">메모를 못 남기셨다면 위 QR로 오픈채팅에 알려주세요.</span>
+      <div class="steps-lang">
+        <button type="button" class="lang-btn active" data-lang="ko">한국어</button>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="ja">日本語</button>
+      </div>
+
+      <div class="steps-body" data-lang="ko">
+        <b>결제는 카카오톡 오픈채팅에서 진행됩니다.</b><br><br>
+        <b>진행 순서</b><br>
+        1. 위 QR로 오픈채팅 1:1 대화를 시작해요.<br>
+        2. 사진을 받으실 이메일 주소를 알려주세요.<br>
+        3. 모델님을 초대해 직접 송금을 요청드려요.<br>
+        4. 송금이 확인되면 알려주신 이메일로 원본 파일을 보내드려요.
+      </div>
+
+      <div class="steps-body" data-lang="en" hidden>
+        <b>Payment is handled via KakaoTalk Open Chat.</b><br><br>
+        <b>How it works</b><br>
+        1. Start a 1:1 chat using the QR above.<br>
+        2. Share the email address you'd like the photos sent to.<br>
+        3. We'll invite the model and request a direct transfer.<br>
+        4. Once the transfer is confirmed, we'll send the original files to that email.
+      </div>
+
+      <div class="steps-body" data-lang="ja" hidden>
+        <b>決済はカカオトークのオープンチャットで行います。</b><br><br>
+        <b>進め方</b><br>
+        1. 上のQRからオープンチャットで1:1トークを始めてください。<br>
+        2. 写真を受け取るメールアドレスを教えてください。<br>
+        3. モデルを招待して直接送金をお願いします。<br>
+        4. 送金が確認できましたら、そのメールに元データをお送りします。
+      </div>
     </div>
 
     <!-- 구매 전 유의사항: 채팅 문의(QR) 아래, 페이지 맨 마지막. 항상 노출 -->
@@ -188,6 +221,22 @@
   if (CONFIG.TITLE) {
     $('title').textContent = CONFIG.TITLE;
     $('title').hidden = false;
+  }
+
+  // 결제 진행 안내: 언어 토글 버튼
+  var langBtns = document.querySelectorAll('.lang-btn');
+  for (var li = 0; li < langBtns.length; li++){
+    langBtns[li].addEventListener('click', function(){
+      var lang = this.getAttribute('data-lang');
+      var btns = document.querySelectorAll('.lang-btn');
+      for (var bi = 0; bi < btns.length; bi++){
+        btns[bi].classList.toggle('active', btns[bi] === this);
+      }
+      var bodies = document.querySelectorAll('.steps-body');
+      for (var si = 0; si < bodies.length; si++){
+        bodies[si].hidden = (bodies[si].getAttribute('data-lang') !== lang);
+      }
+    });
   }
 
   var qr = $('qr');

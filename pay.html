@@ -74,11 +74,6 @@
     font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.02em;
     padding:10px 22px; border-radius:6px;
   }
-  .fx-note{
-    font-size:10px; color:var(--ink-35); letter-spacing:.02em;
-    margin-top:8px;
-  }
-  .fx-note[hidden]{ display:none; }
   /* 구매 전 유의사항: 페이지 맨 마지막 */
   .notice{
     text-align:center; font-size:11px; color:var(--ink-60);
@@ -141,7 +136,6 @@
     <div class="price-wrap">
       <div class="price" id="price"></div>
     </div>
-    <div class="fx-note" id="fxNote" hidden></div>
 
     <!-- 구매 문의 QR: 판매 여부와 무관하게 항상 표시 -->
     <div class="qr-box">
@@ -273,7 +267,6 @@
 
     $('sub').textContent = t.sub;
     $('qr-cap').textContent = CONFIG.PAY_LINK ? t.qrCapWithLink : t.qrCapDefault;
-    $('fxNote').textContent = t.fxNote;
     $('notice').innerHTML = t.noticeHTML;
     $('steps').innerHTML = t.stepsHTML;
 
@@ -322,7 +315,6 @@
     $('price').textContent = fmtPrice(priceNum, currentLang);
 
     $('steps').hidden = !forSale;
-    $('fxNote').hidden = !forSale || currentLang === 'ko';
   }
 
   applyLang('ko');

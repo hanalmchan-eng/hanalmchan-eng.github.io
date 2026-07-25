@@ -8,7 +8,7 @@
     "product": {
       "desc": "4K×1 · 72MP×1 · 32MP×25 · 726MB",
       "price": 150000,
-      "directPurchase": "O",
+      "directPurchase": "X",
       "distribution": "O"
     }
   },

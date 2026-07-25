@@ -19,12 +19,14 @@
     --ink-16:rgba(20,20,20,.14); --ink-08:rgba(20,20,20,.07);
     --kakao:#FEE500; --kakao-ink:#191600;
     --toss:#0064FF; --toss-ink:#ffffff;
+    --price-bg:#141414;
   }
   @media (prefers-color-scheme: dark){
     :root{
       --paper:#111113; --ink:#ececeb;
       --ink-60:rgba(236,236,235,.62); --ink-35:rgba(236,236,235,.35);
       --ink-16:rgba(236,236,235,.16); --ink-08:rgba(236,236,235,.08);
+      --price-bg:#2a2a2c;
     }
   }
   *{ margin:0; padding:0; box-sizing:border-box; }
@@ -48,11 +50,27 @@
   }
   .photo img{ width:100%; height:auto; display:block; }
   .title{ font-size:16px; letter-spacing:.03em; text-align:center; margin-bottom:6px; }
-  .desc{ font-size:11px; color:var(--ink-35); letter-spacing:.04em; text-align:center; line-height:1.8; margin-bottom:16px; }
-  .price{
-    font-size:22px; text-align:center; font-variant-numeric:tabular-nums;
-    letter-spacing:.02em; margin-bottom:22px;
+  /* 제공 파일 목록: 작고 흐린 회색 */
+  .desc{
+    font-size:11px; color:var(--ink-35); letter-spacing:.04em; text-align:center;
+    line-height:1.9; margin-bottom:18px; min-height:1px;
   }
+  /* 가격: 어두운 배지 위에 항상 흰 텍스트 (라이트/다크 모드 무관) */
+  .price-wrap{ text-align:center; margin-bottom:22px; }
+  .price-wrap[hidden]{ display:none; }
+  .price{
+    display:inline-block;
+    background:var(--price-bg); color:#ffffff;
+    font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.02em;
+    padding:10px 22px; border-radius:6px;
+  }
+  /* 판매중 아님 안내 */
+  .sold-out{
+    text-align:center; font-size:12px; color:var(--ink-35);
+    letter-spacing:.04em; padding:8px 0 4px; margin-bottom:22px;
+  }
+  .sold-out[hidden]{ display:none; }
+  #buy-flow[hidden]{ display:none; }
   /* 송금 버튼 */
   .btn{
     display:block; width:100%; padding:15px; border:none; border-radius:4px;
@@ -93,22 +111,31 @@
 
     <div class="photo"><img id="photo" alt=""></div>
     <div class="title" id="title">—</div>
+
+    <!-- 제공 파일 목록 (회색, 작게) -->
     <div class="desc" id="desc"></div>
-    <div class="price" id="price"></div>
 
-    <div class="qr-box">
-      <a id="qr-link"><img id="qr" alt="송금 QR 코드"></a>
-      <div class="qr-cap" id="qr-cap">카카오페이 · 토스로 스캔해 송금</div>
-    </div>
+    <!-- 판매중이 아닐 때 -->
+    <div class="sold-out" id="sold-out" hidden>현재 판매중이지 않습니다.</div>
 
-    <div class="steps">
-      <b>결제는 토스 앱에서만 진행됩니다.</b><br>
-      <span style="color:var(--ink-35)">Payment via the Toss app only · 決済はTossアプリのみ</span><br><br>
-      <b>진행 순서</b><br>
-      1. QR을 스캔해 표시된 금액을 송금해요.<br>
-      2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
-      3. 확인 후 그 이메일로 원본 파일을 보내드려요.<br>
-      <span style="color:var(--ink-35)">메모를 못 남기셨다면 아래 메일로 알려주세요.</span>
+    <!-- 판매중일 때: 가격 + 결제 UI -->
+    <div id="buy-flow" hidden>
+      <div class="price-wrap"><span class="price" id="price"></span></div>
+
+      <div class="qr-box">
+        <a id="qr-link"><img id="qr" alt="송금 QR 코드"></a>
+        <div class="qr-cap" id="qr-cap">스캔해서 오픈채팅으로 문의</div>
+      </div>
+
+      <div class="steps">
+        <b>결제는 토스 앱에서만 진행됩니다.</b><br>
+        <span style="color:var(--ink-35)">Payment via the Toss app only · 決済はTossアプリのみ</span><br><br>
+        <b>진행 순서</b><br>
+        1. QR을 스캔해 표시된 금액을 송금해요.<br>
+        2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
+        3. 확인 후 그 이메일로 원본 파일을 보내드려요.<br>
+        <span style="color:var(--ink-35)">메모를 못 남기셨다면 아래 메일로 알려주세요.</span>
+      </div>
     </div>
 
     <div class="foot">
@@ -123,40 +150,33 @@
   // ==================== 설정 (여기만 바꾸면 됩니다) ====================
   var CONFIG = {
     // ▶ 송금 QR 이미지. R2 파일명(예: 'pay-qr.png')이나 전체 URL을 넣으세요.
-    //    파일명만 넣으면 아래 R2_BASE 에서 불러오고, http로 시작하면 그 주소를 그대로 씁니다.
     QR_IMAGE: 'pay-qr.png',
 
-    // ▶ QR을 눌렀을 때(모바일 등) 이동할 송금 링크. QR 안에 담긴 주소와 같은 값입니다.
-    //    카카오페이/토스에서 '링크 복사'로 얻은 주소를 넣으세요. 비워두면 QR은 이미지로만 보입니다.
-    PAY_LINK: 'supertoss://send?amount=35000&bank=KB%EA%B5%AD%EB%AF%BC%EC%9D%80%ED%96%89&accountNo=72560200130824&origin=qr',
+    // ▶ QR을 눌렀을 때(모바일 등) 이동할 링크.
+    PAY_LINK: 'https://open.kakao.com/me/HANALMCHAN',
 
-    // 판매할 사진
     R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
-    PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. 전체 URL을 넣어도 됩니다.
-    TITLE:      'STILLS · 2F9A6950',   // 상품명
-    DESC:       '워터마크 없는 고해상도 원본\nHigh-resolution · watermark-free',
-    PRICE:      35000,                 // 표시 가격(원) — 토스 링크의 amount(35000)와 맞춤
+    PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. ?file= 로 넘어오면 덮어씀
+    TITLE:      'STILLS',              // ?title= 로 넘어오면 덮어씀 (없으면 posts.json의 caption 사용)
 
     CONTACT:    'hanalmchan@gmail.com'
   };
   // ===================================================================
 
-  // 갤러리에서 넘어온 사진 정보(?file=…&title=…&price=…)로 덮어쓴다.
+  // 갤러리에서 넘어온 사진 정보(?file=…&title=…)로 덮어쓴다.
   var qp = new URLSearchParams(location.search);
   if (qp.get('file'))  CONFIG.PHOTO_FILE = qp.get('file');
   if (qp.get('title')) CONFIG.TITLE = qp.get('title');
-  if (qp.get('price')) CONFIG.PRICE = Number(qp.get('price')) || CONFIG.PRICE;
 
   var $ = function(id){ return document.getElementById(id); };
   // R2 파일명이면 R2_BASE 를 붙이고, http로 시작하면 그대로 쓴다.
   function assetUrl(f){
     return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
   }
-  function photoUrl(){ return assetUrl(CONFIG.PHOTO_FILE); }
-  $('photo').src = photoUrl();
+
+  $('photo').src = assetUrl(CONFIG.PHOTO_FILE);
   $('title').textContent = CONFIG.TITLE;
-  $('desc').innerHTML = String(CONFIG.DESC).replace(/\n/g,'<br>');
-  $('price').textContent = '₩' + Number(CONFIG.PRICE).toLocaleString('ko-KR');
+
   var qr = $('qr');
   qr.src = assetUrl(CONFIG.QR_IMAGE);
   qr.onerror = function(){
@@ -169,10 +189,50 @@
     qrLink.target = '_blank';
     qrLink.rel = 'noopener';
     qrLink.style.cursor = 'pointer';
-    $('qr-cap').textContent = 'QR 스캔 · 또는 눌러서 송금';
+    $('qr-cap').textContent = 'QR 스캔 · 또는 눌러서 오픈채팅 문의';
   }
   $('contact').textContent = CONFIG.CONTACT;
   $('contact').href = 'mailto:' + CONFIG.CONTACT;
+
+  // ===== 제공 파일 / 가격 =====
+  // posts.json 의 각 항목에 아래와 같은 "product" 필드를 넣어두면 자동으로 반영됩니다:
+  // "product": {
+  //   "desc": "보정본 2장, 보정원본 1장, 추가 원본 파일 50장, 총 용량 1.2GB",  // 직접 문장으로 작성 (줄바꿈 \n 가능)
+  //   "price": 150000   // 가격(원). 0이면 비매
+  // }
+  function renderProduct(product){
+    var desc = (product && product.desc) ? String(product.desc).trim() : '';
+    // 가격이 0(또는 없음)이거나, 설명(desc)이 비어있으면 판매중이지 않음
+    var forSale = !!(product && Number(product.price) > 0 && desc.length > 0);
+
+    if (!forSale){
+      $('desc').innerHTML = '';
+      $('buy-flow').hidden = true;
+      $('sold-out').hidden = false;
+      return;
+    }
+
+    $('desc').innerHTML = desc.replace(/\n/g, '<br>');
+    $('price').textContent = '₩' + Number(product.price).toLocaleString('ko-KR');
+    $('buy-flow').hidden = false;
+    $('sold-out').hidden = true;
+  }
+
+  fetch('posts.json?v=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(posts){
+      var match = null;
+      for (var i = 0; i < posts.length; i++){
+        if (posts[i] && posts[i].file === CONFIG.PHOTO_FILE){ match = posts[i]; break; }
+      }
+      if (match && match.caption && !qp.get('title')) {
+        $('title').textContent = match.caption;
+      }
+      renderProduct(match ? match.product : null);
+    })
+    .catch(function(){
+      renderProduct(null);
+    });
 })();
 </script>
 </body>

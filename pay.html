@@ -70,6 +70,11 @@
     letter-spacing:.04em; padding:8px 0 4px; margin-bottom:22px;
   }
   .sold-out[hidden]{ display:none; }
+  /* 항상 노출되는 구매 방식 안내 */
+  .how{
+    text-align:center; font-size:11px; color:var(--ink-60);
+    letter-spacing:.03em; line-height:1.7; margin-bottom:18px;
+  }
   .steps[hidden]{ display:none; }
   /* 송금 버튼 */
   .btn{
@@ -122,6 +127,9 @@
 
     <!-- 판매중일 때만: 가격 -->
     <div class="price-wrap" id="price-wrap" hidden><span class="price" id="price"></span></div>
+
+    <!-- 구매 방식 안내: 가격/판매 여부와 무관하게 항상 노출 -->
+    <div class="how">구매자가 모델에게 직접 송금하는 방식입니다.</div>
 
     <!-- 구매 문의 QR: 판매 여부와 무관하게 항상 표시 -->
     <div class="qr-box">
@@ -213,7 +221,8 @@
     if (forSale) {
       $('price').textContent = '₩' + Number(product.price).toLocaleString('ko-KR');
     }
-    // 구매 문의 QR(qr-box)은 판매 여부와 무관하게 항상 노출됨 — 별도 처리 없음
+    // 구매 문의 QR(qr-box)과 "구매자가 모델에게 직접 송금" 안내(.how)는
+    // 판매 여부와 무관하게 항상 노출됨 — 별도 처리 없음
   }
 
   fetch('posts.json?v=' + Date.now())

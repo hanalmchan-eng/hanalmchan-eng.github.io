@@ -36,6 +36,16 @@
   }
   body{ padding:32px 20px 80px; display:flex; flex-direction:column; align-items:center; }
   .wrap{ width:100%; max-width:460px; }
+
+  /* 전체 언어 전환 스위처: 페이지 맨 위 */
+  .lang-switch-top{ display:flex; justify-content:center; gap:6px; margin-bottom:26px; }
+  .lang-btn{
+    font-size:10px; letter-spacing:.04em; padding:4px 11px; border-radius:20px;
+    border:1px solid var(--ink-16); background:transparent; color:var(--ink-35);
+    cursor:pointer; font-family:inherit;
+  }
+  .lang-btn.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+
   .brand{
     font-family:'LMCHan', Georgia, serif; font-size:19px; letter-spacing:.07em;
     text-align:center; margin-bottom:6px; -webkit-text-stroke:.3px currentColor;
@@ -64,14 +74,17 @@
     font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.02em;
     padding:10px 22px; border-radius:6px;
   }
+  .fx-note{
+    font-size:10px; color:var(--ink-35); letter-spacing:.02em;
+    margin-top:8px;
+  }
+  .fx-note[hidden]{ display:none; }
   /* 구매 전 유의사항: 페이지 맨 마지막 */
   .notice{
     text-align:center; font-size:11px; color:var(--ink-60);
     letter-spacing:.03em; line-height:1.9; margin-top:28px;
   }
   .notice b{ color:var(--ink); font-weight:600; }
-  .notice .kr{ color:var(--ink); }
-  .notice .tr{ color:var(--ink-35); }
   .steps[hidden]{ display:none; }
   /* 송금 버튼 */
   .btn{
@@ -103,83 +116,44 @@
     margin-top:22px; font-size:11px; color:var(--ink-60); line-height:2; letter-spacing:.02em;
   }
   .steps b{ color:var(--ink); font-weight:600; }
-  .steps .em{ color:var(--ink); }
-  .steps-lang{ display:flex; justify-content:center; gap:6px; margin-bottom:14px; }
-  .lang-btn{
-    font-size:10px; letter-spacing:.04em; padding:4px 11px; border-radius:20px;
-    border:1px solid var(--ink-16); background:transparent; color:var(--ink-35);
-    cursor:pointer; font-family:inherit;
-  }
-  .lang-btn.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
-  .steps-body[hidden]{ display:none; }
 </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="brand">photos by HAN ALEUM</div>
-    <div class="sub">
-      워터마크 없는 원본 구매 · Watermark-free original<br>ウォーターマークなしのオリジナル
+
+    <!-- 언어 전환: 페이지 맨 위, 전체 문구에 적용됨 -->
+    <div class="lang-switch-top" id="langSwitchTop">
+      <button type="button" class="lang-btn active" data-lang="ko">한국어</button>
+      <button type="button" class="lang-btn" data-lang="en">EN</button>
+      <button type="button" class="lang-btn" data-lang="ja">日本語</button>
     </div>
+
+    <div class="brand">photos by HAN ALEUM</div>
+    <div class="sub" id="sub"></div>
 
     <div class="photo"><img id="photo" alt=""></div>
     <div class="title" id="title" hidden></div>
 
-    <!-- 제공 파일 목록. 판매중이면 실제 구성, 아니면 안내 문구 — 항상 같은 스타일 -->
+    <!-- 제공 파일 목록. 판매중이면 실제 구성(원문 그대로), 아니면 언어별 안내 문구 -->
     <div class="desc" id="desc"></div>
 
-    <!-- 가격. 판매중이 아니면 0원으로 표시, 항상 노출 -->
-    <div class="price-wrap"><span class="price" id="price"></span></div>
+    <!-- 가격: 선택된 언어에 따라 원/달러/엔 중 하나로 표시. 판매 여부와 무관하게 항상 노출 -->
+    <div class="price-wrap">
+      <div class="price" id="price"></div>
+    </div>
+    <div class="fx-note" id="fxNote" hidden></div>
 
     <!-- 구매 문의 QR: 판매 여부와 무관하게 항상 표시 -->
     <div class="qr-box">
       <a id="qr-link"><img id="qr" alt="문의 QR 코드"></a>
-      <div class="qr-cap" id="qr-cap">스캔해서 오픈채팅으로 문의</div>
+      <div class="qr-cap" id="qr-cap"></div>
     </div>
 
-    <!-- 판매중일 때만: 결제 진행 안내 -->
-    <div class="steps" id="steps" hidden>
-      <div class="steps-lang">
-        <button type="button" class="lang-btn active" data-lang="ko">한국어</button>
-        <button type="button" class="lang-btn" data-lang="en">EN</button>
-        <button type="button" class="lang-btn" data-lang="ja">日本語</button>
-      </div>
+    <!-- 판매중일 때만: 결제 진행 안내 (선택된 언어로 표시) -->
+    <div class="steps" id="steps" hidden></div>
 
-      <div class="steps-body" data-lang="ko">
-        <b>결제는 카카오톡 오픈채팅에서 진행됩니다.</b><br><br>
-        <b>진행 순서</b><br>
-        1. 위 QR로 오픈채팅 1:1 대화를 시작해요.<br>
-        2. 사진을 받으실 이메일 주소를 알려주세요.<br>
-        3. 모델님을 초대해 직접 송금을 요청드려요.<br>
-        4. 송금이 확인되면 알려주신 이메일로 원본 파일을 보내드려요.
-      </div>
-
-      <div class="steps-body" data-lang="en" hidden>
-        <b>Payment is handled via KakaoTalk Open Chat.</b><br><br>
-        <b>How it works</b><br>
-        1. Start a 1:1 chat using the QR above.<br>
-        2. Share the email address you'd like the photos sent to.<br>
-        3. We'll invite the model and request a direct transfer.<br>
-        4. Once the transfer is confirmed, we'll send the original files to that email.
-      </div>
-
-      <div class="steps-body" data-lang="ja" hidden>
-        <b>決済はカカオトークのオープンチャットで行います。</b><br><br>
-        <b>進め方</b><br>
-        1. 上のQRからオープンチャットで1:1トークを始めてください。<br>
-        2. 写真を受け取るメールアドレスを教えてください。<br>
-        3. モデルを招待して直接送金をお願いします。<br>
-        4. 送金が確認できましたら、そのメールに元データをお送りします。
-      </div>
-    </div>
-
-    <!-- 구매 전 유의사항: 채팅 문의(QR) 아래, 페이지 맨 마지막. 항상 노출 -->
-    <div class="notice">
-      <b>구매 전 유의사항</b><br><br>
-      · <span class="kr">구매자가 모델에게 직접 송금하는 방식입니다.</span><br>
-      <span class="tr">Buyers transfer payment directly to the model.<br>購入者がモデルに直接送金する方式です。</span><br><br>
-      · <span class="kr">모델의 요청에 따라 배포 금지를 요청했습니다.</span><br>
-      <span class="tr">Distribution is prohibited at the model's request.<br>モデルの要望により配布を禁止しています。</span>
-    </div>
+    <!-- 구매 전 유의사항: 항상 노출, 선택된 언어로 표시 -->
+    <div class="notice" id="notice"></div>
 
 <script>
 (function(){
@@ -187,34 +161,123 @@
 
   // ==================== 설정 (여기만 바꾸면 됩니다) ====================
   var CONFIG = {
-    // ▶ 송금 QR 이미지. GitHub Pages(hanalmchan-eng.github.io)에 올린 파일을 직접 가져옵니다.
-    //   레포 루트에 pay-qr.png 를 올리면 아래 URL로 바로 접근됩니다.
-    //   하위 폴더(예: images/pay-qr.png)에 올렸다면 경로만 맞게 수정하세요.
     QR_IMAGE: 'https://hanalmchan-eng.github.io/pay-qr.png',
-
-    // ▶ QR을 눌렀을 때(모바일 등) 이동할 링크.
     PAY_LINK: 'https://open.kakao.com/me/HANALMCHAN',
 
     R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
-    PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. ?file= 로 넘어오면 덮어씀
-    TITLE:      ''                     // 기본값 없음. ?title= 또는 posts.json의 caption으로만 채워짐
+    PHOTO_FILE: '2F9A6950.jpeg',
+    TITLE:      '',
+
+    // ▶ 환율 (필요할 때 이 두 값만 바꾸면 전체 페이지의 환산가가 자동으로 갱신됩니다)
+    //   USD_PER_UNIT: $1 = 이 원화 금액
+    //   JPY_PER_100:  ¥100 = 이 원화 금액
+    USD_PER_UNIT: 1500,
+    JPY_PER_100:  1000
   };
   // ===================================================================
 
-  // 갤러리에서 넘어온 사진 정보(?file=…&title=…)로 덮어쓴다.
   var qp = new URLSearchParams(location.search);
   if (qp.get('file'))  CONFIG.PHOTO_FILE = qp.get('file');
 
-  // ?title= 이 IMG_9241, DSC01234 같은 "파일명"으로 보이면 제목으로 쓰지 않는다.
   var rawTitle = qp.get('title');
   var looksLikeFilename = !!(rawTitle && /^(img|dsc|dscf|pxl|photo|p)[-_]?\d{3,}/i.test(rawTitle.trim()));
   var titleFromQuery = (rawTitle && !looksLikeFilename) ? rawTitle : null;
   if (titleFromQuery) CONFIG.TITLE = titleFromQuery;
 
   var $ = function(id){ return document.getElementById(id); };
-  // R2 파일명이면 R2_BASE 를 붙이고, http로 시작하면 그대로 쓴다.
   function assetUrl(f){
     return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
+  }
+
+  // ===== 다국어 문구 =====
+  var I18N = {
+    ko: {
+      sub: '워터마크 없는 원본 구매',
+      notForSale: '현재 판매중이 아닙니다.',
+      qrCapDefault: '스캔해서 오픈채팅으로 문의',
+      qrCapWithLink: 'QR 스캔 · 또는 눌러서 오픈채팅 문의',
+      fxNote: '환율 기준 $1 = ₩1,500 · ¥100 = ₩1,000',
+      noticeHTML:
+        '<b>구매 전 유의사항</b><br><br>' +
+        '· 구매자가 모델에게 직접 송금하는 방식입니다.<br><br>' +
+        '· 모델의 요청에 따라 배포 금지를 요청했습니다.',
+      stepsHTML:
+        '<b>결제는 카카오톡 오픈채팅에서 진행됩니다.</b><br><br>' +
+        '<b>진행 순서</b><br>' +
+        '1. 위 QR로 오픈채팅 1:1 대화를 시작해요.<br>' +
+        '2. 사진을 받으실 이메일 주소를 알려주세요.<br>' +
+        '3. 모델님을 초대해 직접 송금을 요청드려요.<br>' +
+        '4. 송금이 확인되면 알려주신 이메일로 원본 파일을 보내드려요.'
+    },
+    en: {
+      sub: 'Watermark-free original purchase',
+      notForSale: 'Not currently for sale.',
+      qrCapDefault: 'Scan to open chat and inquire',
+      qrCapWithLink: 'Scan the QR, or tap to open chat',
+      fxNote: 'Rate used: $1 = ₩1,500 · ¥100 = ₩1,000',
+      noticeHTML:
+        '<b>Before you buy</b><br><br>' +
+        '· Buyers transfer payment directly to the model.<br><br>' +
+        "· Distribution is prohibited at the model's request.",
+      stepsHTML:
+        '<b>Payment is handled via KakaoTalk Open Chat.</b><br><br>' +
+        '<b>How it works</b><br>' +
+        '1. Start a 1:1 chat using the QR above.<br>' +
+        "2. Share the email address you'd like the photos sent to.<br>" +
+        "3. We'll invite the model and request a direct transfer.<br>" +
+        "4. Once the transfer is confirmed, we'll send the original files to that email."
+    },
+    ja: {
+      sub: 'ウォーターマークなしのオリジナル購入',
+      notForSale: '現在販売しておりません。',
+      qrCapDefault: 'スキャンしてオープンチャットへ',
+      qrCapWithLink: 'QRをスキャン、またはタップでチャット',
+      fxNote: 'レート基準 $1 = ₩1,500 · ¥100 = ₩1,000',
+      noticeHTML:
+        '<b>ご購入前に</b><br><br>' +
+        '· 購入者がモデルに直接送金する方式です。<br><br>' +
+        '· モデルの要望により配布を禁止しています。',
+      stepsHTML:
+        '<b>決済はカカオトークのオープンチャットで行います。</b><br><br>' +
+        '<b>進め方</b><br>' +
+        '1. 上のQRからオープンチャットで1:1トークを始めてください。<br>' +
+        '2. 写真を受け取るメールアドレスを教えてください。<br>' +
+        '3. モデルを招待して直接送金をお願いします。<br>' +
+        '4. 送金が確認できましたら、そのメールに元データをお送りします。'
+    }
+  };
+
+  var currentLang = 'ko';
+  var lastProduct = null; // applyLang() 재실행 시(언어 전환) 최신 상품 정보를 다시 그리기 위해 캐시
+
+  // 언어에 따라 표시 통화가 달라짐: 한국어→원, EN→달러, 日本語→엔
+  function fmtPrice(krw, lang){
+    if (lang === 'en'){
+      return '$' + (krw / CONFIG.USD_PER_UNIT).toFixed(2);
+    }
+    if (lang === 'ja'){
+      var jpy = krw / (CONFIG.JPY_PER_100 / 100);
+      return '¥' + Math.round(jpy).toLocaleString('ja-JP');
+    }
+    return '₩' + Math.round(krw).toLocaleString('ko-KR');
+  }
+
+  function applyLang(lang){
+    currentLang = lang;
+    var t = I18N[lang];
+
+    var btns = document.querySelectorAll('.lang-btn');
+    for (var i = 0; i < btns.length; i++){
+      btns[i].classList.toggle('active', btns[i].getAttribute('data-lang') === lang);
+    }
+
+    $('sub').textContent = t.sub;
+    $('qr-cap').textContent = CONFIG.PAY_LINK ? t.qrCapWithLink : t.qrCapDefault;
+    $('fxNote').textContent = t.fxNote;
+    $('notice').innerHTML = t.noticeHTML;
+    $('steps').innerHTML = t.stepsHTML;
+
+    renderProduct(lastProduct); // 언어에 따라 "판매중 아님" 문구 등을 다시 그림
   }
 
   $('photo').src = assetUrl(CONFIG.PHOTO_FILE);
@@ -223,19 +286,10 @@
     $('title').hidden = false;
   }
 
-  // 결제 진행 안내: 언어 토글 버튼
   var langBtns = document.querySelectorAll('.lang-btn');
   for (var li = 0; li < langBtns.length; li++){
     langBtns[li].addEventListener('click', function(){
-      var lang = this.getAttribute('data-lang');
-      var btns = document.querySelectorAll('.lang-btn');
-      for (var bi = 0; bi < btns.length; bi++){
-        btns[bi].classList.toggle('active', btns[bi] === this);
-      }
-      var bodies = document.querySelectorAll('.steps-body');
-      for (var si = 0; si < bodies.length; si++){
-        bodies[si].hidden = (bodies[si].getAttribute('data-lang') !== lang);
-      }
+      applyLang(this.getAttribute('data-lang'));
     });
   }
 
@@ -244,42 +298,34 @@
   qr.onerror = function(){
     $('qr-cap').textContent = 'QR 이미지를 불러오지 못했습니다 (' + CONFIG.QR_IMAGE + ').';
   };
-  // QR을 누르면 송금 링크로 이동 (모바일에서 스캔이 어려울 때 유용)
   var qrLink = $('qr-link');
   if (CONFIG.PAY_LINK){
     qrLink.href = CONFIG.PAY_LINK;
     qrLink.target = '_blank';
     qrLink.rel = 'noopener';
     qrLink.style.cursor = 'pointer';
-    $('qr-cap').innerHTML = 'QR 스캔 · 또는 눌러서 오픈채팅 문의<br>Scan the QR, or tap to open chat';
   }
 
   // ===== 제공 파일 / 가격 =====
   // posts.json 의 각 항목에 아래와 같은 "product" 필드를 넣어두면 자동으로 반영됩니다:
-  // "product": {
-  //   "desc": "보정본 2장, 보정원본 1장, 추가 원본 파일 50장, 총 용량 1.2GB",  // 직접 문장으로 작성 (줄바꿈 \n 가능)
-  //   "price": 150000   // 가격(원). 0이면 비매
-  // }
+  // "product": { "desc": "...", "price": 95000 }
+  // desc는 원문(한국어) 그대로 노출되고, 가격만 원/달러/엔으로 자동 환산됩니다.
   function renderProduct(product){
+    lastProduct = product;
+    var t = I18N[currentLang];
     var desc = (product && product.desc) ? String(product.desc).trim() : '';
     var priceNum = product ? (Number(product.price) || 0) : 0;
-    // 가격이 0(또는 없음)이거나, 설명(desc)이 비어있으면 판매중이지 않음
     var forSale = !!(priceNum > 0 && desc.length > 0);
 
-    // desc 자리는 항상 같은 스타일로 노출됨: 판매중이면 실제 구성, 아니면 안내 문구(3개 언어)
-    $('desc').innerHTML = forSale
-      ? desc.replace(/\n/g, '<br>')
-      : '현재 판매중이 아닙니다.<br>Not currently for sale.<br>現在販売しておりません。';
+    $('desc').innerHTML = forSale ? desc.replace(/\n/g, '<br>') : t.notForSale;
 
-    // 가격 배지도 항상 노출됨: 판매중이 아니면 0 won으로 표시
-    $('price').textContent = forSale
-      ? ('₩' + priceNum.toLocaleString('ko-KR'))
-      : '0 won';
+    $('price').textContent = fmtPrice(priceNum, currentLang);
 
     $('steps').hidden = !forSale;
-    // 구매 문의 QR(qr-box)과 맨 아래 구매 방식 안내(.how)는
-    // 판매 여부와 무관하게 항상 노출됨 — 별도 처리 없음
+    $('fxNote').hidden = !forSale || currentLang === 'ko';
   }
+
+  applyLang('ko');
 
   fetch('posts.json?v=' + Date.now())
     .then(function(r){ return r.json(); })
@@ -299,5 +345,6 @@
     });
 })();
 </script>
+  </div>
 </body>
 </html>

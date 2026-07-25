@@ -64,16 +64,10 @@
     font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.02em;
     padding:10px 22px; border-radius:6px;
   }
-  /* 판매중 아님 안내 */
-  .sold-out{
-    text-align:center; font-size:12px; color:var(--ink-35);
-    letter-spacing:.04em; padding:8px 0 4px; margin-bottom:22px;
-  }
-  .sold-out[hidden]{ display:none; }
-  /* 항상 노출되는 구매 방식 안내 */
+  /* 항상 노출되는 구매 방식 안내 (맨 아래) */
   .how{
-    text-align:center; font-size:11px; color:var(--ink-60);
-    letter-spacing:.03em; line-height:1.7; margin-bottom:18px;
+    text-align:center; font-size:11px; color:var(--ink-35);
+    letter-spacing:.03em; line-height:1.9; margin-top:28px;
   }
   .steps[hidden]{ display:none; }
   /* 송금 버튼 */
@@ -117,19 +111,13 @@
     </div>
 
     <div class="photo"><img id="photo" alt=""></div>
-    <div class="title" id="title">—</div>
+    <div class="title" id="title" hidden></div>
 
-    <!-- 제공 파일 목록 (회색, 작게) -->
+    <!-- 제공 파일 목록. 판매중이면 실제 구성, 아니면 안내 문구 — 항상 같은 스타일 -->
     <div class="desc" id="desc"></div>
 
-    <!-- 판매중이 아닐 때 -->
-    <div class="sold-out" id="sold-out" hidden>현재 판매중이지 않습니다.</div>
-
-    <!-- 판매중일 때만: 가격 -->
-    <div class="price-wrap" id="price-wrap" hidden><span class="price" id="price"></span></div>
-
-    <!-- 구매 방식 안내: 가격/판매 여부와 무관하게 항상 노출 -->
-    <div class="how">구매자가 모델에게 직접 송금하는 방식입니다.</div>
+    <!-- 가격. 판매중이 아니면 0원으로 표시, 항상 노출 -->
+    <div class="price-wrap"><span class="price" id="price"></span></div>
 
     <!-- 구매 문의 QR: 판매 여부와 무관하게 항상 표시 -->
     <div class="qr-box">
@@ -148,6 +136,13 @@
       <span style="color:var(--ink-35)">메모를 못 남기셨다면 위 QR로 오픈채팅에 알려주세요.</span>
     </div>
 
+    <!-- 구매 방식 안내: 채팅 문의(QR) 아래, 맨 마지막. 항상 노출, 3개 언어 -->
+    <div class="how">
+      구매자가 모델에게 직접 송금하는 방식입니다.<br>
+      Buyers transfer payment directly to the model.<br>
+      購入者がモデルに直接送金する方式です。
+    </div>
+
 <script>
 (function(){
   'use strict';
@@ -164,7 +159,7 @@
 
     R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
     PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. ?file= 로 넘어오면 덮어씀
-    TITLE:      'STILLS'               // ?title= 로 넘어오면 덮어씀 (없으면 posts.json의 caption 사용)
+    TITLE:      ''                     // 기본값 없음. ?title= 또는 posts.json의 caption으로만 채워짐
   };
   // ===================================================================
 
@@ -185,7 +180,10 @@
   }
 
   $('photo').src = assetUrl(CONFIG.PHOTO_FILE);
-  $('title').textContent = CONFIG.TITLE;
+  if (CONFIG.TITLE) {
+    $('title').textContent = CONFIG.TITLE;
+    $('title').hidden = false;
+  }
 
   var qr = $('qr');
   qr.src = assetUrl(CONFIG.QR_IMAGE) + '?v=' + Date.now();
@@ -210,18 +208,22 @@
   // }
   function renderProduct(product){
     var desc = (product && product.desc) ? String(product.desc).trim() : '';
+    var priceNum = product ? (Number(product.price) || 0) : 0;
     // 가격이 0(또는 없음)이거나, 설명(desc)이 비어있으면 판매중이지 않음
-    var forSale = !!(product && Number(product.price) > 0 && desc.length > 0);
+    var forSale = !!(priceNum > 0 && desc.length > 0);
 
-    $('desc').innerHTML = forSale ? desc.replace(/\n/g, '<br>') : '';
-    $('sold-out').hidden = forSale;
-    $('price-wrap').hidden = !forSale;
+    // desc 자리는 항상 같은 스타일로 노출됨: 판매중이면 실제 구성, 아니면 안내 문구(3개 언어)
+    $('desc').innerHTML = forSale
+      ? desc.replace(/\n/g, '<br>')
+      : '현재 판매중이 아닙니다.<br>Not currently for sale.<br>現在販売しておりません。';
+
+    // 가격 배지도 항상 노출됨: 판매중이 아니면 0 won으로 표시
+    $('price').textContent = forSale
+      ? ('₩' + priceNum.toLocaleString('ko-KR'))
+      : '0 won';
+
     $('steps').hidden = !forSale;
-
-    if (forSale) {
-      $('price').textContent = '₩' + Number(product.price).toLocaleString('ko-KR');
-    }
-    // 구매 문의 QR(qr-box)과 "구매자가 모델에게 직접 송금" 안내(.how)는
+    // 구매 문의 QR(qr-box)과 맨 아래 구매 방식 안내(.how)는
     // 판매 여부와 무관하게 항상 노출됨 — 별도 처리 없음
   }
 
@@ -234,6 +236,7 @@
       }
       if (match && match.caption && !titleFromQuery) {
         $('title').textContent = match.caption;
+        $('title').hidden = false;
       }
       renderProduct(match ? match.product : null);
     })

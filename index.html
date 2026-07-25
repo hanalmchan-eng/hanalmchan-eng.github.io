@@ -2,910 +2,244 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>LMCHAN — WATERMARKS</title>
+<title>LMCHAN — 원본 구매</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="icon" type="image/png" href="logo_mask.png">
 <link rel="apple-touch-icon" href="logo_mask.png">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
   @font-face{
     font-family:'LMCHan';
-    /* 폰트 파일을 어디에 두셨든 찾도록 후보 경로를 순서대로 시도한다.
-       앞에서 하나라도 성공하면 나머지는 무시된다. */
-    src:url('fonts/LMCHan.woff2') format('woff2'),
-        url('LMCHan.woff2') format('woff2'),
-        url('font/LMCHan.woff2') format('woff2'),
-        url('assets/LMCHan.woff2') format('woff2'),
-        url('fonts/LMCHan.otf') format('opentype'),
-        url('LMCHan.otf') format('opentype'),
-        url('font/LMCHan.otf') format('opentype'),
-        url('assets/LMCHan.otf') format('opentype'),
-        url('fonts/LMCHan-Regular.otf') format('opentype'),
-        url('LMCHan-Regular.otf') format('opentype');
-    font-weight:400;
-    font-style:normal;
-    font-display:swap;
+    src:url('fonts/LMCHan.woff2') format('woff2'), url('LMCHan.woff2') format('woff2'),
+        url('fonts/LMCHan.otf') format('opentype'), url('LMCHan.otf') format('opentype');
+    font-weight:400; font-style:normal; font-display:swap;
   }
   :root{
-    --paper:#ffffff;
-    --ink:#141414;
-    --ink-60:rgba(20,20,20,.6);
-    --ink-35:rgba(20,20,20,.35);
-    --ink-16:rgba(20,20,20,.14);
-    --ink-08:rgba(20,20,20,.07);
-    --cell:300px;        /* 로고 한 칸의 고정 너비 — 창 크기와 무관 */
-    --gap:12px;          /* 로고 사이 고정 간격 — 창 크기와 무관 */
-    --grid-max:1360px;
+    --paper:#ffffff; --ink:#141414;
+    --ink-60:rgba(20,20,20,.6); --ink-35:rgba(20,20,20,.35);
+    --ink-16:rgba(20,20,20,.14); --ink-08:rgba(20,20,20,.07);
+    --kakao:#FEE500; --kakao-ink:#191600;
+    --toss:#0064FF; --toss-ink:#ffffff;
+    --price-bg:#141414;
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --paper:#111113;
-      --ink:#ececeb;
-      --ink-60:rgba(236,236,235,.62);
-      --ink-35:rgba(236,236,235,.35);
-      --ink-16:rgba(236,236,235,.16);
-      --ink-08:rgba(236,236,235,.08);
+      --paper:#111113; --ink:#ececeb;
+      --ink-60:rgba(236,236,235,.62); --ink-35:rgba(236,236,235,.35);
+      --ink-16:rgba(236,236,235,.16); --ink-08:rgba(236,236,235,.08);
+      --price-bg:#2a2a2c;
     }
   }
   *{ margin:0; padding:0; box-sizing:border-box; }
   html,body{
-    min-height:100%;
-    background:var(--paper); color:var(--ink);
-    font-family:Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing:antialiased;
-    transition:background-color .3s ease, color .3s ease;
+    min-height:100%; background:var(--paper); color:var(--ink);
+    font-family:Helvetica, Arial, sans-serif; -webkit-font-smoothing:antialiased;
   }
-  body{
-    padding:20px 24px 96px;
-    display:flex; flex-direction:column; align-items:center;
-    overflow-x:hidden;   /* 100vw 사진이 스크롤바 폭만큼 넘치는 것 방지 */
+  body{ padding:32px 20px 80px; display:flex; flex-direction:column; align-items:center; }
+  .wrap{ width:100%; max-width:460px; }
+  .brand{
+    font-family:'LMCHan', Georgia, serif; font-size:24px; letter-spacing:.12em;
+    text-align:center; margin-bottom:6px; -webkit-text-stroke:.3px currentColor;
   }
-  /* 각 섹션은 자기 라벨을 데리고 다닌다.
-     라벨은 그 섹션이 화면에 있는 동안 위쪽에 붙어 따라오다가,
-     섹션이 끝나면 함께 밀려 올라가 사라진다 (position:sticky). */
-  section{
-    width:100%;
-    display:flex; flex-direction:column; align-items:center;
+  .sub{
+    font-size:10px; color:var(--ink-35); letter-spacing:.06em; text-align:center;
+    line-height:1.9; margin-bottom:30px;
   }
-  .section-label{
-    position:sticky; top:20px; z-index:600;
-    align-self:flex-start;
-    font-family:'LMCHan', Georgia, serif;
-    font-size:26px; letter-spacing:.12em; white-space:nowrap;
-    margin-bottom:44px;
-    /* 뒤에 무엇이 지나가든 항상 읽히도록 배경색을 반전시켜 그린다. */
-    color:#ffffff;
-    mix-blend-mode:difference;
-    -webkit-text-stroke:0.4px currentColor;
+  .photo{
+    width:100%; border-radius:3px; overflow:hidden; background:var(--ink-08);
+    margin-bottom:22px; line-height:0;
   }
-  #models-section{ margin-top:96px; }
-  /* 본문 속 'LMCHAN' 만 로고 폰트로. (LMCHan 에는 소문자 글리프가 없다) */
-  .lm{
-    font-family:'LMCHan', Georgia, serif;
-    font-size:1.2em; letter-spacing:.06em;
-    color:var(--ink-60);
-    -webkit-text-stroke:0.3px currentColor;
+  .photo img{ width:100%; height:auto; display:block; }
+  .title{ font-size:16px; letter-spacing:.03em; text-align:center; margin-bottom:6px; }
+  /* 제공 파일 목록: 작고 흐린 회색 */
+  .desc{
+    font-size:11px; color:var(--ink-35); letter-spacing:.04em; text-align:center;
+    line-height:1.9; margin-bottom:18px; min-height:1px;
   }
-  /* 인트로 묶음 — 첫 스크롤 뒤 부드럽게 접혀 사라진다 (.gone) */
-  #intro{
-    display:flex; flex-direction:column; align-items:center;
-    overflow:hidden;
-    max-height:260px;
-    transition:opacity .5s ease, max-height .6s ease,
-               margin-bottom .5s ease, transform .5s ease;
+  /* 가격: 어두운 배지 위에 항상 흰 텍스트 (라이트/다크 모드 무관) */
+  .price-wrap{ text-align:center; margin-bottom:22px; }
+  .price-wrap[hidden]{ display:none; }
+  .price{
+    display:inline-block;
+    background:var(--price-bg); color:#ffffff;
+    font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.02em;
+    padding:10px 22px; border-radius:6px;
   }
-  #intro.gone{
-    opacity:0; max-height:0; margin-bottom:0;
-    transform:translateY(-8px); pointer-events:none;
+  /* 판매중 아님 안내 */
+  .sold-out{
+    text-align:center; font-size:12px; color:var(--ink-35);
+    letter-spacing:.04em; padding:8px 0 4px; margin-bottom:22px;
   }
-  .byline{
-    font-size:17px; color:var(--ink-60); letter-spacing:.04em;
-    text-align:center; margin-bottom:12px;
+  .sold-out[hidden]{ display:none; }
+  .steps[hidden]{ display:none; }
+  /* 송금 버튼 */
+  .btn{
+    display:block; width:100%; padding:15px; border:none; border-radius:4px;
+    text-align:center; font-size:15px; letter-spacing:.03em; text-decoration:none;
+    cursor:pointer; margin-bottom:10px; transition:opacity .2s ease;
   }
-  .hint-text{
-    font-size:9.5px; color:var(--ink-35); letter-spacing:.04em; line-height:2;
-    text-align:center;
+  .btn:hover{ opacity:.88; }
+  .btn.kakao{ background:var(--kakao); color:var(--kakao-ink); }
+  .btn.toss{ background:var(--toss); color:var(--toss-ink); }
+  .btn[hidden]{ display:none; }
+  /* 송금 QR */
+  .qr-box{ display:flex; flex-direction:column; align-items:center; margin-bottom:4px; }
+  .qr-box a{
+    display:block; width:100%; text-decoration:none;
+    border-radius:16px; overflow:hidden; border:1px solid var(--ink-16);
   }
-  /* 로고 칸은 어떤 창 크기에서도 300px 고정 — 칸이 늘어나며 로고가
-     '확대'되는 일이 없다. 창이 좁아지면 칸 크기는 그대로 두고
-     열 수만 4 → 3 → 2 → 1 로 줄어들며(auto-fit), 남는 공간은
-     justify-content:center 로 양옆에 균등 분배된다.
-     max-width 는 아주 넓은 창에서 5열 이상이 되는 것을 막는다(최대 4열). */
-  #grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, min(100%, var(--cell)));
-    justify-content:center;
-    gap:var(--gap);
-    width:100%;
-    max-width:calc(var(--cell) * 4 + var(--gap) * 3);
-    margin-top:56px;
-  }
-  .icon{
-    display:flex; flex-direction:column; align-items:center; gap:8px;
-    text-decoration:none; color:inherit;
-    padding:10px 2px; border-radius:8px;
-    -webkit-tap-highlight-color:transparent;
-    transition:transform .28s cubic-bezier(.22,1,.36,1), background-color .28s ease;
-  }
-  .icon:hover, .icon:focus-visible{ transform:translateY(-4px); background:var(--ink-08); }
-  .icon:focus-visible{ outline:1px solid var(--ink-35); outline-offset:2px; }
-  .mark{
-    position:relative; overflow:hidden;
-    width:100%; height:150px;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .mark img, .mark canvas{
-    position:absolute; top:0; left:0; max-width:none; display:block;
-    opacity:0; transition:opacity .5s ease;
-  }
-  .mark img.is-ready, .mark canvas.is-ready{ opacity:1; }
-  .mark-fallback{
-    font-family:'LMCHan', Georgia, serif;
-    font-size:15px; letter-spacing:.03em;
-    color:var(--ink); white-space:nowrap;
-  }
-  .mark.has-photo .mark-fallback{ display:none; }
-  .cap{
-    font-size:9.5px; letter-spacing:.06em; color:var(--ink-35);
-    font-variant-numeric:tabular-nums;
-  }
-  #empty{ font-size:11px; color:var(--ink-35); margin-top:40px; }
-  /* ── STILLS, MAPS — 포스트: 글귀 → 날짜와 주소 → 사진 → 좌표 → 지도 ── */
-  /* 섹션은 ENCOUNTERS 와 같은 전체 폭 — 라벨 위치가 두 섹션에서 일치한다.
-     내용물(#maps 등)만 로고 격자와 같은 폭으로 가운데에 둔다. */
-  #map-section{
-    width:100%;
-  }
-  /* #map-section 은 flex(가운데 정렬) 컨테이너라, 자식에게 너비 100% 를
-     명시하지 않으면 내용물 크기로 쪼그라든다. */
-  #map-head, #maps{
-    width:100%;
-    max-width:calc(var(--cell) * 4 + var(--gap) * 3);
-  }
-  /* 안내문 — 가운데 정렬. 한 번 보인 뒤 화면 위로 지나가면 접혀 사라진다. */
-  #map-head{
-    display:flex; align-items:baseline; justify-content:center;
-    margin-bottom:14px;
-    overflow:hidden; max-height:120px;
-    transition:opacity .5s ease, max-height .6s ease,
-               margin-bottom .5s ease, transform .5s ease;
-  }
-  #map-head.gone{
-    opacity:0; max-height:0; margin-bottom:0;
-    transform:translateY(-8px); pointer-events:none;
-  }
-  #map-note{
-    font-size:9px; color:var(--ink-35); letter-spacing:.04em;
-    line-height:1.8; text-align:center;
-  }
-  .post{ width:100%; margin:0 0 120px; }
-  .post:last-child{ margin-bottom:0; }
-  /* 글귀 — 직접 그린 그림 (파일이 없으면 자리 없이 넘어간다) */
-  .phrase{
-    display:block; margin:0 auto 24px;
-    max-width:min(560px, 86%); height:auto;
-  }
-  /* 날짜와 주소 — 포스트 전용 폰트로 표시 */
-  .p-addr{
-    text-align:center; margin:0 0 20px;
-    font-size:15px; letter-spacing:.06em; color:var(--ink-60);
-    font-variant-numeric:tabular-nums;
-  }
-  /* 사진은 본문 여백을 뚫고 창 가로를 끝까지 채운다 (옆 빈 부분 없음) */
-  .p-photo{
-    position:relative;
-    width:100vw; margin-left:calc(50% - 50vw);
-    line-height:0; cursor:pointer;
-  }
-  /* 사진 오른쪽 하단의 로고 (투명 PNG) — 클릭은 사진으로 통과한다 */
-  .p-logo{
-    position:absolute; right:14px; bottom:14px; z-index:5;
-    width:44px; height:auto;   /* 아주 작게 — 크기는 이 숫자로 조절 */
-    /* 배경을 반전시켜 그린다 — 검은 배경에선 밝게, 밝은 배경에선 어둡게 */
-    filter:invert(1);
-    mix-blend-mode:difference;
-    opacity:.16;   /* 아주 연하게 — 더 약하게는 .1, 더 진하게는 .25 */
-    pointer-events:none;
-  }
-  @media (max-width:669px){
-    .p-logo{ right:10px; bottom:10px; width:32px; }
-  }
-  .p-photo img, .p-photo video{
-    width:100%; height:auto; display:block;
-    background:var(--ink-08);
-  }
-  .p-coord{
-    text-align:center; margin:12px 0 24px;
-    font-size:11px; letter-spacing:.08em; color:var(--ink-35);
-    font-variant-numeric:tabular-nums;
-  }
-  .p-map{
-    width:100%; aspect-ratio:1236 / 772;
-    border:1px solid var(--ink-16); border-radius:2px;
-    background:var(--paper);
-  }
-  @media (max-width:900px){
-    .p-map{ aspect-ratio:4 / 5; }
-  }
-  /* 랜드커버 타일 — 물=파랑, 들·숲=초록, 도시=회색이 또렷이 갈라지게.
-     다크 모드는 같은 컬러 타일을 어둡게 눌러 쓴다. */
-  .base-tiles, .leaflet-tile-pane .base-tiles{
-    filter:saturate(4) contrast(1.6) brightness(.97) !important;
+  .qr-box img{
+    width:100%; max-width:100%; height:auto; display:block;
+    background:#fff;
+    transition:filter .2s ease;
   }
   @media (prefers-color-scheme: dark){
-    .base-tiles, .leaflet-tile-pane .base-tiles{
-      filter:saturate(2.8) brightness(.55) contrast(1.35) !important;
-    }
+    .qr-box img{ filter:invert(1); }
   }
-  /* 지형 음영 — 산·능선의 기복 */
-  .hill-tiles, .leaflet-tile-pane .hill-tiles{ opacity:.14 !important; mix-blend-mode:multiply; }
-  @media (prefers-color-scheme: dark){
-    .hill-tiles, .leaflet-tile-pane .hill-tiles{ opacity:.2 !important; mix-blend-mode:multiply; }
+  .qr-cap{ font-size:11px; color:var(--ink-35); letter-spacing:.05em; margin-top:12px; }
+  .steps{
+    border:1px solid var(--ink-16); border-radius:4px; padding:16px 18px;
+    margin-top:22px; font-size:11px; color:var(--ink-60); line-height:2; letter-spacing:.02em;
   }
-  #map-empty{
-    font-size:11px; color:var(--ink-35); text-align:center;
-    padding:40px 0;
+  .steps b{ color:var(--ink); font-weight:600; }
+  .steps .em{ color:var(--ink); }
+  .foot{
+    font-size:10px; color:var(--ink-35); text-align:center;
+    letter-spacing:.04em; line-height:1.9; margin-top:22px;
   }
-  .leaflet-container{ background:var(--paper); font-family:Helvetica, Arial, sans-serif; }
-  .photo-pin{ background:none !important; border:none !important; }
-  .photo-pin span{
-    display:block; width:12px; height:12px; border-radius:50%;
-    background:var(--ink); border:2px solid var(--paper);
-    box-shadow:0 0 0 1px var(--ink-16);
-  }
-  @media (max-width:669px){
-    body{ padding:16px 18px 72px; }
-    .section-label{ font-size:20px; margin-bottom:32px; }
-    .post{ margin-bottom:88px; }
-    .p-addr{ font-size:13.5px; }
-  }
-  @media (prefers-reduced-motion:reduce){
-    .icon{ transition:none; }
-    .icon:hover{ transform:none; }
-  }
+  .foot a{ color:var(--ink-60); }
 </style>
 </head>
 <body>
-  <section id="map-section" hidden>
-    <div class="section-label">STILLS, MAPS</div>
-    <div id="map-head">
-      <span id="map-note">
-        사진을 눌러 원본 저장 · 이어서 글로<br>
-        Click a photo to save the original, then read<br>
-        写真をクリックで保存、そして言葉へ · v29
-      </span>
+  <div class="wrap">
+    <div class="brand">LMCHAN</div>
+    <div class="sub">
+      워터마크 없는 원본 구매 · Watermark-free original<br>ウォーターマークなしのオリジナル
     </div>
-    <div id="maps"></div>
-    <div id="map-empty" hidden>등록된 포스트가 아직 없습니다.<br>No posts yet.<br>投稿がまだありません。</div>
-  </section>
-  <section id="models-section">
-    <div class="section-label">ENCOUNTERS, WATERMARKS</div>
-    <!-- 인트로 문구: 한 번 다 보인 뒤 화면 위로 지나가면 접혀 사라진다 -->
-    <div id="intro">
-      <div class="byline">photos by <span class="lm">HAN ALEUM</span></div>
-      <div class="hint-text">
-        <span class="lm">LMCHAN</span> 워터마크를 눌러 해당 사진으로<br>
-        Tap an <span class="lm">LMCHAN</span> watermark to open that photo<br>
-        <span class="lm">LMCHAN</span> のウォーターマークをタップして写真へ
-      </div>
+
+    <div class="photo"><img id="photo" alt=""></div>
+    <div class="title" id="title">—</div>
+
+    <!-- 제공 파일 목록 (회색, 작게) -->
+    <div class="desc" id="desc"></div>
+
+    <!-- 판매중이 아닐 때 -->
+    <div class="sold-out" id="sold-out" hidden>현재 판매중이지 않습니다.</div>
+
+    <!-- 판매중일 때만: 가격 -->
+    <div class="price-wrap" id="price-wrap" hidden><span class="price" id="price"></span></div>
+
+    <!-- 구매 문의 QR: 판매 여부와 무관하게 항상 표시 -->
+    <div class="qr-box">
+      <a id="qr-link"><img id="qr" alt="문의 QR 코드"></a>
+      <div class="qr-cap" id="qr-cap">스캔해서 오픈채팅으로 문의</div>
     </div>
-    <div id="grid" role="list"></div>
-      <div id="empty" hidden>불러올 사진이 없습니다.<br>No photos yet.<br>写真がまだありません。</div>
-  </section>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- 판매중일 때만: 결제 진행 안내 -->
+    <div class="steps" id="steps" hidden>
+      <b>결제는 토스 앱에서만 진행됩니다.</b><br>
+      <span style="color:var(--ink-35)">Payment via the Toss app only · 決済はTossアプリのみ</span><br><br>
+      <b>진행 순서</b><br>
+      1. QR을 스캔해 표시된 금액을 송금해요.<br>
+      2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
+      3. 확인 후 그 이메일로 원본 파일을 보내드려요.<br>
+      <span style="color:var(--ink-35)">메모를 못 남기셨다면 아래 메일로 알려주세요.</span>
+    </div>
+
+    <div class="foot">
+      문의 · Contact <a id="contact" href="#">—</a>
+    </div>
+  </div>
+
 <script>
 (function(){
   'use strict';
-  // ====== 임시 진단 (꺼둠) ======
-  var DEBUG = false;
-  var _dbgEl = document.getElementById('debug');
-  var _posts = null, _ok = 0, _fail = 0, _lastErr = '';
-  function dbgRender(){
-    if (!DEBUG || !_dbgEl) return;
-    _dbgEl.textContent =
-      'posts.json: ' + (_posts == null ? '확인중…' : (_posts < 0 ? '실패!' : _posts + '개')) +
-      '  ·  로고 성공 ' + _ok + ' / 실패 ' + _fail +
-      (_lastErr ? '  ·  ' + _lastErr : '');
+
+  // ==================== 설정 (여기만 바꾸면 됩니다) ====================
+  var CONFIG = {
+    // ▶ 송금 QR 이미지. GitHub Pages(hanalmchan-eng.github.io)에 올린 파일을 직접 가져옵니다.
+    //   레포 루트에 pay-qr.png 를 올리면 아래 URL로 바로 접근됩니다.
+    //   하위 폴더(예: images/pay-qr.png)에 올렸다면 경로만 맞게 수정하세요.
+    QR_IMAGE: 'https://hanalmchan-eng.github.io/pay-qr.PNG',
+
+    // ▶ QR을 눌렀을 때(모바일 등) 이동할 링크.
+    PAY_LINK: 'https://open.kakao.com/me/HANALMCHAN',
+
+    R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
+    PHOTO_FILE: '2F9A6950.jpeg',       // R2 파일명. ?file= 로 넘어오면 덮어씀
+    TITLE:      'STILLS',              // ?title= 로 넘어오면 덮어씀 (없으면 posts.json의 caption 사용)
+
+    CONTACT:    'hanalmchan@gmail.com'
+  };
+  // ===================================================================
+
+  // 갤러리에서 넘어온 사진 정보(?file=…&title=…)로 덮어쓴다.
+  var qp = new URLSearchParams(location.search);
+  if (qp.get('file'))  CONFIG.PHOTO_FILE = qp.get('file');
+  if (qp.get('title')) CONFIG.TITLE = qp.get('title');
+
+  var $ = function(id){ return document.getElementById(id); };
+  // R2 파일명이면 R2_BASE 를 붙이고, http로 시작하면 그대로 쓴다.
+  function assetUrl(f){
+    return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
   }
-  dbgRender();
-  // ====== 설정 ======
-  var GALLERY_URL = 'hanalmchan.html';
-  var R2_BASE     = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
-  var CONTACT     = 'hanalmchan@gmail.com';   // 인물 사진 원본 구매 문의처
-  var WORDS_URL   = 'words.html'; // ★ STILLS, MAPS 사진을 누르면 이동할 글 페이지 (원본 저장 + EPUB 글)
-  var PAY_URL     = 'pay.html';   // (참고) 결제 페이지 — 지금 maps 는 결제 대신 words 로 간다
-  var DEFAULT_PRICE = 30000;      // (참고) 결제 방식으로 되돌릴 때 쓸 기본 가격(원)
-  // ── 이미지 프록시 (wsrv.nl) ── 원본을 통째로 받지 않기 위한 장치
-  var USE_PROXY  = true;
-  var PROXY_BASE = 'https://wsrv.nl/?url=';
-  function proxify(fileUrl, params){
-    if (!USE_PROXY || !/^https?:\/\//.test(fileUrl)) return fileUrl;
-    return PROXY_BASE + fileUrl + (params ? '&' + params : '');
+
+  $('photo').src = assetUrl(CONFIG.PHOTO_FILE);
+  $('title').textContent = CONFIG.TITLE;
+
+  var qr = $('qr');
+  qr.src = assetUrl(CONFIG.QR_IMAGE);
+  qr.onerror = function(){
+    $('qr-cap').textContent = 'QR 이미지를 불러오지 못했습니다 (' + CONFIG.QR_IMAGE + ').';
+  };
+  // QR을 누르면 송금 링크로 이동 (모바일에서 스캔이 어려울 때 유용)
+  var qrLink = $('qr-link');
+  if (CONFIG.PAY_LINK){
+    qrLink.href = CONFIG.PAY_LINK;
+    qrLink.target = '_blank';
+    qrLink.rel = 'noopener';
+    qrLink.style.cursor = 'pointer';
+    $('qr-cap').textContent = 'QR 스캔 · 또는 눌러서 오픈채팅 문의';
   }
-  var POSTS_JSON  = 'posts.json';    // 워터마크 갤러리용 (위 격자)
-  var PLACES_JSON = 'places.json';   // 포스트용 — 글귀·사진·좌표·지도
-  var LOGO_W_RATIO  = 0.0936;      // 로고 너비 / 사진 너비
-  var LOGO_HW_RATIO = 801 / 1429;  // 로고 높이 / 로고 너비
-  var CROP_TOP = -0.06, CROP_BOTTOM = -0.06, CROP_SIDE = -0.03;
-  var MARK_H = 420, MARK_MAX_W = 300;
-  // 포스트 지도의 축척. 숫자가 클수록 확대된다 (15 이상은 회색판이 된다).
-  var VIEW_ZOOM = 11;
-  // 갤러리 링크 앵커: 확장자를 뗀 파일명
-  function anchorFor(post, index){
-    if (post.file) return String(post.file).replace(/\.[^.]+$/, '');
-    return 'i=' + index;
-  }
-  function hrefFor(post, index){
-    return GALLERY_URL + '#' + encodeURIComponent(anchorFor(post, index));
-  }
-  // ==================
-  var grid  = document.getElementById('grid');
-  var empty = document.getElementById('empty');
-  var mapSection = document.getElementById('map-section');
-  var mapEmpty   = document.getElementById('map-empty');
-  var mapsWrap   = document.getElementById('maps');
-  function buildImageUrl(filename){ return R2_BASE + '/' + encodeURIComponent(filename); }
-  function srcOf(post){
-    if (post.thumb) return /^https?:/.test(post.thumb) ? post.thumb : buildImageUrl(post.thumb);
-    if (post.file)  return buildImageUrl(post.file);
-    return post.url || '';
-  }
-  function captionOf(post, index){
-    var d = post.date || post.taken || '';
-    if (d){
-      var m = String(d).match(/(\d{4})\D?(\d{2})\D?(\d{2})/);
-      if (m) return m[1].slice(2) + '.' + m[2] + '.' + m[3];
-      return String(d).slice(0, 10);
+  $('contact').textContent = CONFIG.CONTACT;
+  $('contact').href = 'mailto:' + CONFIG.CONTACT;
+
+  // ===== 제공 파일 / 가격 =====
+  // posts.json 의 각 항목에 아래와 같은 "product" 필드를 넣어두면 자동으로 반영됩니다:
+  // "product": {
+  //   "desc": "보정본 2장, 보정원본 1장, 추가 원본 파일 50장, 총 용량 1.2GB",  // 직접 문장으로 작성 (줄바꿈 \n 가능)
+  //   "price": 150000   // 가격(원). 0이면 비매
+  // }
+  function renderProduct(product){
+    var desc = (product && product.desc) ? String(product.desc).trim() : '';
+    // 가격이 0(또는 없음)이거나, 설명(desc)이 비어있으면 판매중이지 않음
+    var forSale = !!(product && Number(product.price) > 0 && desc.length > 0);
+
+    $('desc').innerHTML = forSale ? desc.replace(/\n/g, '<br>') : '';
+    $('sold-out').hidden = forSale;
+    $('price-wrap').hidden = !forSale;
+    $('steps').hidden = !forSale;
+
+    if (forSale) {
+      $('price').textContent = '₩' + Number(product.price).toLocaleString('ko-KR');
     }
-    return String(index + 1).padStart(2, '0');
+    // 구매 문의 QR(qr-box)은 판매 여부와 무관하게 항상 노출됨 — 별도 처리 없음
   }
-  function isVideo(post){
-    var n = String(post.file || post.url || '').toLowerCase();
-    return /\.(mp4|mov|m4v|webm)(\?|$)/.test(n);
-  }
-  function labelOf(post, index){
-    return post.place || post.caption || captionOf(post, index);
-  }
-  // ---- 로고 크기 맞추기 ----
-  var fitted = [];
-  function fitMark(e){
-    var icon = e.mark.parentElement;
-    if (!icon) return;
-    var availW = (icon.clientWidth - 4) || MARK_MAX_W;
-    var boxW = availW, boxH = boxW / e.aspect;
-    if (boxH > MARK_H){ boxH = MARK_H; boxW = boxH * e.aspect; }
-    e.mark.style.width  = boxW + 'px';
-    e.mark.style.height = boxH + 'px';
-    if (e.mode === 'crop'){
-      var dispW = boxW / e.fw, dispH = boxH / e.fh;
-      e.el.style.width  = dispW + 'px';
-      e.el.style.height = dispH + 'px';
-      e.el.style.left   = (-e.fx * dispW) + 'px';
-      e.el.style.top    = (-e.fy * dispH) + 'px';
-    } else {
-      e.el.style.width  = '100%';
-      e.el.style.height = '100%';
-      e.el.style.left = '0'; e.el.style.top = '0';
-    }
-  }
-  var fitTimer = null;
-  window.addEventListener('resize', function(){
-    clearTimeout(fitTimer);
-    fitTimer = setTimeout(function(){ fitted.forEach(fitMark); }, 100);
-  });
-  // ---- 원본을 한 장씩만 다루기 (아이폰 메모리 보호) ----
-  var queue = [], busy = false;
-  function enqueue(task){ queue.push(task); pump(); }
-  function pump(){
-    if (busy || !queue.length) return;
-    busy = true;
-    queue.shift()(function(){
-      busy = false;
-      setTimeout(pump, 0);
-    });
-  }
-  // ---- 아이콘 (사진에 합성된 로고를 크롭해서 사용) ----
-  function makeIcon(post, index){
-    var a = document.createElement('a');
-    a.className = 'icon';
-    a.setAttribute('role', 'listitem');
-    a.href = hrefFor(post, index);
-    a.setAttribute('aria-label', labelOf(post, index) + ' — 사진 열기');
-    var mark = document.createElement('span');
-    mark.className = 'mark';
-    var fb = document.createElement('span');
-    fb.className = 'mark-fallback';
-    fb.textContent = 'LMCHAN';
-    mark.appendChild(fb);
-    var cap = document.createElement('span');
-    cap.className = 'cap';
-    cap.textContent = captionOf(post, index);
-    a.appendChild(mark); a.appendChild(cap);
-    // 미리 잘라둔 로고 이미지(logo)가 있으면 그것을 그대로 쓴다.
-    if (post.logo){
-      enqueue(function(done){
-        var limg = new Image();
-        limg.decoding = 'async'; limg.alt = '';
-        limg.onload = function(){
-          if (limg.naturalWidth && limg.naturalHeight){
-            var entry = { mark:mark, el:limg, mode:'canvas',
-                          aspect: limg.naturalWidth / limg.naturalHeight };
-            fitted.push(entry); fitMark(entry);
-            limg.classList.add('is-ready');
-            mark.classList.add('has-photo');
-          }
-          done();
-        };
-        limg.onerror = done;
-        limg.src = /^https?:/.test(post.logo) ? post.logo : buildImageUrl(post.logo);
-        mark.appendChild(limg);
-      });
-      return a;
-    }
-    var src = srcOf(post);
-    if (src && typeof post.logoX === 'number' && typeof post.logoY === 'number'){
-      enqueue(function(done){
-        function regionFor(W, H){
-          var logoW = Math.min(W, H) * LOGO_W_RATIO;
-          var logoH = logoW * LOGO_HW_RATIO;
-          var sx = post.logoX + logoW * CROP_SIDE;
-          var sy = post.logoY + logoH * CROP_TOP;
-          var sw = logoW * (1 - CROP_SIDE * 2);
-          var sh = logoH * (1 - CROP_TOP - CROP_BOTTOM);
-          if (sx < 0){ sw += sx; sx = 0; }
-          if (sy < 0){ sh += sy; sy = 0; }
-          if (sx + sw > W) sw = W - sx;
-          if (sy + sh > H) sh = H - sy;
-          return (sw > 0 && sh > 0) ? { x:sx, y:sy, w:sw, h:sh } : null;
-        }
-        var img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.decoding = 'async';
-        img.onload = function(){
-          var W = post.width || img.naturalWidth, H = post.height || img.naturalHeight;
-          var r = (W && H) ? regionFor(W, H) : null;
-          if (!r){ img.onload = img.onerror = null; img.src = '';
-                   _fail++; _lastErr='로고영역 계산실패'; dbgRender(); done(); return; }
-          var cw = Math.min(900, Math.round(r.w));
-          var ch = Math.max(1, Math.round(cw * (r.h / r.w)));
-          var cv = document.createElement('canvas');
-          cv.width = cw; cv.height = ch;
-          try {
-            cv.getContext('2d').drawImage(img, r.x, r.y, r.w, r.h, 0, 0, cw, ch);
-          } catch (err){
-            img.onload = img.onerror = null; img.src = '';
-            _fail++; _lastErr='draw 실패: ' + (err && err.name); dbgRender();
-            done(); return;
-          }
-          img.onload = img.onerror = null; img.src = '';
-          var e = { mark:mark, el:cv, mode:'canvas', aspect: r.w / r.h };
-          mark.appendChild(cv); fitted.push(e); fitMark(e);
-          cv.classList.add('is-ready'); mark.classList.add('has-photo');
-          _ok++; dbgRender();
-          done();
-        };
-        img.onerror = function(){
-          img.onload = img.onerror = null;
-          _fail++; _lastErr='이미지 로드 실패(CORS 차단 의심)'; dbgRender();
-          done();
-        };
-        img.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + 'cors=1';
-      });
-    }
-    return a;
-  }
-  // ---- 좌표 해석 ----
-  //   "coord": "북 33.55007°, 동 126.69116°" / "33.55, 126.69" / "N 33.55, E 126.69"
-  function parseCoordString(s){
-    if (typeof s !== 'string') return null;
-    var re = /([북남동서NSEWnsew])?\s*(-?\d+(?:\.\d+)?)\s*°?/g;
-    var lat = null, lng = null, loose = [], m;
-    while ((m = re.exec(s)) !== null){
-      var tag = (m[1] || '').toUpperCase();
-      var v = parseFloat(m[2]);
-      if (!isFinite(v)) continue;
-      if (tag === '북' || tag === 'N')      lat = v;
-      else if (tag === '남' || tag === 'S') lat = -v;
-      else if (tag === '동' || tag === 'E') lng = v;
-      else if (tag === '서' || tag === 'W') lng = -v;
-      else loose.push(v);
-    }
-    if (lat === null && loose.length) lat = loose.shift();
-    if (lng === null && loose.length) lng = loose.shift();
-    if (lat === null || lng === null) return null;
-    return { lat: lat, lng: lng };
-  }
-  function readCoords(p){
-    var lat = p.lat, lng = p.lng;
-    if (typeof lat === 'string') { var a = parseCoordString(lat); lat = a ? a.lat : null; }
-    if (typeof lng === 'string') { var b = parseCoordString(lng); lng = b ? (b.lng !== null ? b.lng : b.lat) : null; }
-    if (typeof lat !== 'number' || typeof lng !== 'number'){
-      var c = parseCoordString(p.coord || p.coords || p.latlng || '');
-      if (!c) return null;
-      lat = c.lat; lng = c.lng;
-    }
-    if (!isFinite(lat) || !isFinite(lng)) return null;
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-    return { lat: lat, lng: lng };
-  }
-  // ---- 사진 안의 EXIF GPS 직접 읽기 (수동 좌표가 없을 때의 대비책) ----
-  var EXIF_BYTES = 262144;
-  function typeSize(t){
-    return ({1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8})[t] || 1;
-  }
-  function readRationalTriplet(dv, o, le){
-    var out = [];
-    for (var i = 0; i < 3; i++){
-      var num = dv.getUint32(o + i * 8, le);
-      var den = dv.getUint32(o + i * 8 + 4, le);
-      if (!den) return null;
-      out.push(num / den);
-    }
-    return out[0] + out[1] / 60 + out[2] / 3600;
-  }
-  function readTiffGps(dv, tiff){
-    var le = dv.getUint16(tiff) === 0x4949;
-    function g16(o){ return dv.getUint16(o, le); }
-    function g32(o){ return dv.getUint32(o, le); }
-    if (g16(tiff + 2) !== 42) return null;
-    var ifd0 = tiff + g32(tiff + 4);
-    var n = g16(ifd0), gpsOff = 0;
-    for (var i = 0; i < n; i++){
-      var e = ifd0 + 2 + i * 12;
-      if (g16(e) === 0x8825){ gpsOff = tiff + g32(e + 8); break; }
-    }
-    if (!gpsOff) return null;
-    var m = g16(gpsOff);
-    var latRef = 'N', lngRef = 'E', lat = null, lng = null;
-    for (var j = 0; j < m; j++){
-      var e2 = gpsOff + 2 + j * 12;
-      var tag = g16(e2), type = g16(e2 + 2), cnt = g32(e2 + 4);
-      var vo = (cnt * typeSize(type) > 4) ? (tiff + g32(e2 + 8)) : (e2 + 8);
-      if (tag === 1)      latRef = String.fromCharCode(dv.getUint8(vo));
-      else if (tag === 3) lngRef = String.fromCharCode(dv.getUint8(vo));
-      else if (tag === 2) lat = readRationalTriplet(dv, vo, le);
-      else if (tag === 4) lng = readRationalTriplet(dv, vo, le);
-    }
-    if (lat === null || lng === null) return null;
-    if (latRef === 'S') lat = -lat;
-    if (lngRef === 'W') lng = -lng;
-    if (!isFinite(lat) || !isFinite(lng)) return null;
-    return { lat: lat, lng: lng };
-  }
-  function parseExifGps(buf){
-    try {
-      var dv = new DataView(buf);
-      if (dv.byteLength < 8 || dv.getUint16(0) !== 0xFFD8) return null;
-      var off = 2;
-      while (off + 4 <= dv.byteLength){
-        var marker = dv.getUint16(off);
-        if ((marker & 0xFF00) !== 0xFF00) return null;
-        if (marker === 0xFFDA) return null;
-        var size = dv.getUint16(off + 2);
-        if (marker === 0xFFE1 && off + 10 <= dv.byteLength){
-          if (dv.getUint32(off + 4) === 0x45786966)
-            return readTiffGps(dv, off + 10);
-        }
-        off += 2 + size;
-      }
-    } catch (err){ /* 잘린 버퍼 등 — 조용히 포기 */ }
-    return null;
-  }
-  function fetchExifGps(url){
-    return fetch(url, { headers: { 'Range': 'bytes=0-' + (EXIF_BYTES - 1) } })
-      .then(function(r){ return r.ok ? r.arrayBuffer() : null; })
-      .then(function(buf){ return buf ? parseExifGps(buf) : null; })
-      .catch(function(){ return null; });
-  }
-  function resolveCoords(post){
-    var manual = readCoords(post);
-    if (manual) return Promise.resolve(manual);
-    var src = post.file ? buildImageUrl(post.file) : (post.url || '');
-    if (!src) return Promise.resolve(null);
-    return fetchExifGps(src);
-  }
-  // ---- places.json 펼치기 (날짜 상위 구조 / 평평한 배열 모두 인식) ----
-  function flattenPlaces(raw){
-    var out = [];
-    (raw || []).forEach(function(entry){
-      if (!entry) return;
-      var list = entry.items || entry.photos;
-      if (Array.isArray(list)){
-        list.forEach(function(it){
-          if (!it) return;
-          var o = (typeof it === 'string') ? { file: it } : it;
-          if (!o.date) o.date = entry.date;
-          if (o.file || o.url) out.push(o);
-        });
-      } else if (entry.file || entry.url){
-        out.push(entry);
-      }
-    });
-    return out;
-  }
-  // ---- 랜덤 한 장 고르기 (새로고침마다 직전 사진은 최대한 피함) ----
-  // 최근에 보여준 사진을 브라우저에 기억해 두고, 나머지를 다 볼 때까지 다시 안 뽑는다.
-  function pickOneRandom(list){
-    if (!list || list.length <= 1) return list || [];
-    var KEY = 'lmchan_recent_maps';
-    var idOf = function(p){ return String((p && (p.file || p.url)) || ''); };
-    var recent = [];
-    try { recent = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e){}
-    var pool = list.filter(function(p){ return recent.indexOf(idOf(p)) === -1; });
-    if (!pool.length) pool = list.slice();          // 다 봤으면 초기화
-    var chosen = pool[Math.floor(Math.random() * pool.length)];
-    recent.push(idOf(chosen));
-    var remember = list.length - 1;                 // 나머지를 다 볼 때까지 반복 안 함
-    while (recent.length > remember) recent.shift();
-    try { localStorage.setItem(KEY, JSON.stringify(recent)); } catch(e){}
-    return [chosen];
-  }
-  // ---- 포스트 재료: 파일명 규칙 ----
-  // 사진이 2F9A6950.jpeg 면 글귀 = 2F9A6950.phrase.png / 폰트 = 2F9A6950.font.woff2
-  // phrase / font 필드가 있으면 그것을 우선한다.
-  function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
-  function phraseUrl(p){
-    if (p.phrase) return /^https?:/.test(p.phrase) ? p.phrase : buildImageUrl(p.phrase);
-    return p.file ? buildImageUrl(stem(p.file) + '.phrase.png') : '';
-  }
-  function fontUrl(p){
-    if (p.font) return /^https?:/.test(p.font) ? p.font : buildImageUrl(p.font);
-    return p.file ? buildImageUrl(stem(p.file) + '.font.woff2') : '';
-  }
-  function dateTextOf(p){
-    var m = String(p.date || '').match(/(\d{4})\D?(\d{2})\D?(\d{2})/);
-    return m ? (m[1] + '.' + m[2] + '.' + m[3]) : '';
-  }
-  function coordTextOf(p, c){
-    if (p.coord) return p.coord;
-    return c ? (c.lat.toFixed(5) + ', ' + c.lng.toFixed(5)) : '';
-  }
-  // 포스트 전용 폰트 — 없으면 조용히 기본체
-  var fontSeq = 0;
-  function applyFont(p, el){
-    var url = fontUrl(p);
-    if (!url || !window.FontFace) return;
-    var name = 'PF' + (++fontSeq);
-    var ff = new FontFace(name, 'url("' + url + '")');
-    ff.load().then(function(f){
-      document.fonts.add(f);
-      el.style.fontFamily = "'" + name + "', 'LMCHan', Georgia, serif";
-    }).catch(function(){});
-  }
-  // ---- STILLS, MAPS 사진을 누르면 결제 페이지로 이동 ----
-  // 어떤 사진인지 결제 페이지(pay.html)로 넘긴다: ?file=…&title=…&price=…
-  // 사진에 free:true 를 주면 결제 대신 기존처럼 원본을 바로 다운로드한다.
-  function goPay(p){
-    var params = new URLSearchParams();
-    if (p.file) params.set('file', p.file);
-    var title = p.title || p.address || stem(p.file) || 'LMCHAN';
-    params.set('title', title);
-    params.set('price', String(p.price || DEFAULT_PRICE));
-    location.href = PAY_URL + '?' + params.toString();
-  }
-  // ---- (참고) 원본 바로 다운로드 — free:true 인 사진에만 사용 ----
-  function downloadOriginal(p){
-    if (!window.confirm('다운로드 하시겠습니까?')) return;
-    var url = p.file ? buildImageUrl(p.file) : (p.url || '');
-    if (!url) return;
-    fetch(url)
-      .then(function(r){
-        if (!r.ok) throw new Error(r.status);
-        return r.blob();
-      })
-      .then(function(blob){
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = p.file || 'LMCHAN';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-      })
-      .catch(function(){
-        window.open(url, '_blank', 'noopener');   // 막히면 새 탭으로라도 원본을 연다
-      });
-  }
-  // 사진 클릭 시 동작: "다운로드 하시겠습니까?" 를 묻고,
-  // 확인/취소 어느 쪽이든 글 페이지(words.html)로는 이동한다.
-  // 확인을 누르면 클릭 시점(사용자 동작)에 원본 저장을 시작한다.
-  function onPhotoClick(p){
-    var f = p.file || '';
-    var go = function(){ location.href = WORDS_URL + '?file=' + encodeURIComponent(f); };
-    if (f && window.confirm('다운로드 하시겠습니까?')){
-      // 클릭 그 순간(동기)에 이미지를 연다 — CORS와 무관하게 항상 반응한다.
-      // 같은 출처면 바로 저장되고, 다른 출처(R2)면 새 탭에 원본이 열려 저장할 수 있다.
-      var url = buildImageUrl(f);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = f;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      document.body.appendChild(a); a.click(); a.remove();
-      // 새 탭이 뜬 뒤 원래 창은 글 페이지로 이동
-      setTimeout(go, 300);
-    } else {
-      go();   // 취소해도 글 페이지로는 이동
-    }
-  }
-  // ---- 포스트 지도 ----
-  var pin = L.divIcon ? L.divIcon({
-    className: 'photo-pin',
-    html: '<span></span>',
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
-  }) : null;
-  var HILL_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}';
-  var postMaps = [];
-  function makeMap(el, c){
-    var map = L.map(el, {
-      attributionControl:false, zoomControl:false,
-      dragging:false, scrollWheelZoom:false, doubleClickZoom:false,
-      touchZoom:false, boxZoom:false, keyboard:false
-    });
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
-      { maxZoom: 20, className: 'base-tiles' }
-    ).addTo(map);
-    L.tileLayer(HILL_URL, { maxZoom: 16, className: 'hill-tiles' }).addTo(map);
-    L.marker([c.lat, c.lng], { icon: pin }).addTo(map);
-    map.setView([c.lat, c.lng], VIEW_ZOOM);
-    postMaps.push({ map: map, c: c });
-  }
-  var mapResizeTimer = null;
-  window.addEventListener('resize', function(){
-    clearTimeout(mapResizeTimer);
-    mapResizeTimer = setTimeout(function(){
-      postMaps.forEach(function(o){
-        o.map.invalidateSize(false);
-        o.map.setView([o.c.lat, o.c.lng], VIEW_ZOOM);
-      });
-    }, 120);
-  });
-  // ---- 포스트: 글귀 → 날짜와 주소 → 사진 → 좌표 → 지도 ----
-  function makePost(p, c){
-    var sec = document.createElement('div');
-    sec.className = 'post';
-    // 글귀 (파일이 없으면 자리 없이 조용히 넘어간다)
-    var ph = phraseUrl(p);
-    if (ph){
-      var pimg = document.createElement('img');
-      pimg.className = 'phrase';
-      pimg.alt = '';
-      pimg.decoding = 'async';
-      pimg.src = ph;
-      pimg.onerror = function(){ pimg.remove(); };
-      sec.appendChild(pimg);
-    }
-    // 날짜와 주소 — 포스트 전용 폰트
-    var addr = document.createElement('div');
-    addr.className = 'p-addr';
-    addr.textContent = [dateTextOf(p), p.address || ''].filter(Boolean).join(' · ');
-    if (addr.textContent){
-      applyFont(p, addr);
-      sec.appendChild(addr);
-    }
-    // 사진 (누르면 결제 페이지로 이동)
-    var wrap = document.createElement('div');
-    wrap.className = 'p-photo';
-    var src = p.file ? buildImageUrl(p.file) : (p.url || '');
-    var media;
-    if (isVideo(p)){
-      media = document.createElement('video');
-      media.muted = true; media.loop = true; media.autoplay = true;
-      media.playsInline = true; media.setAttribute('playsinline', '');
-      media.preload = 'metadata';
-      media.src = src;
-    } else {
-      media = document.createElement('img');
-      media.alt = p.address || '';
-      media.loading = 'lazy';
-      media.decoding = 'async';
-      media.src = src;
-    }
-    wrap.appendChild(media);
-    // 오른쪽 하단 로고 (투명 PNG, 파일이 없으면 조용히 생략)
-    // 크기·위치를 요소에 직접 박아 CSS 유실과 무관하게 항상 작게 유지한다.
-    var lg = document.createElement('img');
-    lg.className = 'p-logo';
-    lg.alt = '';
-    lg.decoding = 'async';
-    lg.style.cssText = 'position:absolute;right:14px;bottom:14px;z-index:5;' +
-      'width:44px;max-width:44px;height:auto;opacity:.16;' +
-      'filter:invert(1);mix-blend-mode:difference;pointer-events:none;';
-    lg.src = 'logo_mask.png';
-    lg.onerror = function(){ lg.remove(); };
-    wrap.appendChild(lg);
-    wrap.addEventListener('click', function(){ onPhotoClick(p); });
-    sec.appendChild(wrap);
-    // 좌표
-    var co = document.createElement('div');
-    co.className = 'p-coord';
-    co.textContent = coordTextOf(p, c);
-    if (co.textContent) sec.appendChild(co);
-    // 지도
-    if (c && typeof L !== 'undefined'){
-      var mapEl = document.createElement('div');
-      mapEl.className = 'p-map';
-      sec.appendChild(mapEl);
-      // 요소가 문서에 붙어 크기가 잡힌 뒤 지도를 만든다
-      setTimeout(function(){ makeMap(mapEl, c); }, 0);
-    }
-    return sec;
-  }
-  // ---- 로드: 워터마크 격자 ----
-  fetch(POSTS_JSON + '?v=' + Date.now())
+
+  fetch('posts.json?v=' + Date.now())
     .then(function(r){ return r.json(); })
     .then(function(posts){
-      posts = (posts || []).filter(function(p){ return p && (p.file || p.url); });
-      _posts = posts.length; dbgRender();
-      if (!posts.length){ empty.hidden = false; return; }
-      var frag = document.createDocumentFragment();
-      posts.forEach(function(p, i){ frag.appendChild(makeIcon(p, i)); });
-      grid.appendChild(frag);
-    })
-    .catch(function(){ _posts = -1; dbgRender(); empty.hidden = false; });
-  // ---- 로드: STILLS, MAPS 포스트 ----
-  fetch(PLACES_JSON + '?v=' + Date.now())
-    .then(function(r){ return r.ok ? r.json() : []; })
-    .then(function(raw){
-      var places = flattenPlaces(raw);
-      mapSection.hidden = false;
-      if (!places.length){ mapEmpty.hidden = false; return; }
-      // 한 장만 랜덤으로 (직전 사진은 최대한 피함)
-      places = pickOneRandom(places);
-      // 좌표: 수동값 우선, 없으면 사진 EXIF 에서 읽는다
-      return Promise.all(places.map(resolveCoords)).then(function(coords){
-        var frag = document.createDocumentFragment();
-        places.forEach(function(p, i){ frag.appendChild(makePost(p, coords[i])); });
-        mapsWrap.appendChild(frag);
-      });
+      var match = null;
+      for (var i = 0; i < posts.length; i++){
+        if (posts[i] && posts[i].file === CONFIG.PHOTO_FILE){ match = posts[i]; break; }
+      }
+      if (match && match.caption && !qp.get('title')) {
+        $('title').textContent = match.caption;
+      }
+      renderProduct(match ? match.product : null);
     })
     .catch(function(){
-      mapSection.hidden = false;
-      mapEmpty.hidden = false;
+      renderProduct(null);
     });
-  // ---- 안내문 접기 ----
-  // 안내문 '전체'가 화면에 보인 뒤, 위쪽으로 지나쳐 나갔을 때만 조용히 접는다.
-  (function(){
-    var head = document.getElementById('map-head');
-    if (!head || !('IntersectionObserver' in window)) return;
-    var seen = false;
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        if (entry.intersectionRatio >= 0.95){
-          seen = true;
-        } else if (!entry.isIntersecting && seen &&
-                   entry.boundingClientRect.top < 0){
-          head.classList.add('gone');
-          io.disconnect();
-        }
-      });
-    }, { threshold: [0, 0.95] });
-    io.observe(head);
-  })();
-  // ---- 인트로 접기 ----
-  // 섹션이 아래로 내려갔으므로, 안내문과 같은 규칙을 쓴다:
-  // 전체가 화면에 한 번 보인 뒤 → 위쪽으로 지나쳐 나가면 조용히 접는다.
-  (function(){
-    var intro = document.getElementById('intro');
-    if (!intro || !('IntersectionObserver' in window)) return;
-    var seen = false;
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        if (entry.intersectionRatio >= 0.95){
-          seen = true;
-        } else if (!entry.isIntersecting && seen &&
-                   entry.boundingClientRect.top < 0){
-          intro.classList.add('gone');
-          io.disconnect();
-        }
-      });
-    }, { threshold: [0, 0.95] });
-    io.observe(intro);
-  })();
 })();
 </script>
 </body>

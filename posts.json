@@ -7,7 +7,9 @@
     "logoY": 795,
     "product": {
       "desc": "4K×1 · 72MP×1 · 32MP×25 · 726MB",
-      "price": 150000
+      "price": 150000,
+      "directPurchase": "X",
+      "distribution": "X"
     }
   },
   {
@@ -18,7 +20,9 @@
     "logoY": 3120,
     "product": {
       "desc": "",
-      "price": 0
+      "price": 0,
+      "directPurchase": "X",
+      "distribution": "X"
     }
   },
   {
@@ -29,7 +33,9 @@
     "logoY": 2575,
     "product": {
       "desc": "",
-      "price": 0
+      "price": 0,
+      "directPurchase": "X",
+      "distribution": "X"
     }
   },
   {
@@ -40,7 +46,9 @@
     "logoY": 983,
     "product": {
       "desc": "",
-      "price": 0
+      "price": 0,
+      "directPurchase": "X",
+      "distribution": "X"
     }
   },
   {
@@ -51,7 +59,9 @@
     "logoY": 4109,
     "product": {
       "desc": "",
-      "price": 0
+      "price": 0,
+      "directPurchase": "X",
+      "distribution": "X"
     }
   },
   {
@@ -62,7 +72,9 @@
     "logoY": 4129,
     "product": {
       "desc": "",
-      "price": 0
+      "price": 0,
+      "directPurchase": "O",
+      "distribution": "O"
     }
   },
   {
@@ -73,7 +85,9 @@
     "logoY": 2875,
     "product": {
       "desc": "",
-      "price": 0
+      "price": 0,
+      "directPurchase": "X",
+      "distribution": "X"
     }
   }
 ]

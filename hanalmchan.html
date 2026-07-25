@@ -73,30 +73,27 @@
   }
   #nav a { color: inherit; text-decoration: none; margin-left: 12px; }
   #nav a:hover { color: #888888; }
-  /* 서가(index.html)로 돌아가는 링크 */
-  #back-link {
-    position: fixed; top: 20px; right: 20px; z-index: 100;
+  /* 서가(index.html)로 돌아가는 링크 / 구매(결제) 링크 공통:
+     텍스트에 blend-mode를 거는 대신, 뒤 배경을 실제로 반전시키는
+     작은 패치(backdrop-filter: invert)를 깔아서 어떤 사진 위에서도
+     또렷하게 보이도록 한다. */
+  #back-link, #order-link {
+    position: fixed; z-index: 100;
     font-family: 'LMCHan', Georgia, serif;
     font-size: 22px; letter-spacing: 0.14em;
-    mix-blend-mode: difference; color: #ffffff;
+    color: #ffffff;
     text-decoration: none;
-    opacity: 0.75;
+    padding: 5px 10px;
+    border-radius: 8px;
+    backdrop-filter: invert(1);
+    -webkit-backdrop-filter: invert(1);
+    text-shadow: 0 0 3px rgba(0,0,0,.5), 0 0 3px rgba(0,0,0,.5);
+    opacity: 0.9;
     transition: opacity 0.3s ease;
   }
-  #back-link:hover { opacity: 1; }
-  /* 구매(결제) 링크 — AWAY 와 같은 스타일로 오른쪽 하단에.
-     ※ LMCHan 폰트는 소문자 글리프가 없어서 'order' 는 세리프(Georgia)로 보인다.
-        AWAY 와 똑같은 로고 폰트 느낌을 원하면 아래 글자를 'ORDER' 처럼 대문자로. */
-  #order-link {
-    position: fixed; bottom: 20px; right: 20px; z-index: 100;
-    font-family: 'LMCHan', Georgia, serif;
-    font-size: 22px; letter-spacing: 0.14em;
-    mix-blend-mode: difference; color: #ffffff;
-    text-decoration: none;
-    opacity: 0.75;
-    transition: opacity 0.3s ease;
-  }
-  #order-link:hover { opacity: 1; }
+  #back-link { top: 20px; right: 20px; }
+  #order-link { bottom: 20px; right: 20px; }
+  #back-link:hover, #order-link:hover { opacity: 1; }
   .post { position: absolute; top: 0; left: 0; }
   .post img.photo {
     display: block;
@@ -694,6 +691,10 @@
   var isDragging = false, didMove = false;
   var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
   var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
+  // 속도를 지수평활(EMA)로 추적한다. 순간값(마지막 한 프레임의 이동량)만 쓰면
+  // 손을 떼기 직전 자연스럽게 느려지는 마지막 프레임 때문에 속도가 거의 0이 되어
+  // "던지는" 관성이 잘 안 느껴진다. 최근 몇 프레임을 함께 반영해 완화한다.
+  var VEL_SMOOTH = 0.3; // 0~1, 클수록 가장 최근 움직임 비중이 커짐
   var momentumRAF = null;
   var holdTimer = null;
   var holding = false;
@@ -747,7 +748,9 @@
       didMove = true;
       if (dist > HOLD_CANCEL_DIST) clearHold();
     }
-    velX = clientX - lastDragX; velY = clientY - lastDragY;
+    var instVelX = clientX - lastDragX, instVelY = clientY - lastDragY;
+    velX = velX + (instVelX - velX) * VEL_SMOOTH;
+    velY = velY + (instVelY - velY) * VEL_SMOOTH;
     lastDragX = clientX; lastDragY = clientY;
     tx = dragStartTx + dx; ty = dragStartTy + dy;
     updateTransform();

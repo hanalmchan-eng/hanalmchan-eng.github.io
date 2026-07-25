@@ -70,7 +70,7 @@
     letter-spacing:.04em; padding:8px 0 4px; margin-bottom:22px;
   }
   .sold-out[hidden]{ display:none; }
-  #buy-flow[hidden]{ display:none; }
+  .steps[hidden]{ display:none; }
   /* 송금 버튼 */
   .btn{
     display:block; width:100%; padding:15px; border:none; border-radius:4px;
@@ -87,6 +87,10 @@
   .qr-box img{
     width:100%; max-width:100%; height:auto; display:block;
     background:#fff; padding:16px; border-radius:8px; border:1px solid var(--ink-16);
+    transition:filter .2s ease;
+  }
+  @media (prefers-color-scheme: dark){
+    .qr-box img{ filter:invert(1); }
   }
   .qr-cap{ font-size:11px; color:var(--ink-35); letter-spacing:.05em; margin-top:12px; }
   .steps{
@@ -118,24 +122,24 @@
     <!-- 판매중이 아닐 때 -->
     <div class="sold-out" id="sold-out" hidden>현재 판매중이지 않습니다.</div>
 
-    <!-- 판매중일 때: 가격 + 결제 UI -->
-    <div id="buy-flow" hidden>
-      <div class="price-wrap"><span class="price" id="price"></span></div>
+    <!-- 판매중일 때만: 가격 -->
+    <div class="price-wrap" id="price-wrap" hidden><span class="price" id="price"></span></div>
 
-      <div class="qr-box">
-        <a id="qr-link"><img id="qr" alt="송금 QR 코드"></a>
-        <div class="qr-cap" id="qr-cap">스캔해서 오픈채팅으로 문의</div>
-      </div>
+    <!-- 구매 문의 QR: 판매 여부와 무관하게 항상 표시 -->
+    <div class="qr-box">
+      <a id="qr-link"><img id="qr" alt="문의 QR 코드"></a>
+      <div class="qr-cap" id="qr-cap">스캔해서 오픈채팅으로 문의</div>
+    </div>
 
-      <div class="steps">
-        <b>결제는 토스 앱에서만 진행됩니다.</b><br>
-        <span style="color:var(--ink-35)">Payment via the Toss app only · 決済はTossアプリのみ</span><br><br>
-        <b>진행 순서</b><br>
-        1. QR을 스캔해 표시된 금액을 송금해요.<br>
-        2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
-        3. 확인 후 그 이메일로 원본 파일을 보내드려요.<br>
-        <span style="color:var(--ink-35)">메모를 못 남기셨다면 아래 메일로 알려주세요.</span>
-      </div>
+    <!-- 판매중일 때만: 결제 진행 안내 -->
+    <div class="steps" id="steps" hidden>
+      <b>결제는 토스 앱에서만 진행됩니다.</b><br>
+      <span style="color:var(--ink-35)">Payment via the Toss app only · 決済はTossアプリのみ</span><br><br>
+      <b>진행 순서</b><br>
+      1. QR을 스캔해 표시된 금액을 송금해요.<br>
+      2. 송금할 때 <span class="em">메모(내용)에 이메일 주소</span>를 적어주세요.<br>
+      3. 확인 후 그 이메일로 원본 파일을 보내드려요.<br>
+      <span style="color:var(--ink-35)">메모를 못 남기셨다면 아래 메일로 알려주세요.</span>
     </div>
 
     <div class="foot">
@@ -205,17 +209,15 @@
     // 가격이 0(또는 없음)이거나, 설명(desc)이 비어있으면 판매중이지 않음
     var forSale = !!(product && Number(product.price) > 0 && desc.length > 0);
 
-    if (!forSale){
-      $('desc').innerHTML = '';
-      $('buy-flow').hidden = true;
-      $('sold-out').hidden = false;
-      return;
-    }
+    $('desc').innerHTML = forSale ? desc.replace(/\n/g, '<br>') : '';
+    $('sold-out').hidden = forSale;
+    $('price-wrap').hidden = !forSale;
+    $('steps').hidden = !forSale;
 
-    $('desc').innerHTML = desc.replace(/\n/g, '<br>');
-    $('price').textContent = '₩' + Number(product.price).toLocaleString('ko-KR');
-    $('buy-flow').hidden = false;
-    $('sold-out').hidden = true;
+    if (forSale) {
+      $('price').textContent = '₩' + Number(product.price).toLocaleString('ko-KR');
+    }
+    // 구매 문의 QR(qr-box)은 판매 여부와 무관하게 항상 노출됨 — 별도 처리 없음
   }
 
   fetch('posts.json?v=' + Date.now())

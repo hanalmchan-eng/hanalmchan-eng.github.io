@@ -175,7 +175,12 @@
   // 갤러리에서 넘어온 사진 정보(?file=…&title=…)로 덮어쓴다.
   var qp = new URLSearchParams(location.search);
   if (qp.get('file'))  CONFIG.PHOTO_FILE = qp.get('file');
-  if (qp.get('title')) CONFIG.TITLE = qp.get('title');
+
+  // ?title= 이 IMG_9241, DSC01234 같은 "파일명"으로 보이면 제목으로 쓰지 않는다.
+  var rawTitle = qp.get('title');
+  var looksLikeFilename = !!(rawTitle && /^(img|dsc|dscf|pxl|photo|p)[-_]?\d{3,}/i.test(rawTitle.trim()));
+  var titleFromQuery = (rawTitle && !looksLikeFilename) ? rawTitle : null;
+  if (titleFromQuery) CONFIG.TITLE = titleFromQuery;
 
   var $ = function(id){ return document.getElementById(id); };
   // R2 파일명이면 R2_BASE 를 붙이고, http로 시작하면 그대로 쓴다.
@@ -232,7 +237,7 @@
       for (var i = 0; i < posts.length; i++){
         if (posts[i] && posts[i].file === CONFIG.PHOTO_FILE){ match = posts[i]; break; }
       }
-      if (match && match.caption && !qp.get('title')) {
+      if (match && match.caption && !titleFromQuery) {
         $('title').textContent = match.caption;
       }
       renderProduct(match ? match.product : null);

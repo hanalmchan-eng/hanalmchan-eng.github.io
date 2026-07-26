@@ -73,10 +73,6 @@
   }
   #nav a { color: inherit; text-decoration: none; margin-left: 12px; }
   #nav a:hover { color: #888888; }
-  /* 서가(index.html)로 돌아가는 링크 / 구매(결제) 링크 공통:
-     뒤 배경 전체를 반전시키는 사각 패치 대신, 글자 모양 자체에만
-     mix-blend-mode: difference 를 걸어 글자 픽셀만 반전되어 보이도록 한다.
-     -webkit-text-stroke 로 획을 덧그려 글자를 더 두껍게 표현한다. */
   #back-link, #order-link {
     position: fixed; z-index: 100;
     font-family: 'LMCHan', Georgia, serif;
@@ -167,7 +163,6 @@
     text-shadow: 0 1px 3px rgba(0,0,0,0.35);
     overflow: hidden;
   }
-  /* 블러 유리 레이어: 로고 모양만 제외하고 전체에 블러 */
   #info-card::before {
     content: '';
     position: absolute; inset: 0;
@@ -175,7 +170,6 @@
     background: rgba(255,255,255,0.10);
     backdrop-filter: blur(22px) saturate(160%);
     -webkit-backdrop-filter: blur(22px) saturate(160%);
-    /* 로고 모양을 구멍으로: 전체 불투명에서 로고 부분만 투명 */
     -webkit-mask:
       linear-gradient(#000 0 0),
       url('logo_mask.png') no-repeat right 22px bottom 20px / 45px 42px;
@@ -226,21 +220,17 @@
 (function() {
   'use strict';
   var R2_BASE = 'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev';
-  // ===== [추가] 구매(결제) 링크 설정 =====
-  var PAY_URL = 'pay.html';   // 오른쪽 하단 order 를 누르면 이동할 결제 페이지
-  var ORDER_PRICE = 30000;    // 사진에 price 가 없을 때 결제 페이지로 넘길 기본 가격(원)
+  var PAY_URL = 'pay.html';
+  var ORDER_PRICE = 30000;
   var gap = 4;
   var planeScale = 0.2688;
   var curImgW = 0, curImgH = 0;
   var HEADER_X = 20;
   var HEADER_Y = 20;
   var HOLD_DELAY = 3000;
-  // ===== 보기 모드 =====
-  // 'fit'  : 전체 보기 (가로를 화면에 맞춤, 세로 스크롤, 로고 숨김)
-  // 'zoom' : 확대 보기 (로고가 헤더에 맞는 배율, 로고 표시)
   var viewMode = 'zoom';
-  var fitScale = 0.2688;   // 전체 보기 배율 (사진 로드 시 계산)
-  var zoomScale = 0.2688;  // 확대 보기 배율 (사진 로드 시 계산)
+  var fitScale = 0.2688;
+  var zoomScale = 0.2688;
   if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
       if (typeof r === 'number') r = [r, r, r, r];
@@ -264,8 +254,6 @@
   var loadingEl = document.getElementById('loading');
   var logoHit  = document.getElementById('logo-hit');
   var orderLink = document.getElementById('order-link');
-  // ===== [추가] order 링크를 현재 사진에 맞춰 갱신 =====
-  // 결제 페이지(pay.html)로 어떤 사진인지 넘긴다: ?file=…&title=…&price=…
   function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
   function updateOrderLink(post) {
     if (!orderLink || !post) return;
@@ -275,12 +263,9 @@
     params.set('price', String(post.price || ORDER_PRICE));
     orderLink.href = PAY_URL + '?' + params.toString();
   }
-  // 사진 속 합성 로고 비율
-  var LOGO_W_RATIO = 0.0936;          // 로고 너비 / 사진 너비
-  var LOGO_HW_RATIO = 801 / 1429;     // 로고 높이 / 로고 너비 (로고 이미지 비율)
-  var HIT_PAD = 1.6;                  // 클릭 영역 여유 (로고보다 크게)
-  // 안내 문구 위치: 확대 모드에서는 (로고가 있던 자리, 즉) 사진 속 로고의
-  // 실제 화면상 아래쪽에, 전체화면 모드에서는 고정 위치(20px)에 둔다.
+  var LOGO_W_RATIO = 0.0936;
+  var LOGO_HW_RATIO = 801 / 1429;
+  var HIT_PAD = 1.6;
   function positionHint() {
     if (!hint) return;
     if (viewMode === 'zoom' && curImgW) {
@@ -324,18 +309,12 @@
   }
   var tx = 0, ty = 50;
   var bounds = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
-  // 두 배율을 계산: zoom(로고 맞춤) / fit(가로 맞춤)
-  // 확대 배율 기준: 픽셀 1:1(=1.0)의 몇 배로 볼지. 0.5 = 절반 크기
   var ZOOM_K = 1.05;
-  // 페이지 로드 시점의 밀도를 고정 (창 크기 조절에 영향받지 않음)
   var BASE_DPR = window.devicePixelRatio || 1;
   function computeScales(imgW, imgH) {
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
-    // 확대 배율: 오직 화면 픽셀 밀도만 기준. 창 크기와 무관하게 일정하게 유지.
-    // dpr 1 -> 0.50, dpr 2 -> 0.25, dpr 3 -> 0.17
     zoomScale = ZOOM_K / BASE_DPR;
-    // 전체 보기 배율: 사진 가로를 화면 가로에 딱 맞춤
     fitScale = window.innerWidth / imgW;
   }
   function setHintText(mode) {
@@ -380,7 +359,6 @@
     if (maxY >= H) {
       bounds.maxY = 0; bounds.minY = -(maxY - H);
     } else if (viewMode === 'fit') {
-      // 전체 보기: 세로가 화면보다 작아도 위에 붙임 (위아래 여백 제거)
       bounds.maxY = 0; bounds.minY = 0;
     } else {
       var cy = (H - maxY) / 2; bounds.maxY = cy; bounds.minY = cy;
@@ -397,7 +375,6 @@
     plane.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) scale(' + planeScale + ')';
     updateLogoHit();
   }
-  // 전체화면(fit)에서만, 사진 속 로고 위치에 클릭 영역 배치
   function updateLogoHit() {
     if (!logoHit) return;
     if (!currentPost ||
@@ -405,14 +382,12 @@
       logoHit.style.display = 'none';
       return;
     }
-    var lw = curImgW * LOGO_W_RATIO;          // 로고 원본 너비(px)
-    var lh = lw * LOGO_HW_RATIO;              // 로고 원본 높이(px)
-    // 화면 좌표 = tx/ty + 원본좌표 * scale
+    var lw = curImgW * LOGO_W_RATIO;
+    var lh = lw * LOGO_HW_RATIO;
     var sx = tx + currentPost.logoX * planeScale;
     var sy = ty + currentPost.logoY * planeScale;
     var sw = lw * planeScale;
     var sh = lh * planeScale;
-    // 여유를 둬서 키움 (중심 기준 확대)
     var padW = sw * (HIT_PAD - 1) / 2;
     var padH = sh * (HIT_PAD - 1) / 2;
     logoHit.style.display = 'block';
@@ -454,8 +429,6 @@
   var currentIndex = 0;
   var currentPostEl = null;
   var hasBefore = false;
-  // ===== [추가] 주소의 #IMG_9294 / #i=3 을 읽어 시작할 사진 번호를 정한다 =====
-  // index.html 의 워터마크·지도 마커가 이 형식으로 링크를 건다.
   function indexFromHash(posts) {
     var h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
     if (!h) return 0;
@@ -484,9 +457,7 @@
     }
     allPosts = posts;
     currentIndex = 0;
-    // ===== [변경] showPost(0) → 주소에 지정된 사진부터 시작 =====
     showPost(indexFromHash(posts));
-    // 뒤로가기 등으로 주소가 바뀌면 그 사진으로 이동
     window.addEventListener('hashchange', function() {
       showPost(indexFromHash(allPosts));
     });
@@ -495,7 +466,6 @@
     if (viewMode === 'zoom') {
       alignToLogo(null);
     } else {
-      // 전체 보기: 가로 중앙, 위 정렬
       var W = window.innerWidth;
       tx = (W - curImgW * planeScale) / 2;
       ty = 0;
@@ -507,20 +477,17 @@
     currentIndex = (index % allPosts.length + allPosts.length) % allPosts.length;
     var post = allPosts[currentIndex];
     currentPost = post;
-    // ===== [추가] order 링크를 현재 사진에 맞춰 갱신 =====
     updateOrderLink(post);
-    // ===== [추가] 주소창을 현재 사진에 맞춰 갱신 =====
-    // replaceState 는 hashchange 를 발생시키지 않으므로 무한루프가 생기지 않는다.
     if (post.file && window.history && history.replaceState) {
       try {
         history.replaceState(null, '',
           '#' + encodeURIComponent(post.file.replace(/\.[^.]+$/, '')));
-      } catch (err) { /* file:// 로 열었을 때 등 — 무시 */ }
+      } catch (err) { }
     }
     plane.innerHTML = '';
     currentPostEl = null;
     hasBefore = false;
-    viewMode = 'zoom';   // 새 사진은 확대 보기로 시작 (로고 표시)
+    viewMode = 'zoom';
     showLoading();
     var div = document.createElement('div');
     div.className = 'post post-photo';
@@ -571,13 +538,12 @@
     setTimeout(function(){ layoutPosts(); positionForMode(); }, 1500);
   }
   function nextPost() { showPost(currentIndex + 1); }
-  // 모드 전환
   function enterZoom() {
     if (viewMode === 'zoom') return;
     viewMode = 'zoom';
     applyMode();
     layoutPosts();
-    alignToLogo(currentPost);   // 확대 시 항상 로고 겹침 위치로
+    alignToLogo(currentPost);
     updateTransform();
     showHintAgain();
   }
@@ -616,10 +582,9 @@
       }
     }, 100);
   });
-  // ===== 정보 팝업 =====
   var infoPopup = document.getElementById('info-popup');
   var infoCard  = document.getElementById('info-card');
-  var POPUP_HOLD = 2000;  // 로고를 이 시간 이상 누르면 팝업
+  var POPUP_HOLD = 2000;
   function openPopup() {
     if (!infoPopup) return;
     infoPopup.classList.add('show');
@@ -631,7 +596,6 @@
   function isPopupOpen() {
     return infoPopup && infoPopup.classList.contains('show');
   }
-  // 팝업 닫기: 바깥 탭 / 카드 탭 / ESC / 스크롤·스와이프 등
   if (infoPopup) {
     infoPopup.addEventListener('click', function(e){ e.preventDefault(); closePopup(); });
     infoPopup.addEventListener('touchend', function(e){ e.preventDefault(); closePopup(); }, { passive: false });
@@ -641,7 +605,6 @@
   document.addEventListener('keydown', function(e){
     if (isPopupOpen() && (e.key === 'Escape' || e.key === 'Esc')) { closePopup(); }
   });
-  // 사진 속 로고 클릭 영역(전체화면 모드): 짧게 누르면 다음, 길게 누르면 팝업
   if (logoHit) {
     logoHit.style.cursor = 'pointer';
     var logoHoldTimer = null;
@@ -656,7 +619,7 @@
     }
     function logoPressEnd(e) {
       if (logoHoldTimer) { clearTimeout(logoHoldTimer); logoHoldTimer = null; }
-      if (logoHeld) { e.preventDefault(); return; }  // 팝업 떴으면 다음 사진 안 함
+      if (logoHeld) { e.preventDefault(); return; }
     }
     logoHit.addEventListener('mousedown', logoPressStart);
     logoHit.addEventListener('mouseup', logoPressEnd);
@@ -670,7 +633,7 @@
     }, { passive: false });
     logoHit.addEventListener('click', function(e) {
       e.preventDefault();
-      if (logoHeld) { logoHeld = false; return; }  // 길게여서 팝업 떴으면 다음 안 함
+      if (logoHeld) { logoHeld = false; return; }
       nextPost();
     });
   }
@@ -689,10 +652,7 @@
   var isDragging = false, didMove = false;
   var dragStartX = 0, dragStartY = 0, dragStartTx = 0, dragStartTy = 0;
   var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
-  // 속도를 지수평활(EMA)로 추적한다. 순간값(마지막 한 프레임의 이동량)만 쓰면
-  // 손을 떼기 직전 자연스럽게 느려지는 마지막 프레임 때문에 속도가 거의 0이 되어
-  // "던지는" 관성이 잘 안 느껴진다. 최근 몇 프레임을 함께 반영해 완화한다.
-  var VEL_SMOOTH = 0.3; // 0~1, 클수록 가장 최근 움직임 비중이 커짐
+  var VEL_SMOOTH = 0.3;
   var momentumRAF = null;
   var holdTimer = null;
   var holding = false;
@@ -766,8 +726,8 @@
       velX *= friction; velY *= friction;
       var targetX = tx + velX, targetY = ty + velY;
       tx = targetX; ty = targetY;
-      updateTransform(); // clampPosition() 안에서 tx/ty 가 벽에 걸리면 값이 바뀐다
-      if (tx !== targetX) velX = 0; // 벽에 부딪힌 축만 감속 없이 즉시 정지
+      updateTransform();
+      if (tx !== targetX) velX = 0;
       if (ty !== targetY) velY = 0;
       if (Math.abs(velX) < 0.1 && Math.abs(velY) < 0.1) { momentumRAF = null; return; }
       momentumRAF = requestAnimationFrame(step);
@@ -779,13 +739,10 @@
   window.addEventListener('mousemove', function(e) { if (isDragging) { e.preventDefault(); moveDrag(e.clientX, e.clientY); } });
   window.addEventListener('mouseup', endDrag);
   window.addEventListener('mouseleave', endDrag);
-  // 더블클릭으로 확대/축소 토글 (데스크톱, 어디서나)
   document.addEventListener('dblclick', function(e) {
     e.preventDefault();
     toggleMode();
   });
-  // 터치 더블탭으로 확대/축소 토글 (아이패드 등, 어디서나)
-  // touchstart 기준으로 두 번 두드림을 직접 인식 (드래그 여부와 무관)
   var lastTapTime = 0;
   var lastTapX = 0, lastTapY = 0;
   document.addEventListener('touchstart', function(e) {
@@ -796,7 +753,6 @@
     var dx = Math.abs(t.clientX - lastTapX);
     var dy = Math.abs(t.clientY - lastTapY);
     if (dt > 0 && dt < 350 && dx < 40 && dy < 40) {
-      // 두 번째 빠른 탭 → 더블탭
       e.preventDefault();
       toggleMode();
       lastTapTime = 0;
@@ -805,7 +761,6 @@
       lastTapX = t.clientX; lastTapY = t.clientY;
     }
   }, { passive: false });
-  // ===== 터치: 1손가락 드래그 / 2손가락 핀치 =====
   var pinching = false;
   var pinchStartDist = 0;
   function touchDist(t1, t2) {
@@ -828,7 +783,6 @@
       e.preventDefault();
       var d = touchDist(e.touches[0], e.touches[1]);
       var ratio = d / (pinchStartDist || d);
-      // 핀치 아웃(벌리기) → 확대, 핀치 인(오므리기) → 전체
       if (ratio > 1.18) { enterZoom(); pinching = false; }
       else if (ratio < 0.85) { enterFit(); pinching = false; }
       return;

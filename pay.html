@@ -36,7 +36,6 @@
   }
   body{ padding:32px 20px 80px; display:flex; flex-direction:column; align-items:center; }
   .wrap{ width:100%; max-width:460px; }
-
   /* 전체 언어 전환 스위처: 페이지 맨 위 */
   .lang-switch-top{ display:flex; justify-content:center; gap:6px; margin-bottom:26px; }
   .lang-btn{
@@ -45,7 +44,6 @@
     cursor:pointer; font-family:inherit;
   }
   .lang-btn.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
-
   .brand{
     font-family:'LMCHan', Georgia, serif; font-size:19px; letter-spacing:.07em;
     text-align:center; margin-bottom:6px; -webkit-text-stroke:.3px currentColor;
@@ -122,56 +120,43 @@
 </head>
 <body>
   <div class="wrap">
-
     <!-- 언어 전환: 페이지 맨 위, 전체 문구에 적용됨 -->
     <div class="lang-switch-top" id="langSwitchTop">
       <button type="button" class="lang-btn active" data-lang="ko">한국어</button>
       <button type="button" class="lang-btn" data-lang="en">EN</button>
       <button type="button" class="lang-btn" data-lang="ja">日本語</button>
     </div>
-
     <div class="brand">photos by HAN ALEUM</div>
     <div class="sub" id="sub"></div>
-
     <div class="photo"><img id="photo" alt=""></div>
     <div class="title" id="title" hidden></div>
-
     <!-- 제공 파일 목록. 판매중이면 실제 구성(원문 그대로), 아니면 언어별 안내 문구 -->
     <div class="desc" id="desc"></div>
-
     <!-- 직접구매/대행구매, 배포허용/배포금지를 O·X 로 표시. 판매중일 때만 노출 -->
     <div class="flags" id="flags" hidden></div>
-
     <!-- 가격: 선택된 언어에 따라 원/달러/엔 중 하나로 표시. 판매 여부와 무관하게 항상 노출 -->
     <div class="price-wrap">
       <div class="price" id="price"></div>
     </div>
-
     <!-- 구매 문의 QR: 판매 여부와 무관하게 항상 표시 -->
     <div class="qr-box">
       <a id="qr-link"><img id="qr" alt="문의 QR 코드"></a>
       <div class="qr-cap" id="qr-cap"></div>
     </div>
-
     <!-- 판매중일 때만: 결제 진행 안내 (선택된 언어로, 구매방식에 맞게 표시) -->
     <div class="steps" id="steps" hidden></div>
-
     <!-- 구매 전 유의사항: 항상 노출, 선택된 언어와 구매방식/배포여부에 맞게 표시 -->
     <div class="notice" id="notice"></div>
-
 <script>
 (function(){
   'use strict';
-
   // ==================== 설정 (여기만 바꾸면 됩니다) ====================
   var CONFIG = {
     QR_IMAGE: 'https://hanalmchan-eng.github.io/pay-qr.png',
     PAY_LINK: 'https://open.kakao.com/me/HANALMCHAN',
-
     R2_BASE:    'https://pub-ceb9b80b378a402f8e6967b241cf9128.r2.dev',
     PHOTO_FILE: '2F9A6950.jpeg',
     TITLE:      '',
-
     // ▶ 환율 (필요할 때 이 두 값만 바꾸면 전체 페이지의 환산가가 자동으로 갱신됩니다)
     //   USD_PER_UNIT: $1 = 이 원화 금액
     //   JPY_PER_100:  ¥100 = 이 원화 금액
@@ -179,20 +164,16 @@
     JPY_PER_100:  1000
   };
   // ===================================================================
-
   var qp = new URLSearchParams(location.search);
   if (qp.get('file'))  CONFIG.PHOTO_FILE = qp.get('file');
-
   var rawTitle = qp.get('title');
   var looksLikeFilename = !!(rawTitle && /^(img|dsc|dscf|pxl|photo|p)[-_]?\d{3,}/i.test(rawTitle.trim()));
   var titleFromQuery = (rawTitle && !looksLikeFilename) ? rawTitle : null;
   if (titleFromQuery) CONFIG.TITLE = titleFromQuery;
-
   var $ = function(id){ return document.getElementById(id); };
   function assetUrl(f){
     return /^https?:/.test(f) ? f : (CONFIG.R2_BASE + '/' + encodeURIComponent(f));
   }
-
   // posts.json 의 product 에 아래 두 필드를 넣으면 이 페이지가 자동으로 반영합니다.
   // "directPurchase": "O"  → 구매자가 작가(HAN ALEUM)에게 직접 결제
   // "directPurchase": "X"  → 구매자가 모델에게 직접 송금 (대행), 값이 없으면 기본 X
@@ -201,17 +182,17 @@
   function flagVal(v){
     return v === true || v === 'O' || v === 'o' || v === '○' || v === 1;
   }
-
   // ===== 다국어 문구 =====
   var I18N = {
     ko: {
       sub: '워터마크 없는 보정본 · 추가 원본 · 촬영 영상 구매',
-      notForSale: '현재 판매중이 아닙니다.',
+      notForSale: '전량 판매 완료되었습니다.',
       qrCapDefault: '스캔해서 오픈채팅으로 문의',
       qrCapWithLink: 'QR 스캔 · 또는 눌러서 오픈채팅 문의',
       flagPurchase: '직접구매',
       flagDistribution: '배포',
       noticeTitle: '구매 전 유의사항',
+      noticeLimited: '· 모델의 요청에 따라 수량 한정 판매로 진행됩니다.',
       noticeDirect: '· 구매자가 작가(HAN ALEUM)에게 직접 결제하는 방식입니다.',
       noticeAgency: '· 구매자가 모델에게 직접 송금하는 방식입니다.',
       noticeDistAllow: '· 배포가 허용된 사진입니다.',
@@ -226,12 +207,13 @@
     },
     en: {
       sub: 'Watermark-free retouched photos, extra originals & footage',
-      notForSale: 'Not currently for sale.',
+      notForSale: 'Sold out — all copies have been sold.',
       qrCapDefault: 'Scan to open chat and inquire',
       qrCapWithLink: 'Scan the QR, or tap to open chat',
       flagPurchase: 'Direct purchase',
       flagDistribution: 'Distribution',
       noticeTitle: 'Before you buy',
+      noticeLimited: '· Per the model\'s request, this is offered as a limited-quantity sale.',
       noticeDirect: '· Buyers pay the photographer (HAN ALEUM) directly.',
       noticeAgency: '· Buyers transfer payment directly to the model.',
       noticeDistAllow: '· Distribution of this photo is permitted.',
@@ -246,12 +228,13 @@
     },
     ja: {
       sub: '透かしなしの補正済み写真・追加オリジナル・撮影映像の購入',
-      notForSale: '現在販売しておりません。',
+      notForSale: '完売しました。',
       qrCapDefault: 'スキャンしてオープンチャットへ',
       qrCapWithLink: 'QRをスキャン、またはタップでチャット',
       flagPurchase: '直接購入',
       flagDistribution: '配布',
       noticeTitle: 'ご購入前に',
+      noticeLimited: '· モデルの要望により数量限定販売として行っております。',
       noticeDirect: '· 購入者が撮影者(HAN ALEUM)に直接お支払いする方式です。',
       noticeAgency: '· 購入者がモデルに直接送金する方式です。',
       noticeDistAllow: '· この写真は配布が許可されています。',
@@ -265,10 +248,8 @@
       stepsAgency4: '4. 送金が確認できましたら、そのメールに元データをお送りします。'
     }
   };
-
   var currentLang = 'ko';
   var lastProduct = null; // applyLang() 재실행 시(언어 전환) 최신 상품 정보를 다시 그리기 위해 캐시
-
   // 언어에 따라 표시 통화가 달라짐: 한국어→원, EN→달러, 日本語→엔
   function fmtPrice(krw, lang){
     if (lang === 'en'){
@@ -280,52 +261,43 @@
     }
     return '₩' + Math.round(krw).toLocaleString('ko-KR');
   }
-
   function buildNotice(t, direct, dist){
     return '<b>' + t.noticeTitle + '</b><br><br>' +
+      t.noticeLimited + '<br><br>' +
       (direct ? t.noticeDirect : t.noticeAgency) + '<br><br>' +
       (dist ? t.noticeDistAllow : t.noticeDistBan);
   }
-
   function buildSteps(t, direct){
     return t.stepsHead + t.steps1 + t.steps2 +
       (direct ? (t.stepsDirect3 + t.stepsDirect4) : (t.stepsAgency3 + t.stepsAgency4));
   }
-
   function buildFlags(t, direct, dist){
     return t.flagPurchase + ' <b>' + (direct ? 'O' : 'X') + '</b>' +
       '&nbsp;&nbsp;·&nbsp;&nbsp;' +
       t.flagDistribution + ' <b>' + (dist ? 'O' : 'X') + '</b>';
   }
-
   function applyLang(lang){
     currentLang = lang;
     var t = I18N[lang];
-
     var btns = document.querySelectorAll('.lang-btn');
     for (var i = 0; i < btns.length; i++){
       btns[i].classList.toggle('active', btns[i].getAttribute('data-lang') === lang);
     }
-
     $('sub').textContent = t.sub;
     $('qr-cap').textContent = CONFIG.PAY_LINK ? t.qrCapWithLink : t.qrCapDefault;
-
     renderProduct(lastProduct); // 언어에 따라 "판매중 아님" 문구 등을 다시 그림
   }
-
   $('photo').src = assetUrl(CONFIG.PHOTO_FILE);
   if (CONFIG.TITLE) {
     $('title').textContent = CONFIG.TITLE;
     $('title').hidden = false;
   }
-
   var langBtns = document.querySelectorAll('.lang-btn');
   for (var li = 0; li < langBtns.length; li++){
     langBtns[li].addEventListener('click', function(){
       applyLang(this.getAttribute('data-lang'));
     });
   }
-
   var qr = $('qr');
   qr.src = assetUrl(CONFIG.QR_IMAGE) + '?v=' + Date.now();
   qr.onerror = function(){
@@ -338,7 +310,6 @@
     qrLink.rel = 'noopener';
     qrLink.style.cursor = 'pointer';
   }
-
   // ===== 제공 파일 / 가격 / 구매방식 / 배포여부 =====
   // posts.json 의 각 항목에 아래와 같은 "product" 필드를 넣어두면 자동으로 반영됩니다:
   // "product": {
@@ -347,30 +318,24 @@
   //   "distribution": "O" | "X"      // O = 배포 허용, X(기본) = 배포 금지
   // }
   // desc는 원문(한국어) 그대로 노출되고, 가격만 원/달러/엔으로 자동 환산됩니다.
+  // price 가 0(또는 없음)이면 판매중이 아닌 것으로 보고 "전량 판매 완료" 문구를 보여줍니다.
   function renderProduct(product){
     lastProduct = product;
     var t = I18N[currentLang];
     var desc = (product && product.desc) ? String(product.desc).trim() : '';
     var priceNum = product ? (Number(product.price) || 0) : 0;
     var forSale = !!(priceNum > 0 && desc.length > 0);
-
     var direct = flagVal(product && product.directPurchase);
     var dist   = flagVal(product && product.distribution);
-
     $('desc').innerHTML = forSale ? desc.replace(/\n/g, '<br>') : t.notForSale;
     $('price').textContent = fmtPrice(priceNum, currentLang);
-
     $('flags').innerHTML = buildFlags(t, direct, dist);
     $('flags').hidden = !forSale;
-
     $('steps').innerHTML = buildSteps(t, direct);
     $('steps').hidden = !forSale;
-
     $('notice').innerHTML = buildNotice(t, direct, dist);
   }
-
   applyLang('ko');
-
   fetch('posts.json?v=' + Date.now())
     .then(function(r){ return r.json(); })
     .then(function(posts){

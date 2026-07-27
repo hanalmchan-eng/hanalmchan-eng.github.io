@@ -191,6 +191,7 @@
       qrCapWithLink: 'QR 스캔 · 또는 눌러서 오픈채팅 문의',
       flagPurchase: '직접구매',
       flagDistribution: '배포',
+      flagLimit: '한정수량',
       noticeTitle: '구매 전 유의사항',
       noticeLimited: '· 모델의 요청에 따라 수량 한정 판매로 진행됩니다.',
       noticeDirect: '· 구매자가 작가(HAN ALEUM)에게 직접 결제하는 방식입니다.',
@@ -212,6 +213,7 @@
       qrCapWithLink: 'Scan the QR, or tap to open chat',
       flagPurchase: 'Direct purchase',
       flagDistribution: 'Distribution',
+      flagLimit: 'Limited to',
       noticeTitle: 'Before you buy',
       noticeLimited: '· Per the model\'s request, this is offered as a limited-quantity sale.',
       noticeDirect: '· Buyers pay the photographer (HAN ALEUM) directly.',
@@ -233,6 +235,7 @@
       qrCapWithLink: 'QRをスキャン、またはタップでチャット',
       flagPurchase: '直接購入',
       flagDistribution: '配布',
+      flagLimit: '数量限定',
       noticeTitle: 'ご購入前に',
       noticeLimited: '· モデルの要望により数量限定販売として行っております。',
       noticeDirect: '· 購入者が撮影者(HAN ALEUM)に直接お支払いする方式です。',
@@ -271,10 +274,21 @@
     return t.stepsHead + t.steps1 + t.steps2 +
       (direct ? (t.stepsDirect3 + t.stepsDirect4) : (t.stepsAgency3 + t.stepsAgency4));
   }
-  function buildFlags(t, direct, dist){
-    return t.flagPurchase + ' <b>' + (direct ? 'O' : 'X') + '</b>' +
+  // 언어에 따라 한정 수량 단위를 다르게 표기 (개 / 点 / 숫자만)
+  function fmtLimit(n, lang){
+    if (lang === 'en') return String(n);
+    if (lang === 'ja') return n + '点';
+    return n + '개';
+  }
+  // limit 이 0(또는 값 없음)이면 수량 제한이 없는 것으로 보고 배지를 표시하지 않는다.
+  function buildFlags(t, direct, dist, limit, lang){
+    var s = t.flagPurchase + ' <b>' + (direct ? 'O' : 'X') + '</b>' +
       '&nbsp;&nbsp;·&nbsp;&nbsp;' +
       t.flagDistribution + ' <b>' + (dist ? 'O' : 'X') + '</b>';
+    if (limit > 0){
+      s += '&nbsp;&nbsp;·&nbsp;&nbsp;' + t.flagLimit + ' <b>' + fmtLimit(limit, lang) + '</b>';
+    }
+    return s;
   }
   function applyLang(lang){
     currentLang = lang;
@@ -315,7 +329,8 @@
   // "product": {
   //   "desc": "...", "price": 95000,
   //   "directPurchase": "O" | "X",   // O = 작가에게 직접 결제, X(기본) = 모델에게 대행 송금
-  //   "distribution": "O" | "X"      // O = 배포 허용, X(기본) = 배포 금지
+  //   "distribution": "O" | "X",     // O = 배포 허용, X(기본) = 배포 금지
+  //   "limit": 3                     // 판매 제한 수량. 0 이거나 생략하면 수량 제한 없음
   // }
   // desc는 원문(한국어) 그대로 노출되고, 가격만 원/달러/엔으로 자동 환산됩니다.
   // price 가 0(또는 없음)이면 판매중이 아닌 것으로 보고 "전량 판매 완료" 문구를 보여줍니다.
@@ -327,9 +342,11 @@
     var forSale = !!(priceNum > 0 && desc.length > 0);
     var direct = flagVal(product && product.directPurchase);
     var dist   = flagVal(product && product.distribution);
+    // limit: 0 이거나 값이 없으면 수량 제한 없음
+    var limit  = product ? (Number(product.limit) || 0) : 0;
     $('desc').innerHTML = forSale ? desc.replace(/\n/g, '<br>') : t.notForSale;
     $('price').textContent = fmtPrice(priceNum, currentLang);
-    $('flags').innerHTML = buildFlags(t, direct, dist);
+    $('flags').innerHTML = buildFlags(t, direct, dist, limit, currentLang);
     $('flags').hidden = !forSale;
     $('steps').innerHTML = buildSteps(t, direct);
     $('steps').hidden = !forSale;

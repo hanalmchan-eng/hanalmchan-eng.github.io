@@ -79,10 +79,6 @@
     mix-blend-mode:difference;
     -webkit-text-stroke:0.4px currentColor;
   }
-  /* 앞부분(STILLS / ENCOUNTERS)은 살짝 크게, 뒷부분(, MAPS / , WATERMARKS)은
-     아주 살짝 흐리게 — difference 블렌드 위라 색 대신 투명도로 회색 느낌을 낸다. */
-  .section-label .sl-main{ font-size:1.14em; }
-  .section-label .sl-sub{ opacity:.55; }
   #models-section{ margin-top:96px; }
   /* 본문 속 'LMCHAN' 만 로고 폰트로. (LMCHan 에는 소문자 글리프가 없다) */
   .lm{
@@ -106,7 +102,6 @@
   .byline{
     font-size:17px; color:var(--ink-60); letter-spacing:.04em;
     text-align:center; margin-bottom:12px;
-    font-family:'LMCHan', Georgia, serif;
   }
   .hint-text{
     font-size:9.5px; color:var(--ink-35); letter-spacing:.04em; line-height:2;
@@ -273,7 +268,7 @@
 </head>
 <body>
   <section id="map-section" hidden>
-    <div class="section-label"><span class="sl-main">STILLS</span><span class="sl-sub">, MAPS</span></div>
+    <div class="section-label">STILLS, MAPS</div>
     <div id="map-head">
       <span id="map-note">
         사진을 눌러 원본 저장 · 이어서 글로<br>
@@ -285,7 +280,7 @@
     <div id="map-empty" hidden>등록된 포스트가 아직 없습니다.<br>No posts yet.<br>投稿がまだありません。</div>
   </section>
   <section id="models-section">
-    <div class="section-label"><span class="sl-main">ENCOUNTERS</span><span class="sl-sub">, WATERMARKS</span></div>
+    <div class="section-label">ENCOUNTERS, WATERMARKS</div>
     <!-- 인트로 문구: 한 번 다 보인 뒤 화면 위로 지나가면 접혀 사라진다 -->
     <div id="intro">
       <div class="byline">photos by <span class="lm">HAN ALEUM</span></div>

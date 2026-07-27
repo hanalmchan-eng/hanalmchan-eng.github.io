@@ -298,6 +298,19 @@
 <script>
 (function(){
   'use strict';
+  // ====== 인스타 등 유입에 따라 섹션 순서 바꾸기 ======
+  // 평소엔 STILLS, MAPS 가 먼저 나오지만, 링크에 ?from=ig 가 붙어 있으면
+  // ENCOUNTERS, WATERMARKS 를 먼저 보여준다. (여백도 함께 맞바꾼다)
+  var FROM_IG = new URLSearchParams(location.search).get('from') === 'ig';
+  if (FROM_IG) {
+    var _models = document.getElementById('models-section');
+    var _maps   = document.getElementById('map-section');
+    if (_models && _maps && _models.parentNode === _maps.parentNode) {
+      _maps.parentNode.insertBefore(_models, _maps);
+      _models.style.marginTop = '0';
+      _maps.style.marginTop = '96px';
+    }
+  }
   // ====== 임시 진단 (꺼둠) ======
   var DEBUG = false;
   var _dbgEl = document.getElementById('debug');

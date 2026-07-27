@@ -278,11 +278,22 @@
     return t.stepsHead + t.steps1 + t.steps2 +
       (direct ? (t.stepsDirect3 + t.stepsDirect4) : (t.stepsAgency3 + t.stepsAgency4));
   }
-  // 언어에 따라 한정 수량 단위를 다르게 표기 (개 / 点 / 숫자만)
+  // 정확한 재고 대신 "5개+", "10개+" 처럼 대략적인 구간으로만 표기한다.
+  // (정적 사이트라 실시간 재고를 반영하지 못하니, 정확한 숫자를 내세우지 않는 편이 안전하다)
+  var LIMIT_TIERS = [50, 20, 10, 5];
   function fmtLimit(n, lang){
-    if (lang === 'en') return String(n);
-    if (lang === 'ja') return n + '点';
-    return n + '개';
+    for (var i = 0; i < LIMIT_TIERS.length; i++){
+      if (n >= LIMIT_TIERS[i]){
+        var t = LIMIT_TIERS[i];
+        if (lang === 'en') return t + '+';
+        if (lang === 'ja') return t + '点+';
+        return t + '개+';
+      }
+    }
+    // 5개 미만은 숫자 대신 '소량'으로만 표기
+    if (lang === 'en') return 'a few';
+    if (lang === 'ja') return '少量';
+    return '소량';
   }
   // limit 이 0(또는 값 없음)이면 수량 제한이 없는 것으로 보고 배지를 표시하지 않는다.
   function buildFlags(t, direct, dist, limit, lang){

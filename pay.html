@@ -198,6 +198,7 @@
       noticeAgency: '· 구매자가 모델에게 직접 송금하는 방식입니다.',
       noticeDistAllow: '· 배포가 허용된 사진입니다.',
       noticeDistBan: '· 모델의 요청에 따라 배포 금지를 요청했습니다.',
+      noticeNoRefund: '· 이메일 전송이 완료되면 환불은 되지 않습니다.',
       stepsHead: '<b>결제는 카카오톡 오픈채팅에서 진행됩니다.</b><br><br><b>진행 순서</b><br>',
       steps1: '1. 위 QR로 오픈채팅 1:1 대화를 시작해요.<br>',
       steps2: '2. 사진을 받으실 이메일 주소를 알려주세요.<br>',
@@ -220,6 +221,7 @@
       noticeAgency: '· Buyers transfer payment directly to the model.',
       noticeDistAllow: '· Distribution of this photo is permitted.',
       noticeDistBan: "· Distribution is prohibited at the model's request.",
+      noticeNoRefund: '· No refunds once the file has been emailed.',
       stepsHead: '<b>Payment is handled via KakaoTalk Open Chat.</b><br><br><b>How it works</b><br>',
       steps1: '1. Start a 1:1 chat using the QR above.<br>',
       steps2: "2. Share the email address you'd like the photos sent to.<br>",
@@ -242,6 +244,7 @@
       noticeAgency: '· 購入者がモデルに直接送金する方式です。',
       noticeDistAllow: '· この写真は配布が許可されています。',
       noticeDistBan: '· モデルの要望により配布を禁止しています。',
+      noticeNoRefund: '· メール送信完了後は返金できません。',
       stepsHead: '<b>決済はカカオトークのオープンチャットで行います。</b><br><br><b>進め方</b><br>',
       steps1: '1. 上のQRからオープンチャットで1:1トークを始めてください。<br>',
       steps2: '2. 写真を受け取るメールアドレスを教えてください。<br>',
@@ -268,7 +271,8 @@
     return '<b>' + t.noticeTitle + '</b><br><br>' +
       t.noticeLimited + '<br><br>' +
       (direct ? t.noticeDirect : t.noticeAgency) + '<br><br>' +
-      (dist ? t.noticeDistAllow : t.noticeDistBan);
+      (dist ? t.noticeDistAllow : t.noticeDistBan) + '<br><br>' +
+      t.noticeNoRefund;
   }
   function buildSteps(t, direct){
     return t.stepsHead + t.steps1 + t.steps2 +

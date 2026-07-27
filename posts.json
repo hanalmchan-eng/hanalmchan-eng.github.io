@@ -19,10 +19,10 @@
     "logoX": 2249,
     "logoY": 3120,
     "product": {
-      "desc": "",
-      "price": 0,
-      "directPurchase": "X",
-      "distribution": "X"
+      "desc": "4K×2 · 48MP×5 · 820MB",
+      "price": 95000,
+      "directPurchase": "O",
+      "distribution": "O"
     }
   },
   {
@@ -32,8 +32,8 @@
     "logoX": 2792,
     "logoY": 2575,
     "product": {
-      "desc": "",
-      "price": 0,
+      "desc": "4K×1 · 32MP×3 · 340MB",
+      "price": 60000,
       "directPurchase": "X",
       "distribution": "X"
     }

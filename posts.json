@@ -4,6 +4,83 @@
 “before”: “_F9A4447.jpg”,
 “caption”: “”,
 “logoX”: 1664,
+  {
+    "file": "IMG_9294.jpeg",
+    "before": "_F9A4447.jpg",
+    "caption": "",
+    "logoX": 1664,
+    "logoY": 795,
+    "product": {
+      "desc": "4K×3 · 72MP×7 · 32MP×25 · 1.24GB",
+      "price": 150000,
+      "directPurchase": "X",
+      "distribution": "O",
+      "limit": 4
+    }
+  },
+  {
+    "file": "IMG_9317.jpeg",
+    "before": "_F9A5351.jpg",
+    "behind": "2F9A5350.MP4",
+    "caption": "",
+    "logoX": 2249,
+    "logoY": 3120,
+    "product": {
+      "desc": "4K×2 · 48MP×5 · 820MB",
+      "price": 95000,
+      "directPurchase": "O",
+      "distribution": "O",
+      "limit": 7
+    }
+  },
+  {
+    "file": "IMG_9312.jpeg",
+    "before": "_F9A2134.jpg",
+    "caption": "",
+    "logoX": 2792,
+    "logoY": 2575,
+    "product": {
+      "desc": "4K×1 · 32MP×3 · 340MB",
+      "price": 60000,
+      "directPurchase": "X",
+      "distribution": "X",
+      "limit": 2
+    }
+  },
+  {
+    "file": "IMG_9308.jpeg",
+    "before": "_F9A2421 2.jpg",
+    "caption": "",
+    "logoX": 307,
+    "logoY": 983,
+    "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
+  },
+  {
+    "file": "IMG_9454.jpeg",
+    "before": "_F9A8639.jpeg",
+    "caption": "",
+    "logoX": 1526,
+    "logoY": 4109,
+    "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
+  },
+  {
+    "file": "IMG_9501.jpeg",
+    "before": "_F9A6379.jpg",
+    "caption": "",
+    "logoX": 2066,
+    "logoY": 4129,
+    "product": { "desc": "", "price": 0, "directPurchase": "O", "distribution": "O", "limit": 0 }
+  },
+  {
+    "file": "IMG_9424.jpeg",
+    "before": "_F9A5735.jpg",
+    "caption": "",
+    "logoX": 2057,
+    "logoY": 2875,
+    "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
+  }
+]
+
 “logoY”: 795,
 “product”: {
 “desc”: “4K×3 · 72MP×7 · 32MP×25 · 1.24GB”,

@@ -108,19 +108,6 @@
     z-index: 2;
   }
   .post.show-before img.photo-before { opacity: 1; }
-  /* 비하인드 영상: 7초 이상 누르면 '원본' 위에 한 겹 더 뜬다.
-     사진과 같은 박스 크기(가로/세로)를 그대로 물려받아, .post의 확대/이동
-     상태를 완전히 공유한다 — 별도 스케일 계산이 필요 없다. */
-  .post video.photo-behind {
-    position: absolute;
-    top: 0; left: 0;
-    object-fit: cover;
-    opacity: 0;
-    transition: opacity 0.18s ease;
-    z-index: 3;
-    pointer-events: none;
-  }
-  .post.show-behind video.photo-behind { opacity: 1; }
   .post-photo a, .post-photoset a {
     display: block;
     cursor: inherit;
@@ -240,8 +227,7 @@
   var curImgW = 0, curImgH = 0;
   var HEADER_X = 20;
   var HEADER_Y = 20;
-  var HOLD_DELAY = 3000;     // 이 시간 이상 누르면 원본(before) 표시
-  var BEHIND_DELAY = 7000;   // 이 시간 이상 누르면 비하인드 영상 표시 (누른 시점부터)
+  var HOLD_DELAY = 3000;
   var viewMode = 'zoom';
   var fitScale = 0.2688;
   var zoomScale = 0.2688;
@@ -443,8 +429,9 @@
   var currentIndex = 0;
   var currentPostEl = null;
   var hasBefore = false;
-  var hasBehind = false;        // 이 사진에 비하인드 영상이 있는지
-  var behindVideoEl = null;     // 현재 포스트의 비하인드 <video> 엘리먼트 참조
+  // ===== [추가] "다음" 을 눌렀을 때 최대한 중복 없이 무작위로 =====
+  // 남은(아직 안 본) 사진들의 순서를 미리 섞어 큐에 담아두고, 하나씩 꺼내 보여준다.
+  // 큐가 비면(=전부 한 바퀴 돌면) 현재 사진만 뺀 나머지를 다시 섞어 채운다.
   var nextQueue = [];
   function shuffle(arr){
     var a = arr.slice();
@@ -519,8 +506,6 @@
     plane.innerHTML = '';
     currentPostEl = null;
     hasBefore = false;
-    hasBehind = false;
-    behindVideoEl = null;
     viewMode = 'zoom';
     showLoading();
     var div = document.createElement('div');
@@ -537,12 +522,6 @@
       if (beforeImg) {
         beforeImg.style.width = w + 'px';
         beforeImg.style.height = h + 'px';
-      }
-      // 비하인드 영상도 사진과 완전히 같은 박스 크기로 맞춘다 —
-      // 이러면 .post의 확대/드래그 상태를 그대로 물려받아 "사진처럼" 움직인다.
-      if (behindVideoEl) {
-        behindVideoEl.style.width = w + 'px';
-        behindVideoEl.style.height = h + 'px';
       }
       computeScales(w, h);
       applyMode();
@@ -565,24 +544,6 @@
       div.appendChild(beforeImg);
       hasBefore = true;
     }
-    // 비하인드 영상: 이 사진을 보는 순간부터(=지금) 미리 다운로드를 시작해 둔다.
-    // 7초 이상 누르면 showBehind()가 이걸 그대로 재생만 시키므로 로딩 지연이 없다.
-    if (post.behind) {
-      behindVideoEl = document.createElement('video');
-      behindVideoEl.className = 'photo photo-behind';
-      behindVideoEl.muted = true;
-      behindVideoEl.loop = true;               // 계속 무한 루프
-      behindVideoEl.playsInline = true;
-      behindVideoEl.setAttribute('playsinline', '');
-      behindVideoEl.setAttribute('webkit-playsinline', '');
-      behindVideoEl.disablePictureInPicture = true;
-      behindVideoEl.preload = 'auto';          // 지금 바로 다운로드 시작
-      behindVideoEl.draggable = false;
-      behindVideoEl.addEventListener('contextmenu', function(e){ e.preventDefault(); });
-      behindVideoEl.src = buildImageUrl(post.behind);
-      div.appendChild(behindVideoEl);
-      hasBehind = true;
-    }
     if (post.caption) {
       var cap = document.createElement('div');
       cap.className = 'caption';
@@ -595,6 +556,7 @@
     setTimeout(function(){ layoutPosts(); positionForMode(); }, 500);
     setTimeout(function(){ layoutPosts(); positionForMode(); }, 1500);
   }
+  // [변경] 순서대로(currentIndex+1) 넘기던 것을, 무작위 비반복 큐에서 꺼내도록 변경.
   function nextPost() {
     if (allPosts.length <= 1) { showPost(currentIndex + 1); return; }
     if (!nextQueue.length) refillQueue(currentIndex);
@@ -626,19 +588,6 @@
   }
   function hideBefore() {
     if (currentPostEl) currentPostEl.classList.remove('show-before');
-  }
-  function showBehind() {
-    if (!hasBehind || !currentPostEl) return;
-    currentPostEl.classList.add('show-behind');
-    if (behindVideoEl) {
-      try { behindVideoEl.currentTime = 0; } catch (err) {}
-      var p = behindVideoEl.play();
-      if (p && p.catch) p.catch(function(){ /* 자동재생 실패 시 조용히 무시 */ });
-    }
-  }
-  function hideBehind() {
-    if (currentPostEl) currentPostEl.classList.remove('show-behind');
-    if (behindVideoEl) behindVideoEl.pause();
   }
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
@@ -731,18 +680,12 @@
   var VEL_SMOOTH = 0.3;
   var momentumRAF = null;
   var holdTimer = null;
-  var holdTimerBehind = null;
   var holding = false;
   var holdCancelled = false;
   function clearHold() {
     holdCancelled = true;
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (holdTimerBehind) { clearTimeout(holdTimerBehind); holdTimerBehind = null; }
-    if (holding) {
-      holding = false;
-      hideBefore();
-      hideBehind();
-    }
+    if (holding) { holding = false; hideBefore(); }
   }
   function stopMomentum() {
     if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
@@ -757,22 +700,15 @@
     velX = 0; velY = 0;
     canvas.classList.add('dragging');
     hideHint();
-    if (hasBefore || hasBehind) {
+    if (hasBefore) {
       holdCancelled = false;
       if (holdTimer) clearTimeout(holdTimer);
       holdTimer = setTimeout(function() {
-        if (isDragging && !holdCancelled && hasBefore) {
+        if (isDragging && !holdCancelled) {
           holding = true;
           showBefore();
         }
       }, HOLD_DELAY);
-      if (holdTimerBehind) clearTimeout(holdTimerBehind);
-      holdTimerBehind = setTimeout(function() {
-        if (isDragging && !holdCancelled && hasBehind) {
-          holding = true;
-          showBehind();
-        }
-      }, BEHIND_DELAY);
     }
     return true;
   }
@@ -824,7 +760,7 @@
     momentumRAF = requestAnimationFrame(step);
   }
   canvas.addEventListener('mousedown', function(e) { if (startDrag(e.clientX, e.clientY, e.target)) e.preventDefault(); });
-  canvas.addEventListener('dragstart', function(e) { if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO')) e.preventDefault(); });
+  canvas.addEventListener('dragstart', function(e) { if (e.target && e.target.tagName === 'IMG') e.preventDefault(); });
   window.addEventListener('mousemove', function(e) { if (isDragging) { e.preventDefault(); moveDrag(e.clientX, e.clientY); } });
   window.addEventListener('mouseup', endDrag);
   window.addEventListener('mouseleave', endDrag);
@@ -906,16 +842,7 @@
     if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
   });
   canvas.addEventListener('click', function(e) {
-    if (didMove) { e.preventDefault(); e.stopPropagation(); return; }
-    // ===== [임시/디버그] 확인용: 7초 기다릴 필요 없이 클릭하면 바로 비하인드 영상 토글 =====
-    // 확인 끝나면 이 블록만 지우면 원래대로(누르고 있어야 뜨는 방식) 돌아갑니다.
-    if (hasBehind) {
-      if (currentPostEl && currentPostEl.classList.contains('show-behind')) {
-        hideBehind();
-      } else {
-        showBehind();
-      }
-    }
+    if (didMove) { e.preventDefault(); e.stopPropagation(); }
   }, true);
   updateTransform();
 })();

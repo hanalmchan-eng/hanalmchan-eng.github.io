@@ -119,21 +119,20 @@
     z-index: 2;
   }
   .post.show-before img.photo-before { opacity: 1; }
-  /* 비하인드 영상: 7초 이상 누르면 '원본' 위에 한 겹 더 뜬다.
-     사진과 같은 박스 크기(가로/세로)를 그대로 물려받아, .post의 확대/이동
-     상태를 완전히 공유한다 — 별도 스케일 계산이 필요 없다. */
+  /* 비하인드 영상: "unseen" 버튼을 누르면 사진 위에 한 겹 더 뜬다.
+     width/height/left/top은 실제 픽셀 값으로 JS가 계산해 넣는다(아래
+     onMediaReady 참고) — 부모(.plane)의 확대/이동 transform 하나만 적용받고,
+     영상 자신은 별도 transform을 쓰지 않는다. 드래그 중 부모 transform이
+     계속 바뀌는 상황에서, 자식 영상에 또 다른 transform까지 겹쳐 있으면
+     일부 모바일 브라우저가 재생 중인 영상을 리페인트 도중 멈추거나
+     깜빡이게 만드는 문제가 있어 이렇게 우회한다. */
   .post video.photo-behind {
     position: absolute;
-    top: 0; left: 0;
     object-fit: cover;
     opacity: 0;
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    transition: opacity 0.18s ease;
     z-index: 3;
     pointer-events: none;
-    /* 사진과 같은 박스 크기·위치를 유지해 캔버스 이동/확대는 그대로 함께
-       움직이되, 화면에 보이는 크기만 중심 기준으로 절반으로 줄인다. */
-    transform: scale(0.5);
-    transform-origin: 50% 50%;
   }
   .post.show-behind video.photo-behind { opacity: 1; }
   .post-photo a, .post-photoset a {
@@ -257,7 +256,7 @@
   var HEADER_X = 20;
   var HEADER_Y = 20;
   var HOLD_DELAY = 3000;     // 이 시간 이상 누르면 원본(before) 표시
-  var BEHIND_DELAY = 7000;   // 이 시간 이상 누르면 비하인드 영상 표시 (누른 시점부터)
+  var BEHIND_SCALE = Math.SQRT1_2; // ≈0.7071 — 비하인드 영상이 보이는 "면적"을 절반으로
   var viewMode = 'zoom';
   var fitScale = 0.2688;
   var zoomScale = 0.2688;
@@ -556,11 +555,16 @@
         beforeImg.style.width = w + 'px';
         beforeImg.style.height = h + 'px';
       }
-      // 비하인드 영상도 사진과 완전히 같은 박스 크기로 맞춘다 —
-      // 이러면 .post의 확대/드래그 상태를 그대로 물려받아 "사진처럼" 움직인다.
+      // 비하인드 영상: 사진과 같은 좌표계 안에서, 화면에 "보이는 면적"이
+      // 정확히 절반이 되도록 실제 픽셀 크기를 계산해 중앙에 배치한다.
+      // (가로세로를 그냥 0.5배 하면 면적은 0.25가 되어버리므로, 면적이
+      // 정확히 절반이 되는 √0.5 ≈ 0.7071을 곱한다.)
       if (behindVideoEl) {
-        behindVideoEl.style.width = w + 'px';
-        behindVideoEl.style.height = h + 'px';
+        var vw = w * BEHIND_SCALE, vh = h * BEHIND_SCALE;
+        behindVideoEl.style.width = vw + 'px';
+        behindVideoEl.style.height = vh + 'px';
+        behindVideoEl.style.left = ((w - vw) / 2) + 'px';
+        behindVideoEl.style.top = ((h - vh) / 2) + 'px';
       }
       computeScales(w, h);
       applyMode();
@@ -666,22 +670,27 @@
   function toggleBehindManual() {
     if (!hasBehind) return;
     if (currentPostEl && currentPostEl.classList.contains('show-behind')) {
-      holding = false;
       hideBehind();
     } else {
-      holding = true;
       showBehind();
     }
   }
   if (behindLink) {
-    behindLink.addEventListener('click', function(e){
-      e.preventDefault();
-      toggleBehindManual();
-    });
+    // 터치 기기에서는 touchend가 처리한 뒤 브라우저가 뒤이어 합성 click을
+    // 또 보낼 수 있어서, 그대로 두면 "켜짐→꺼짐"이 한 번의 탭 안에서
+    // 연속으로 일어나 버린다. 짧은 시간 동안 click을 무시해 중복을 막는다.
+    var behindTouchHandled = false;
     behindLink.addEventListener('touchend', function(e){
       e.preventDefault(); e.stopPropagation();
+      behindTouchHandled = true;
       toggleBehindManual();
+      setTimeout(function(){ behindTouchHandled = false; }, 500);
     }, { passive: false });
+    behindLink.addEventListener('click', function(e){
+      e.preventDefault();
+      if (behindTouchHandled) return;
+      toggleBehindManual();
+    });
   }
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
@@ -774,17 +783,14 @@
   var VEL_SMOOTH = 0.3;
   var momentumRAF = null;
   var holdTimer = null;
-  var holdTimerBehind = null;
   var holding = false;
   var holdCancelled = false;
   function clearHold() {
     holdCancelled = true;
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (holdTimerBehind) { clearTimeout(holdTimerBehind); holdTimerBehind = null; }
     if (holding) {
       holding = false;
       hideBefore();
-      hideBehind();
     }
   }
   function stopMomentum() {
@@ -800,7 +806,7 @@
     velX = 0; velY = 0;
     canvas.classList.add('dragging');
     hideHint();
-    if (hasBefore || hasBehind) {
+    if (hasBefore) {
       holdCancelled = false;
       if (holdTimer) clearTimeout(holdTimer);
       holdTimer = setTimeout(function() {
@@ -809,13 +815,6 @@
           showBefore();
         }
       }, HOLD_DELAY);
-      if (holdTimerBehind) clearTimeout(holdTimerBehind);
-      holdTimerBehind = setTimeout(function() {
-        if (isDragging && !holdCancelled && hasBehind) {
-          holding = true;
-          showBehind();
-        }
-      }, BEHIND_DELAY);
     }
     return true;
   }
@@ -873,8 +872,10 @@
   window.addEventListener('mouseleave', endDrag);
   document.addEventListener('dblclick', function(e) {
     e.preventDefault();
-    if (holding) {
+    var overlayActive = holding || (currentPostEl && currentPostEl.classList.contains('show-behind'));
+    if (overlayActive) {
       clearHold();
+      hideBehind();
       enterFit();
       return;
     }
@@ -891,8 +892,10 @@
     var dy = Math.abs(t.clientY - lastTapY);
     if (dt > 0 && dt < 350 && dx < 40 && dy < 40) {
       e.preventDefault();
-      if (holding) {
+      var overlayActiveTap = holding || (currentPostEl && currentPostEl.classList.contains('show-behind'));
+      if (overlayActiveTap) {
         clearHold();
+        hideBehind();
         enterFit();
       } else {
         toggleMode();

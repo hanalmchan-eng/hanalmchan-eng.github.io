@@ -256,7 +256,7 @@
   var HEADER_X = 20;
   var HEADER_Y = 20;
   var HOLD_DELAY = 3000;     // 이 시간 이상 누르면 원본(before) 표시
-  var BEHIND_AREA_RATIO = 0.77; // 비하인드 영상이 보이는 "면적"을 사진 면적의 77%로
+  var BEHIND_AREA_RATIO = 0.615; // 비하인드 영상이 보이는 "면적"을 사진 면적의 61.5%로
   var viewMode = 'zoom';
   var fitScale = 0.2688;
   var zoomScale = 0.2688;
@@ -759,6 +759,11 @@
       if (logoHoldTimer) { clearTimeout(logoHoldTimer); logoHoldTimer = null; }
       if (logoHeld) { e.preventDefault(); return; }
     }
+    // 비하인드 영상("unseen")이 재생 중일 때는 로고를 눌러도 다음 사진으로
+    // 넘어가지 않게 막는다 — 영상을 보는 도중 실수로 넘어가는 것 방지.
+    function isBehindShowing() {
+      return !!(currentPostEl && currentPostEl.classList.contains('show-behind'));
+    }
     logoHit.addEventListener('mousedown', logoPressStart);
     logoHit.addEventListener('mouseup', logoPressEnd);
     logoHit.addEventListener('mouseleave', function(){ if (logoHoldTimer){ clearTimeout(logoHoldTimer); logoHoldTimer=null; } });
@@ -767,11 +772,13 @@
       if (logoHoldTimer) { clearTimeout(logoHoldTimer); logoHoldTimer = null; }
       if (logoHeld) { e.preventDefault(); e.stopPropagation(); return; }
       e.preventDefault(); e.stopPropagation();
+      if (isBehindShowing()) return;
       nextPost();
     }, { passive: false });
     logoHit.addEventListener('click', function(e) {
       e.preventDefault();
       if (logoHeld) { logoHeld = false; return; }
+      if (isBehindShowing()) return;
       nextPost();
     });
   }

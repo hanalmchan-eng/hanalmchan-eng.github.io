@@ -88,6 +88,24 @@
   #back-link { bottom: 20px; left: 20px; }
   #order-link { bottom: 20px; right: 20px; }
   #back-link:hover, #order-link:hover { opacity: 1; }
+  /* 비하인드 영상 버튼: 그 사진에 영상이 있을 때만 오른쪽 위에 나타남 */
+  #behind-link {
+    position: fixed; top: 20px; right: 20px; z-index: 100;
+    font-family: 'LMCHan', Georgia, serif;
+    font-size: 14px; letter-spacing: 0.12em;
+    color: #ffffff;
+    -webkit-text-stroke: 0.5px currentColor;
+    text-decoration: none;
+    padding: 5px 10px;
+    mix-blend-mode: difference;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    text-transform: lowercase;
+  }
+  #behind-link.visible { opacity: 0.75; pointer-events: auto; }
+  #behind-link.visible:hover { opacity: 1; }
+  #behind-link.active { opacity: 1; }
   .post { position: absolute; top: 0; left: 0; }
   .post img.photo {
     display: block;
@@ -116,9 +134,13 @@
     top: 0; left: 0;
     object-fit: cover;
     opacity: 0;
-    transition: opacity 0.18s ease;
+    transition: opacity 0.18s ease, transform 0.18s ease;
     z-index: 3;
     pointer-events: none;
+    /* 사진과 같은 박스 크기·위치를 유지해 캔버스 이동/확대는 그대로 함께
+       움직이되, 화면에 보이는 크기만 중심 기준으로 절반으로 줄인다. */
+    transform: scale(0.5);
+    transform-origin: 50% 50%;
   }
   .post.show-behind video.photo-behind { opacity: 1; }
   .post-photo a, .post-photoset a {
@@ -208,6 +230,7 @@
 <div id="nav"></div>
 <a id="back-link" href="index.html?from=ig">AWAY</a>
 <a id="order-link" href="pay.html">yours</a>
+<a id="behind-link" href="#" role="button">unseen</a>
 <div id="loading">불러오는 중...<br>loading...<br>読み込み中...</div>
 <div id="canvas">
   <div id="plane"></div>
@@ -268,6 +291,7 @@
   var loadingEl = document.getElementById('loading');
   var logoHit  = document.getElementById('logo-hit');
   var orderLink = document.getElementById('order-link');
+  var behindLink = document.getElementById('behind-link');
   function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
   function updateOrderLink(post) {
     if (!orderLink || !post) return;
@@ -521,6 +545,7 @@
     hasBefore = false;
     hasBehind = false;
     behindVideoEl = null;
+    if (behindLink) { behindLink.classList.remove('visible', 'active'); }
     viewMode = 'zoom';
     showLoading();
     var div = document.createElement('div');
@@ -582,6 +607,7 @@
       behindVideoEl.src = buildImageUrl(post.behind);
       div.appendChild(behindVideoEl);
       hasBehind = true;
+      if (behindLink) behindLink.classList.add('visible');
     }
     if (post.caption) {
       var cap = document.createElement('div');
@@ -630,6 +656,7 @@
   function showBehind() {
     if (!hasBehind || !currentPostEl) return;
     currentPostEl.classList.add('show-behind');
+    if (behindLink) behindLink.classList.add('active');
     if (behindVideoEl) {
       try { behindVideoEl.currentTime = 0; } catch (err) {}
       var p = behindVideoEl.play();
@@ -638,7 +665,30 @@
   }
   function hideBehind() {
     if (currentPostEl) currentPostEl.classList.remove('show-behind');
+    if (behindLink) behindLink.classList.remove('active');
     if (behindVideoEl) behindVideoEl.pause();
+  }
+  // "unseen" 버튼: 누르면 비하인드 영상을 켜고, 다시 누르면 끈다.
+  // 3초/7초 길게 누르기와는 별개의, 확실하고 의도적인 접근 방법.
+  function toggleBehindManual() {
+    if (!hasBehind) return;
+    if (currentPostEl && currentPostEl.classList.contains('show-behind')) {
+      holding = false;
+      hideBehind();
+    } else {
+      holding = true;
+      showBehind();
+    }
+  }
+  if (behindLink) {
+    behindLink.addEventListener('click', function(e){
+      e.preventDefault();
+      toggleBehindManual();
+    });
+    behindLink.addEventListener('touchend', function(e){
+      e.preventDefault(); e.stopPropagation();
+      toggleBehindManual();
+    }, { passive: false });
   }
   fetch('posts.json?v=' + Date.now())
     .then(function(r) { return r.json(); })
@@ -830,6 +880,11 @@
   window.addEventListener('mouseleave', endDrag);
   document.addEventListener('dblclick', function(e) {
     e.preventDefault();
+    if (holding) {
+      clearHold();
+      enterFit();
+      return;
+    }
     toggleMode();
   });
   var lastTapTime = 0;
@@ -843,7 +898,12 @@
     var dy = Math.abs(t.clientY - lastTapY);
     if (dt > 0 && dt < 350 && dx < 40 && dy < 40) {
       e.preventDefault();
-      toggleMode();
+      if (holding) {
+        clearHold();
+        enterFit();
+      } else {
+        toggleMode();
+      }
       lastTapTime = 0;
     } else {
       lastTapTime = now;
@@ -906,16 +966,7 @@
     if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
   });
   canvas.addEventListener('click', function(e) {
-    if (didMove) { e.preventDefault(); e.stopPropagation(); return; }
-    // ===== [임시/디버그] 확인용: 7초 기다릴 필요 없이 클릭하면 바로 비하인드 영상 토글 =====
-    // 확인 끝나면 이 블록만 지우면 원래대로(누르고 있어야 뜨는 방식) 돌아갑니다.
-    if (hasBehind) {
-      if (currentPostEl && currentPostEl.classList.contains('show-behind')) {
-        hideBehind();
-      } else {
-        showBehind();
-      }
-    }
+    if (didMove) { e.preventDefault(); e.stopPropagation(); }
   }, true);
   updateTransform();
 })();

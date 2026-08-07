@@ -256,7 +256,7 @@
   var HEADER_X = 20;
   var HEADER_Y = 20;
   var HOLD_DELAY = 3000;     // 이 시간 이상 누르면 원본(before) 표시
-  var BEHIND_SCALE = Math.SQRT1_2; // ≈0.7071 — 비하인드 영상이 보이는 "면적"을 절반으로
+  var BEHIND_AREA_RATIO = 0.77; // 비하인드 영상이 보이는 "면적"을 사진 면적의 77%로
   var viewMode = 'zoom';
   var fitScale = 0.2688;
   var zoomScale = 0.2688;
@@ -555,18 +555,8 @@
         beforeImg.style.width = w + 'px';
         beforeImg.style.height = h + 'px';
       }
-      // 비하인드 영상: 사진과 같은 좌표계 안에서, 화면에 "보이는 면적"이
-      // 정확히 절반이 되도록 실제 픽셀 크기를 계산해 중앙에 배치한다.
-      // (가로세로를 그냥 0.5배 하면 면적은 0.25가 되어버리므로, 면적이
-      // 정확히 절반이 되는 √0.5 ≈ 0.7071을 곱한다.)
-      if (behindVideoEl) {
-        var vw = w * BEHIND_SCALE, vh = h * BEHIND_SCALE;
-        behindVideoEl.style.width = vw + 'px';
-        behindVideoEl.style.height = vh + 'px';
-        behindVideoEl.style.left = ((w - vw) / 2) + 'px';
-        behindVideoEl.style.top = ((h - vh) / 2) + 'px';
-      }
       computeScales(w, h);
+      sizeBehindVideo();   // 이 시점에 사진 크기(curImgW/H)가 정해짐 — 영상 쪽도 준비됐다면 같이 계산
       applyMode();
       layoutPosts();
       positionForMode();
@@ -601,6 +591,7 @@
       behindVideoEl.preload = 'auto';          // 지금 바로 다운로드 시작
       behindVideoEl.draggable = false;
       behindVideoEl.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+      behindVideoEl.addEventListener('loadedmetadata', sizeBehindVideo); // 영상 쪽이 나중에 준비되는 경우 대비
       behindVideoEl.src = buildImageUrl(post.behind);
       div.appendChild(behindVideoEl);
       hasBehind = true;
@@ -649,6 +640,25 @@
   }
   function hideBefore() {
     if (currentPostEl) currentPostEl.classList.remove('show-before');
+  }
+  // 비하인드 영상 박스 크기: 사진 비율이 아니라 영상 자신의 실제 비율로
+  // 정한다(그래야 object-fit:cover가 잘라내는 부분 없이 전체가 보임).
+  // 대신 화면에 "보이는 면적"은 사진 면적 × BEHIND_AREA_RATIO로 맞춘다.
+  // 사진 크기(curImgW/H)와 영상 자체 크기(videoWidth/Height)가 둘 다
+  // 준비돼야 계산할 수 있어서, 둘 중 늦게 끝나는 쪽에서 호출해도 안전하게
+  // 다시 계산하도록 만들어 둔다.
+  function sizeBehindVideo() {
+    if (!behindVideoEl) return;
+    var vidW = behindVideoEl.videoWidth, vidH = behindVideoEl.videoHeight;
+    if (!vidW || !vidH || !curImgW || !curImgH) return; // 아직 둘 다 준비되지 않음
+    var targetArea = curImgW * curImgH * BEHIND_AREA_RATIO;
+    var ratio = vidW / vidH; // 영상 자신의 실제 가로/세로 비율
+    var vw = Math.sqrt(targetArea * ratio);
+    var vh = Math.sqrt(targetArea / ratio);
+    behindVideoEl.style.width  = vw + 'px';
+    behindVideoEl.style.height = vh + 'px';
+    behindVideoEl.style.left = ((curImgW - vw) / 2) + 'px';
+    behindVideoEl.style.top  = ((curImgH - vh) / 2) + 'px';
   }
   function showBehind() {
     if (!hasBehind || !currentPostEl) return;
@@ -872,10 +882,8 @@
   window.addEventListener('mouseleave', endDrag);
   document.addEventListener('dblclick', function(e) {
     e.preventDefault();
-    var overlayActive = holding || (currentPostEl && currentPostEl.classList.contains('show-behind'));
-    if (overlayActive) {
+    if (holding) {
       clearHold();
-      hideBehind();
       enterFit();
       return;
     }
@@ -892,10 +900,8 @@
     var dy = Math.abs(t.clientY - lastTapY);
     if (dt > 0 && dt < 350 && dx < 40 && dy < 40) {
       e.preventDefault();
-      var overlayActiveTap = holding || (currentPostEl && currentPostEl.classList.contains('show-behind'));
-      if (overlayActiveTap) {
+      if (holding) {
         clearHold();
-        hideBehind();
         enterFit();
       } else {
         toggleMode();

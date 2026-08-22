@@ -127,10 +127,11 @@
     font-size: 10px;
     line-height: 1.6;
     letter-spacing: 0.04em;
-    color: #ffffff;
+    color: rgba(255,255,255,0.45);
+    opacity: 0.4;
     text-align: right;
     white-space: nowrap;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.35);
   }
   .post { position: absolute; top: 0; left: 0; }
   .post img.photo {
@@ -588,6 +589,7 @@
     behindVideoEl = null;
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
     stopBufferWait();
+    cancelBehindDownload();
     if (slowFadeTimer) { clearTimeout(slowFadeTimer); slowFadeTimer = null; }
     viewMode = 'zoom';
     showLoading();
@@ -628,8 +630,10 @@
       div.appendChild(beforeImg);
       hasBefore = true;
     }
-    // 비하인드 영상: 이 사진을 보는 순간부터(=지금) 미리 다운로드를 시작해 둔다.
-    // 7초 이상 누르면 showBehind()가 이걸 그대로 재생만 시키므로 로딩 지연이 없다.
+    // 비하인드 영상: 브라우저의 preload="auto"는 어디까지나 "힌트"일 뿐이라
+    // 모바일에서는 대개 무시되고 메타데이터만 받아 둔다(그래서 진행바가
+    // 거의 차오르지 않았다). 그래서 src를 걸어 두는 대신 fetch로 파일 전체를
+    // 직접 내려받아 blob으로 만든 뒤, 다 받아진 그것을 재생한다.
     if (post.behind) {
       behindVideoEl = document.createElement('video');
       behindVideoEl.className = 'photo photo-behind';
@@ -639,16 +643,16 @@
       behindVideoEl.setAttribute('playsinline', '');
       behindVideoEl.setAttribute('webkit-playsinline', '');
       behindVideoEl.disablePictureInPicture = true;
-      behindVideoEl.preload = 'auto';          // 지금 바로 다운로드 시작
+      behindVideoEl.preload = 'auto';
       behindVideoEl.draggable = false;
       behindVideoEl.addEventListener('contextmenu', function(e){ e.preventDefault(); });
       behindVideoEl.addEventListener('loadedmetadata', sizeBehindVideo); // 영상 쪽이 나중에 준비되는 경우 대비
       // 끝까지 재생되면 마지막 프레임에 멈춰 있지 않고 5초에 걸쳐 천천히
       // 사라지며 사진으로 되돌아간다.
       behindVideoEl.addEventListener('ended', function(){ hideBehindSlow(); });
-      behindVideoEl.src = buildImageUrl(post.behind);
       div.appendChild(behindVideoEl);
       hasBehind = true;
+      startBehindDownload(buildImageUrl(post.behind));  // 사진을 여는 순간부터 내려받기 시작
       if (behindLink) behindLink.classList.add('visible');
     }
     if (post.caption) {
@@ -730,17 +734,77 @@
     behindProgress.style.top   = (r.bottom - 3) + 'px';
   }
   window.addEventListener('resize', positionBehindProgress);
-  // 0초부터 이어져 있는 버퍼 구간이 전체 길이의 몇 퍼센트인지.
-  function bufferedFraction(v) {
-    if (!v || !v.duration || !isFinite(v.duration) || v.duration <= 0) return 0;
-    if (!v.buffered || !v.buffered.length) return 0;
-    var end = 0;
-    for (var i = 0; i < v.buffered.length; i++) {
-      if (v.buffered.start(i) <= 0.05 && v.buffered.end(i) > end) end = v.buffered.end(i);
-    }
-    return Math.min(1, end / v.duration);
+  // ─── 실제 파일 내려받기 ────────────────────────────────────────
+  // <video preload="auto">는 브라우저에 대한 권고일 뿐이라 대부분의
+  // 모바일 브라우저가 무시하고 메타데이터만 받아 둔다. 그래서 진행률이
+  // 거의 오르지 않았다. 여기서는 fetch로 파일을 직접, 끝까지 받아
+  // blob으로 만들고 그것을 재생한다 — 받은 바이트 수를 우리가 세므로
+  // 진행바도 실제 다운로드 양을 그대로 보여 준다.
+  var behindDL = null;
+  function cancelBehindDownload() {
+    if (!behindDL) return;
+    var st = behindDL;
+    behindDL = null;
+    st.cancelled = true;
+    if (st.ctrl) { try { st.ctrl.abort(); } catch (err) {} }
+    if (st.blobUrl) { try { URL.revokeObjectURL(st.blobUrl); } catch (err) {} }
   }
-  function isFullyBuffered(v) { return bufferedFraction(v) >= 0.995; }
+  function startBehindDownload(url) {
+    cancelBehindDownload();
+    var st = { url: url, loaded: 0, total: 0, done: false, failed: false,
+               blobUrl: null, ctrl: null, cancelled: false };
+    behindDL = st;
+    if (!window.fetch || !window.AbortController) { st.failed = true; return; }
+    try { st.ctrl = new AbortController(); } catch (err) { st.ctrl = null; }
+    fetch(url, st.ctrl ? { signal: st.ctrl.signal } : undefined).then(function(res) {
+      if (!res.ok) throw new Error('bad status');
+      var len = res.headers.get('content-length');
+      st.total = len ? parseInt(len, 10) : 0;
+      if (!res.body || !res.body.getReader) {
+        // 스트림을 못 읽는 환경: 진행률 없이 통째로 받는다.
+        return res.blob().then(function(b) { finish(b); });
+      }
+      var reader = res.body.getReader();
+      var chunks = [];
+      function pump() {
+        return reader.read().then(function(r) {
+          if (st.cancelled) { try { reader.cancel(); } catch (err) {} return; }
+          if (r.done) { finish(new Blob(chunks, { type: 'video/mp4' })); return; }
+          chunks.push(r.value);
+          st.loaded += r.value.byteLength || r.value.length || 0;
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function() {
+      if (behindDL === st) st.failed = true;
+    });
+    function finish(blob) {
+      if (st.cancelled) return;
+      st.blobUrl = URL.createObjectURL(blob);
+      if (!st.total) st.total = st.loaded || blob.size;
+      st.loaded = st.total;
+      st.done = true;
+    }
+  }
+  // 진행률. Content-Length가 없으면 받은 양으로 어림잡아 보여 준다.
+  function behindDownloadFraction() {
+    if (!behindDL) return 0;
+    if (behindDL.done) return 1;
+    if (behindDL.total > 0) return Math.min(0.999, behindDL.loaded / behindDL.total);
+    if (behindDL.loaded > 0) return Math.min(0.9, behindDL.loaded / (behindDL.loaded + 3000000));
+    return 0;
+  }
+  function behindReady() { return !!(behindDL && behindDL.done); }
+  // 다 받아진 blob을 video에 물린다(이미 물려 있으면 아무 것도 하지 않음).
+  function attachBehindSource() {
+    if (!behindVideoEl || !behindDL) return;
+    var wanted = behindDL.done && behindDL.blobUrl ? behindDL.blobUrl : behindDL.url;
+    if (behindVideoEl.src !== wanted) {
+      behindVideoEl.src = wanted;
+      try { behindVideoEl.load(); } catch (err) {}
+    }
+  }
   function showBehindProgress() {
     if (!behindProgress) return;
     positionBehindProgress();
@@ -766,27 +830,31 @@
     waitingForBuffer = true;
     if (behindProgressFill) behindProgressFill.style.width = '0%';
     showBehindProgress();
-    // 화면에 보이는 눈금(shown)은 실제 버퍼 비율(target)을 향해 따라간다.
+    // 화면에 보이는 눈금(shown)은 실제 진행률(target)을 향해 따라간다.
     // 이미 다 받아진 상태라도 0에서부터 차오르는 모습이 보이도록 상한 속도를
     // 두어, 최소 0.5초 정도는 채워지는 과정이 눈에 남게 한다.
-    var shown = 0, last = -1, lastChange = Date.now();
+    var shown = 0;
     var STEP = 0.08; // 한 틱(40ms)에 최대 8% — 0→100%에 최소 0.5초
     function tick() {
       if (!behindVideoEl || !waitingForBuffer) { stopBufferWait(); return; }
-      var target = bufferedFraction(behindVideoEl);
-      if (target > last + 0.001) { last = target; lastChange = Date.now(); }
-      // 모바일 브라우저가 재생 전 전체 다운로드를 미루는 경우의 예외:
-      // 8초 넘게 진행이 없고 재생에 충분한 데이터가 있으면 완료로 간주한다.
-      if (target < 0.995 && Date.now() - lastChange > 8000 && behindVideoEl.readyState >= 4) {
-        target = 1;
-      }
-      if (shown < target) shown = Math.min(target, shown + STEP);
-      if (behindProgressFill) behindProgressFill.style.width = (shown * 100).toFixed(1) + '%';
-      if (shown >= 0.999 && target >= 0.995) {
-        if (behindProgressFill) behindProgressFill.style.width = '100%';
-        // 다 찬 막대를 잠깐 보여 준 뒤 재생으로 넘어간다.
+      // fetch가 막힌 경우(CORS 등)에는 예전 방식대로 주소를 직접 물려 재생한다.
+      if (behindDL && behindDL.failed) {
         waitingForBuffer = false;
         if (bufferPollTimer) { clearInterval(bufferPollTimer); bufferPollTimer = null; }
+        attachBehindSource();
+        hideBehindProgress();
+        showBehind();
+        return;
+      }
+      var target = behindDownloadFraction();
+      if (shown < target) shown = Math.min(target, shown + STEP);
+      if (behindProgressFill) behindProgressFill.style.width = (shown * 100).toFixed(1) + '%';
+      if (shown >= 0.999 && behindReady()) {
+        if (behindProgressFill) behindProgressFill.style.width = '100%';
+        waitingForBuffer = false;
+        if (bufferPollTimer) { clearInterval(bufferPollTimer); bufferPollTimer = null; }
+        attachBehindSource();
+        // 다 찬 막대를 잠깐 보여 준 뒤 재생으로 넘어간다.
         setTimeout(function(){ hideBehindProgress(); showBehind(); }, 180);
       }
     }
@@ -842,8 +910,8 @@
       hideBehind();
       return;
     }
-    if (isFullyBuffered(behindVideoEl)) showBehind();
-    else startBufferWait();
+    // 이미 다 받아져 있어도 진행바가 차오르는 과정을 짧게 보여 준다.
+    startBufferWait();
   }
   if (behindLink) {
     // 터치 기기에서는 touchend가 처리한 뒤 브라우저가 뒤이어 합성 click을

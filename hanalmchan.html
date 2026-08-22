@@ -503,7 +503,12 @@
     if (themeMeta) themeMeta.setAttribute('content', c);
   }
   function sampleTopColor(url, post, imgW) {
-    if (!url || !post || typeof post.logoX !== 'number' || typeof post.logoY !== 'number') return;
+    if (!post) return;
+    // ① posts.json에 색을 직접 적어 두었으면 그것을 그대로 쓴다.
+    //    (예: { "file": "a.jpg", "topColor": "#2b2a28" })
+    //    CORS 설정과 무관하게 항상 동작하는 가장 확실한 방법.
+    if (post.topColor) { setThemeColor(post.topColor); return; }
+    if (!url || typeof post.logoX !== 'number' || typeof post.logoY !== 'number') return;
     // 픽셀을 읽으려면 CORS 허용이 필요하다. 본 사진에 crossOrigin을 걸면
     // 서버가 허용하지 않을 때 사진 자체가 안 뜨므로, 색을 재기 위한
     // 별도의 이미지를 하나 더 띄워서 실패해도 화면에는 영향이 없게 한다.

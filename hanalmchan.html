@@ -626,6 +626,23 @@
   var hasBehind = false;        // 이 사진에 비하인드 영상이 있는지
   var behindVideoEl = null;     // 현재 포스트의 비하인드 <video> 엘리먼트 참조
   var nextQueue = [];
+  // 다음 사진은 이제 같은 문서 안에서 내용만 바꾸지 않고 실제로 페이지를
+  // 다시 불러온다(아래 navigateToIndex 참고) — 그래야 iOS 26에서 사진마다
+  // 상단 바 색이 새로 적용된다. 다만 새로고침되면 자바스크립트 변수인
+  // nextQueue도 함께 사라지므로, "다 보기 전엔 안 겹치는" 셔플 순서를
+  // 유지하려면 세션스토리지에 잠깐 적어 두었다가 다음 페이지에서 이어 읽어야 한다.
+  var QUEUE_KEY = 'hanalmchan_nextQueue';
+  function saveQueue() {
+    try { sessionStorage.setItem(QUEUE_KEY, JSON.stringify(nextQueue)); } catch (err) {}
+  }
+  function loadQueue() {
+    try {
+      var raw = sessionStorage.getItem(QUEUE_KEY);
+      if (!raw) return null;
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : null;
+    } catch (err) { return null; }
+  }
   function shuffle(arr){
     var a = arr.slice();
     for (var i = a.length - 1; i > 0; i--){
@@ -674,6 +691,12 @@
     }
     allPosts = posts;
     currentIndex = 0;
+    // 이전 페이지에서 넘어오며 저장해 둔 셔플 순서가 있으면 이어서 쓴다.
+    // (posts.json 길이가 그 사이 바뀌었을 수 있으니 범위를 벗어난 값은 버린다.)
+    var restored = loadQueue();
+    if (restored && restored.length) {
+      nextQueue = restored.filter(function(i){ return i >= 0 && i < posts.length; });
+    }
     showPost(indexFromHash(posts));
     window.addEventListener('hashchange', function() {
       showPost(indexFromHash(allPosts));
@@ -788,11 +811,27 @@
     setTimeout(function(){ layoutPosts(); positionForMode(); }, 500);
     setTimeout(function(){ layoutPosts(); positionForMode(); }, 1500);
   }
+  // 로고를 눌러 다음 사진으로 갈 때 이제는 화면 내용만 바꾸지 않고
+  // 페이지 자체를 다시 불러온다. 그래야 head 맨 앞의 동기 스크립트가
+  // 다시 실행되어, iOS 26에서도 사진마다 상단 바 색이 새로 맞춰진다.
+  // 대신 부드러운 전환·드래그 관성·미리 받아 둔 영상 같은 장점은
+  // 사진이 바뀔 때마다 한 번씩 새로 시작된다.
+  function navigateToIndex(idx) {
+    if (allPosts.length === 0) return;
+    idx = (idx % allPosts.length + allPosts.length) % allPosts.length;
+    var post = allPosts[idx];
+    if (!post || !post.file) return;
+    var newHash = '#' + encodeURIComponent(post.file.replace(/\.[^.]+$/, ''));
+    // location.search(예: ?debug=1)는 손대지 않으므로 디버그 모드도 그대로 이어진다.
+    location.hash = newHash;
+    location.reload();
+  }
   function nextPost() {
-    if (allPosts.length <= 1) { showPost(currentIndex + 1); return; }
+    if (allPosts.length <= 1) { location.reload(); return; }
     if (!nextQueue.length) refillQueue(currentIndex);
     var idx = nextQueue.shift();
-    showPost(idx);
+    saveQueue();
+    navigateToIndex(idx);
   }
   function enterZoom() {
     if (viewMode === 'zoom') return;

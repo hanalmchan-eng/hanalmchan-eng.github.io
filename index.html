@@ -313,6 +313,66 @@
   var CROP_TOP = -0.06, CROP_BOTTOM = -0.06, CROP_SIDE = -0.03;
   var MARK_H = 420, MARK_MAX_W = 300;
   var VIEW_ZOOM = 11;
+  // ── 상단 바 색(topColor) 자동 추출 ────────────────────────────────
+  // hanalmchan.html의 sampleTopColor()와 같은 계산(로고 위쪽 띠의
+  // 평균색을 반전)을 여기서도 한다. 이 페이지는 이미 각 사진을
+  // crossOrigin 이미지로 불러와 캔버스에 성공적으로 그리고 있으므로
+  // (= 이 시점엔 R2의 CORS가 막혀 있지 않다는 뜻이므로), 같은 이미지를
+  // 한 번 더 내려받지 않고 그 자리에서 곁다리로 값을 함께 얻어낸다.
+  // 평소 방문객에게는 아무 영향이 없고, 주소 끝에 ?topcolor=1을 붙여
+  // 열었을 때만 동작하며, 다 끝나면 화면 아래에 "topColor 포함
+  // posts.json 내려받기" 버튼이 나타난다.
+  var TOPCOLOR_MODE = /[?&]topcolor=1/.test(location.search);
+  var HEADER_Y_REF = 20, ZOOM_K_REF = 1.05, ASSUMED_DPR_REF = 3;
+  var TOPCOLOR_BAND_H = Math.max(4, Math.round(HEADER_Y_REF * ASSUMED_DPR_REF / ZOOM_K_REF));
+  var topColorPending = 0;
+  var topColorResults = {};  // 파일명 -> "#hex" (반전된 값)
+  function eligibleForTopColor(p){
+    // post.logo 방식(미리 잘라 둔 로고 썸네일)은 원본 전체 픽셀에 접근할
+    // 수 없어 이 방식으로는 잴 수 없다. 이미 topColor가 있는 것도 건너뛴다.
+    return TOPCOLOR_MODE && !p.logo && !p.topColor &&
+           typeof p.logoX === 'number' && typeof p.logoY === 'number';
+  }
+  function toHex2(n){ return ('0' + n.toString(16)).slice(-2); }
+  function sampleAboveLogo(img, post, W, H){
+    try {
+      var logoW = Math.min(W, H) * LOGO_W_RATIO;
+      var sx = Math.max(0, Math.round(post.logoX));
+      var sy = Math.max(0, Math.round(post.logoY - TOPCOLOR_BAND_H));
+      var sw = Math.min(Math.round(logoW), W - sx);
+      var sh = Math.min(TOPCOLOR_BAND_H, Math.round(post.logoY));
+      if (sw <= 0 || sh <= 0) return null;
+      var c = document.createElement('canvas');
+      c.width = 1; c.height = 1;
+      var ctx = c.getContext('2d');
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 1, 1);
+      var d = ctx.getImageData(0, 0, 1, 1).data;
+      return '#' + toHex2(255 - d[0]) + toHex2(255 - d[1]) + toHex2(255 - d[2]);
+    } catch (err) {
+      return null;  // CORS로 캔버스가 오염된 경우 등
+    }
+  }
+  function maybeOfferTopColorDownload(){
+    if (!TOPCOLOR_MODE || topColorPending > 0) return;
+    var merged = (window.__lmchanAllPosts || []).map(function(p){
+      var out = {};
+      for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) out[k] = p[k];
+      if (topColorResults[p.file]) out.topColor = topColorResults[p.file];
+      return out;
+    });
+    var blob = new Blob([JSON.stringify(merged, null, 2) + '\n'], { type: 'application/json' });
+    if (document.getElementById('topcolor-dl')) return;  // 중복 방지
+    var btn = document.createElement('a');
+    btn.id = 'topcolor-dl';
+    btn.href = URL.createObjectURL(blob);
+    btn.download = 'posts.with-topcolor.json';
+    btn.textContent = 'topColor 포함 posts.json 내려받기 (' +
+      Object.keys(topColorResults).length + '장 계산됨)';
+    btn.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);' +
+      'z-index:999;background:#000;color:#0f0;font:12px monospace;' +
+      'padding:10px 16px;border-radius:6px;text-decoration:none;white-space:nowrap;';
+    document.body.appendChild(btn);
+  }
   function anchorFor(post, index){
     if (post.file) return String(post.file).replace(/\.[^.]+$/, '');
     return 'i=' + index;
@@ -441,6 +501,12 @@
         img.decoding = 'async';
         img.onload = function(){
           var W = post.width || img.naturalWidth, H = post.height || img.naturalHeight;
+          if (eligibleForTopColor(post) && W && H) {
+            var tc = sampleAboveLogo(img, post, W, H);
+            if (tc) topColorResults[post.file] = tc;
+            topColorPending = Math.max(0, topColorPending - 1);
+            maybeOfferTopColorDownload();
+          }
           var r = (W && H) ? regionFor(W, H) : null;
           if (!r){ img.onload = img.onerror = null; img.src = '';
                    _fail++; _lastErr='로고영역 계산실패'; dbgRender(); done(); return; }
@@ -465,6 +531,10 @@
         img.onerror = function(){
           img.onload = img.onerror = null;
           _fail++; _lastErr='이미지 로드 실패(CORS 차단 의심)'; dbgRender();
+          if (eligibleForTopColor(post)) {
+            topColorPending = Math.max(0, topColorPending - 1);
+            maybeOfferTopColorDownload();
+          }
           done();
         };
         img.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + 'cors=1';
@@ -794,6 +864,11 @@
     .then(function(posts){
       posts = (posts || []).filter(function(p){ return p && (p.file || p.url); });
       _posts = posts.length; dbgRender();
+      window.__lmchanAllPosts = posts;  // topColor 내보내기용 원본 순서 보관
+      if (TOPCOLOR_MODE) {
+        topColorPending = posts.filter(eligibleForTopColor).length;
+        maybeOfferTopColorDownload();  // 계산할 대상이 0장이면 즉시 버튼을 띄운다
+      }
       if (!posts.length){ empty.hidden = false; return; }
       posts = shuffle(posts);
       var frag = document.createDocumentFragment();

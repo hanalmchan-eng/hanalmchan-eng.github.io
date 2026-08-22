@@ -500,7 +500,8 @@
   // 사진이 화면 밖까지 이어지는 것처럼 보인다.
   var themeMeta = document.querySelector('meta[name="theme-color"]');
   // 주소 끝에 ?debug=1 을 붙이면 화면 왼쪽 위에 진단 문구가 뜬다.
-  var THEME_DEBUG = /[?&]debug=1/.test(location.search);
+  // #IMG_9317?debug=1 처럼 해시 뒤에 붙는 경우도 있어 hash까지 함께 본다.
+  var THEME_DEBUG = /[?&]debug=1/.test(location.search) || /[?&]debug=1/.test(location.hash);
   var themeDebugEl = null;
   function themeDebug(msg) {
     if (!THEME_DEBUG) return;
@@ -555,7 +556,11 @@
       }
     };
     probe.onerror = function() { themeDebug('실패 — 이미지 로드 자체 불가'); };
-    probe.src = url;
+    // CORS 설정을 방금 열었더라도, Cloudflare 엣지가 "그 설정이 없던 시절"의
+    // 응답(= CORS 헤더가 빠진 버전)을 이미 캐시해 두었을 수 있다. 원본과는
+    // 다른 주소로 요청해 그 캐시를 우회하고 최신 헤더로 다시 받아 온다.
+    // (화면에 보이는 본 사진 <img> 쪽은 그대로 두어 대역폭을 아낀다.)
+    probe.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'cb=' + Date.now();
   }
   function alignToLogo(post) {
     if (post) currentPost = post;
@@ -591,6 +596,11 @@
   }
   function indexFromHash(posts) {
     var h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+    if (!h) return 0;
+    // "#IMG_9317?debug=1"처럼 해시 뒤에 쿼리 형태가 붙어 오는 경우,
+    // URL 문법상 그것은 진짜 쿼리가 아니라 해시 문자열의 일부라
+    // 사진 이름 매칭이 깨진다. "?" 앞부분만 잘라 써서 방지한다.
+    h = h.split('?')[0];
     if (!h) return 0;
     var m = h.match(/^i=(\d+)$/);
     if (m) {

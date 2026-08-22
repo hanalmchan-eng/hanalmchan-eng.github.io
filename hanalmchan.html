@@ -100,22 +100,37 @@
   #behind-link.visible:hover { opacity: 1; }
   #behind-link.active { opacity: 1; }
   /* 다운로드 진행바: "unseen" 글자 폭에 맞춘 얇고 긴 막대.
-     위치와 폭은 JS가 behind-link의 실제 좌표에서 계산해 넣는다. */
+     위치와 폭은 JS가 behind-link의 실제 좌표에서 계산해 넣는다.
+     밝은 사진 위에서도 흰 채움이 또렷하게 보이도록 mix-blend-mode 대신
+     어두운 바탕 막대 + 흰 채움 + 옅은 그림자 방식을 쓴다. */
   #behind-progress {
     position: fixed; z-index: 100;
-    height: 2px;
-    background: rgba(255,255,255,0.30);
-    mix-blend-mode: difference;
     pointer-events: none;
     display: none;
     opacity: 0;
     transition: opacity 0.25s ease;
   }
   #behind-progress.visible { opacity: 1; }
-  #behind-progress > i {
+  #behind-progress .bar {
+    height: 3px;
+    background: rgba(0,0,0,0.38);
+    box-shadow: 0 0 3px rgba(0,0,0,0.45);
+    overflow: hidden;
+  }
+  #behind-progress .bar > i {
     display: block; height: 100%; width: 0%;
     background: #ffffff;
-    transition: width 0.2s linear;
+    transition: width 0.09s linear;
+  }
+  #behind-progress .txt {
+    margin-top: 7px;
+    font-size: 10px;
+    line-height: 1.6;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    text-align: right;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.55);
   }
   .post { position: absolute; top: 0; left: 0; }
   .post img.photo {
@@ -244,7 +259,10 @@
 <a id="back-link" href="index.html?from=ig">AWAY</a>
 <a id="order-link" href="pay.html">yours</a>
 <a id="behind-link" href="#" role="button">unseen</a>
-<div id="behind-progress"><i></i></div>
+<div id="behind-progress">
+  <div class="bar"><i></i></div>
+  <div class="txt">불러오는 중...<br>loading...<br>読み込み中...</div>
+</div>
 <div id="loading">불러오는 중...<br>loading...<br>読み込み中...</div>
 <div id="canvas">
   <div id="plane"></div>
@@ -307,7 +325,7 @@
   var orderLink = document.getElementById('order-link');
   var behindLink = document.getElementById('behind-link');
   var behindProgress = document.getElementById('behind-progress');
-  var behindProgressFill = behindProgress ? behindProgress.querySelector('i') : null;
+  var behindProgressFill = behindProgress ? behindProgress.querySelector('.bar > i') : null;
   function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
   function updateOrderLink(post) {
     if (!orderLink || !post) return;
@@ -746,23 +764,35 @@
   function startBufferWait() {
     if (!behindVideoEl) return;
     waitingForBuffer = true;
+    if (behindProgressFill) behindProgressFill.style.width = '0%';
     showBehindProgress();
-    var last = -1, lastChange = Date.now();
+    // 화면에 보이는 눈금(shown)은 실제 버퍼 비율(target)을 향해 따라간다.
+    // 이미 다 받아진 상태라도 0에서부터 차오르는 모습이 보이도록 상한 속도를
+    // 두어, 최소 0.5초 정도는 채워지는 과정이 눈에 남게 한다.
+    var shown = 0, last = -1, lastChange = Date.now();
+    var STEP = 0.08; // 한 틱(40ms)에 최대 8% — 0→100%에 최소 0.5초
     function tick() {
       if (!behindVideoEl || !waitingForBuffer) { stopBufferWait(); return; }
-      var f = bufferedFraction(behindVideoEl);
-      if (behindProgressFill) behindProgressFill.style.width = (f * 100).toFixed(1) + '%';
-      if (f > last + 0.001) { last = f; lastChange = Date.now(); }
-      if (f >= 0.995) { stopBufferWait(); showBehind(); return; }
-      // 일부 모바일 브라우저는 재생 전에 전체를 내려받지 않는다.
-      // 8초 넘게 진행이 없고 재생에 충분한 데이터가 있으면 그냥 시작한다.
-      if (Date.now() - lastChange > 8000 && behindVideoEl.readyState >= 4) {
-        stopBufferWait(); showBehind();
+      var target = bufferedFraction(behindVideoEl);
+      if (target > last + 0.001) { last = target; lastChange = Date.now(); }
+      // 모바일 브라우저가 재생 전 전체 다운로드를 미루는 경우의 예외:
+      // 8초 넘게 진행이 없고 재생에 충분한 데이터가 있으면 완료로 간주한다.
+      if (target < 0.995 && Date.now() - lastChange > 8000 && behindVideoEl.readyState >= 4) {
+        target = 1;
+      }
+      if (shown < target) shown = Math.min(target, shown + STEP);
+      if (behindProgressFill) behindProgressFill.style.width = (shown * 100).toFixed(1) + '%';
+      if (shown >= 0.999 && target >= 0.995) {
+        if (behindProgressFill) behindProgressFill.style.width = '100%';
+        // 다 찬 막대를 잠깐 보여 준 뒤 재생으로 넘어간다.
+        waitingForBuffer = false;
+        if (bufferPollTimer) { clearInterval(bufferPollTimer); bufferPollTimer = null; }
+        setTimeout(function(){ hideBehindProgress(); showBehind(); }, 180);
       }
     }
     if (bufferPollTimer) clearInterval(bufferPollTimer);
     tick();
-    bufferPollTimer = setInterval(tick, 120);
+    bufferPollTimer = setInterval(tick, 40);
   }
   function showBehind() {
     if (!hasBehind || !currentPostEl) return;

@@ -499,6 +499,20 @@
   // <meta name="theme-color">에 넣으면 주소창 주변이 그 색으로 칠해져
   // 사진이 화면 밖까지 이어지는 것처럼 보인다.
   var themeMeta = document.querySelector('meta[name="theme-color"]');
+  // 주소 끝에 ?debug=1 을 붙이면 화면 왼쪽 위에 진단 문구가 뜬다.
+  var THEME_DEBUG = /[?&]debug=1/.test(location.search);
+  var themeDebugEl = null;
+  function themeDebug(msg) {
+    if (!THEME_DEBUG) return;
+    if (!themeDebugEl) {
+      themeDebugEl = document.createElement('div');
+      themeDebugEl.style.cssText =
+        'position:fixed;left:8px;top:8px;z-index:999;font:12px/1.4 monospace;' +
+        'background:#000;color:#0f0;padding:6px 8px;white-space:pre;';
+      document.body.appendChild(themeDebugEl);
+    }
+    themeDebugEl.textContent = msg;
+  }
   function setThemeColor(c) {
     if (themeMeta) themeMeta.setAttribute('content', c);
   }
@@ -507,8 +521,11 @@
     // ① posts.json에 색을 직접 적어 두었으면 그것을 그대로 쓴다.
     //    (예: { "file": "a.jpg", "topColor": "#2b2a28" })
     //    CORS 설정과 무관하게 항상 동작하는 가장 확실한 방법.
-    if (post.topColor) { setThemeColor(post.topColor); return; }
-    if (!url || typeof post.logoX !== 'number' || typeof post.logoY !== 'number') return;
+    if (post.topColor) { setThemeColor(post.topColor); themeDebug('topColor 지정값 사용: ' + post.topColor); return; }
+    if (!url || typeof post.logoX !== 'number' || typeof post.logoY !== 'number') {
+      themeDebug('logoX/logoY 없음 — 추출 불가');
+      return;
+    }
     // 픽셀을 읽으려면 CORS 허용이 필요하다. 본 사진에 crossOrigin을 걸면
     // 서버가 허용하지 않을 때 사진 자체가 안 뜨므로, 색을 재기 위한
     // 별도의 이미지를 하나 더 띄워서 실패해도 화면에는 영향이 없게 한다.
@@ -529,12 +546,15 @@
         var ctx = c.getContext('2d');
         ctx.drawImage(probe, sx, sy, sw, sh, 0, 0, 1, 1);
         var d = ctx.getImageData(0, 0, 1, 1).data;
-        setThemeColor('rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')');
+        var rgb = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
+        setThemeColor(rgb);
+        themeDebug('성공 — 추출색 ' + rgb);
       } catch (err) {
         /* CORS 미허용으로 캔버스가 오염되면 흰색을 그대로 둔다 */
+        themeDebug('실패 — R2 CORS 차단\n' + (err && err.name ? err.name : ''));
       }
     };
-    probe.onerror = function() {};
+    probe.onerror = function() { themeDebug('실패 — 이미지 로드 자체 불가'); };
     probe.src = url;
   }
   function alignToLogo(post) {

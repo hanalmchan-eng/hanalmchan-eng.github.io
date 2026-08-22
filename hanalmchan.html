@@ -591,12 +591,18 @@
         var ctx = c.getContext('2d');
         ctx.drawImage(probe, sx, sy, sw, sh, 0, 0, 1, 1);
         var d = ctx.getImageData(0, 0, 1, 1).data;
-        var rgb = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
-        var hex = '#' + [d[0], d[1], d[2]].map(function(n){
-          return ('0' + n.toString(16)).slice(-2);
-        }).join('');
-        setThemeColor(rgb);   // iOS 26 이전 버전·데스크톱 크롬 등에는 여전히 유효
-        themeDebug('성공 — ' + hex + ' (' + rgb + ')\nposts.json에 "topColor": "' + hex + '" 로 붙여넣기');
+        function toHex(n){ return ('0' + n.toString(16)).slice(-2); }
+        var rawHex = '#' + toHex(d[0]) + toHex(d[1]) + toHex(d[2]);
+        // 뽑아낸 색을 그대로 쓰지 않고 반전(255에서 뺀 값)한다.
+        // 힌트 문구·unseen 버튼이 mix-blend-mode:difference로 배경이 무엇이든
+        // 항상 도드라지게 만드는 것과 같은 원리 — 흰 바탕 위에서 difference를
+        // 걸었을 때 눈에 보이는 색이 바로 이 반전색이다.
+        var ir = 255 - d[0], ig = 255 - d[1], ib = 255 - d[2];
+        var invHex = '#' + toHex(ir) + toHex(ig) + toHex(ib);
+        var invRgb = 'rgb(' + ir + ',' + ig + ',' + ib + ')';
+        setThemeColor(invRgb);   // iOS 26 이전 버전·데스크톱 크롬 등에는 여전히 유효
+        themeDebug('성공 — 원본 ' + rawHex + ' → 반대색 ' + invHex +
+                   '\nposts.json에 "topColor": "' + invHex + '" 로 붙여넣기');
       } catch (err) {
         /* CORS 미허용으로 캔버스가 오염되면 흰색을 그대로 둔다 */
         themeDebug('실패 — R2 CORS 차단\n' + (err && err.name ? err.name : ''));

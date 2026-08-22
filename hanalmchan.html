@@ -288,7 +288,16 @@
         // 뒤이어 나올 본문 <style>의 흰 배경보다 나중에, 반드시 이 값이
         // 이기도록 !important를 붙인다. body가 아직 파싱되기 전이므로
         // 여기서 그려 넣는 <style>이 첫 페인트 시점의 배경으로 인정된다.
-        document.write('<style>html,body{background:' + post.topColor + ' !important;}</style>');
+        // html,body뿐 아니라 #canvas·#plane도 같은 색으로 미리 선언해 둔다.
+        // 확대(zoom) 모드에서는 사진이 화면보다 훨씬 커서 body가 어차피
+        // 안 보이는데도 상단 바가 검게 나오는 경우가 있었다 — Safari가
+        // "화면 맨 위 언저리에 고정된 요소"를 고를 때 body가 아니라
+        // #canvas(고정 위치, 화면 전체를 덮음)를 대신 참고했을 가능성이
+        // 있고, #canvas엔 배경색이 없어(투명) 검정으로 보였을 수 있다.
+        // 정확한 내부 판정 기준은 애플이 공개하지 않았으므로, 셋 다에
+        // 같은 색을 걸어 두어 어느 쪽을 고르든 결과가 같게 만든다.
+        document.write('<style>html,body,#canvas,#plane{background:' +
+                        post.topColor + ' !important;}</style>');
       }
     }
   } catch (err) {

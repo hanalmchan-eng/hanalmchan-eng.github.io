@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>hanalmchan</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
 <style>
   @font-face{
     font-family:'LMCHan';
@@ -493,6 +494,44 @@
     return R2_BASE + '/' + encodeURIComponent(filename);
   }
   var currentPost = null;
+  // ─── iOS Safari 상단 바 색 맞추기 ───────────────────────────────
+  // 화면 맨 위(로고보다 위쪽)에 실제로 보이는 사진의 색을 뽑아
+  // <meta name="theme-color">에 넣으면 주소창 주변이 그 색으로 칠해져
+  // 사진이 화면 밖까지 이어지는 것처럼 보인다.
+  var themeMeta = document.querySelector('meta[name="theme-color"]');
+  function setThemeColor(c) {
+    if (themeMeta) themeMeta.setAttribute('content', c);
+  }
+  function sampleTopColor(url, post, imgW) {
+    if (!url || !post || typeof post.logoX !== 'number' || typeof post.logoY !== 'number') return;
+    // 픽셀을 읽으려면 CORS 허용이 필요하다. 본 사진에 crossOrigin을 걸면
+    // 서버가 허용하지 않을 때 사진 자체가 안 뜨므로, 색을 재기 위한
+    // 별도의 이미지를 하나 더 띄워서 실패해도 화면에는 영향이 없게 한다.
+    var probe = new Image();
+    probe.crossOrigin = 'anonymous';
+    probe.onload = function() {
+      try {
+        // 로고 폭만큼, 로고 위쪽으로 화면 여백(HEADER_Y)에 해당하는 높이만큼.
+        var bandH = Math.max(4, Math.round(HEADER_Y / (zoomScale || 1)));
+        var sx = Math.max(0, Math.round(post.logoX));
+        var sy = Math.max(0, Math.round(post.logoY - bandH));
+        var sw = Math.min(Math.round(imgW * LOGO_W_RATIO), probe.naturalWidth - sx);
+        var sh = Math.min(bandH, Math.round(post.logoY));
+        if (sw <= 0 || sh <= 0) return;
+        // 1×1로 축소해 그리면 그 영역의 평균색이 한 픽셀로 남는다.
+        var c = document.createElement('canvas');
+        c.width = 1; c.height = 1;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(probe, sx, sy, sw, sh, 0, 0, 1, 1);
+        var d = ctx.getImageData(0, 0, 1, 1).data;
+        setThemeColor('rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')');
+      } catch (err) {
+        /* CORS 미허용으로 캔버스가 오염되면 흰색을 그대로 둔다 */
+      }
+    };
+    probe.onerror = function() {};
+    probe.src = url;
+  }
   function alignToLogo(post) {
     if (post) currentPost = post;
     var p = currentPost;
@@ -581,6 +620,7 @@
       } catch (err) { }
     }
     plane.innerHTML = '';
+    setThemeColor('#ffffff');   // 새 사진의 색을 재기 전까지는 기본 흰색
     currentPostEl = null;
     hasBefore = false;
     hasBehind = false;
@@ -607,6 +647,7 @@
         beforeImg.style.height = h + 'px';
       }
       computeScales(w, h);
+      sampleTopColor(img.src, post, w);   // 상단 바 색을 이 사진에 맞춘다
       sizeBehindVideo();   // 이 시점에 사진 크기(curImgW/H)가 정해짐 — 영상 쪽도 준비됐다면 같이 계산
       applyMode();
       layoutPosts();

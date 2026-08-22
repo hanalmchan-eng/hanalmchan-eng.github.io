@@ -5,7 +5,7 @@
     "caption": "",
     "logoX": 1664,
     "logoY": 795,
-    "topColor": "#faeff1",
+    "topColor": "#05100e",
     "product": {
       "desc": "4K×3 · 72MP×7 · 32MP×25 · 1.24GB",
       "price": 150000,
@@ -21,7 +21,7 @@
     "caption": "",
     "logoX": 2249,
     "logoY": 3120,
-    "topColor": "#b2aaaa",
+    "topColor": "#4d5555",
     "product": {
       "desc": "4K×2 · 48MP×5 · 820MB",
       "price": 95000,
@@ -36,7 +36,7 @@
     "caption": "",
     "logoX": 2792,
     "logoY": 2575,
-    "topColor": "#724fa4",
+    "topColor": "#8db05b",
     "product": {
       "desc": "4K×1 · 32MP×3 · 340MB",
       "price": 60000,
@@ -51,7 +51,7 @@
     "caption": "",
     "logoX": 307,
     "logoY": 983,
-    "topColor": "#c9ad9e",
+    "topColor": "#365261",
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   },
   {
@@ -60,7 +60,7 @@
     "caption": "",
     "logoX": 1526,
     "logoY": 4109,
-    "topColor": "#232323",
+    "topColor": "#dcdcdc",
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   },
   {
@@ -69,7 +69,7 @@
     "caption": "",
     "logoX": 2066,
     "logoY": 4129,
-    "topColor": "#ceeeff",
+    "topColor": "#311100",
     "product": { "desc": "", "price": 0, "directPurchase": "O", "distribution": "O", "limit": 0 }
   },
   {
@@ -78,7 +78,7 @@
     "caption": "",
     "logoX": 2057,
     "logoY": 2875,
-    "topColor": "#526640",
+    "topColor": "#ad99bf",
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   }
 ]

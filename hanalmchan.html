@@ -590,7 +590,7 @@
       behindVideoEl = document.createElement('video');
       behindVideoEl.className = 'photo photo-behind';
       behindVideoEl.muted = true;
-      behindVideoEl.loop = true;               // 계속 무한 루프
+      behindVideoEl.loop = false;              // 한 번만 재생 — 다시 보려면 "unseen"을 다시 누른다
       behindVideoEl.playsInline = true;
       behindVideoEl.setAttribute('playsinline', '');
       behindVideoEl.setAttribute('webkit-playsinline', '');
@@ -599,6 +599,9 @@
       behindVideoEl.draggable = false;
       behindVideoEl.addEventListener('contextmenu', function(e){ e.preventDefault(); });
       behindVideoEl.addEventListener('loadedmetadata', sizeBehindVideo); // 영상 쪽이 나중에 준비되는 경우 대비
+      // 끝까지 재생되면 마지막 프레임에 멈춰 있지 않고 사진으로 되돌아간다.
+      // 그래야 "unseen"을 다시 누르는 동작이 곧 재생이 된다.
+      behindVideoEl.addEventListener('ended', function(){ hideBehind(); });
       behindVideoEl.src = buildImageUrl(post.behind);
       div.appendChild(behindVideoEl);
       hasBehind = true;

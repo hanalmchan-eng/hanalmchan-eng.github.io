@@ -99,6 +99,24 @@
   #behind-link.visible { opacity: 0.75; pointer-events: auto; }
   #behind-link.visible:hover { opacity: 1; }
   #behind-link.active { opacity: 1; }
+  /* 다운로드 진행바: "unseen" 글자 폭에 맞춘 얇고 긴 막대.
+     위치와 폭은 JS가 behind-link의 실제 좌표에서 계산해 넣는다. */
+  #behind-progress {
+    position: fixed; z-index: 100;
+    height: 2px;
+    background: rgba(255,255,255,0.30);
+    mix-blend-mode: difference;
+    pointer-events: none;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  #behind-progress.visible { opacity: 1; }
+  #behind-progress > i {
+    display: block; height: 100%; width: 0%;
+    background: #ffffff;
+    transition: width 0.2s linear;
+  }
   .post { position: absolute; top: 0; left: 0; }
   .post img.photo {
     display: block;
@@ -135,6 +153,9 @@
     pointer-events: none;
   }
   .post.show-behind video.photo-behind { opacity: 1; }
+  /* 재생이 끝나 사라질 때만 5초에 걸쳐 천천히 옅어진다.
+     켜질 때는 이 클래스를 떼어내므로 기존처럼 즉시 나타난다. */
+  .post video.photo-behind.slow-fade { transition: opacity 5s linear; }
   .post-photo a, .post-photoset a {
     display: block;
     cursor: inherit;
@@ -223,6 +244,7 @@
 <a id="back-link" href="index.html?from=ig">AWAY</a>
 <a id="order-link" href="pay.html">yours</a>
 <a id="behind-link" href="#" role="button">unseen</a>
+<div id="behind-progress"><i></i></div>
 <div id="loading">불러오는 중...<br>loading...<br>読み込み中...</div>
 <div id="canvas">
   <div id="plane"></div>
@@ -284,6 +306,8 @@
   var logoHit  = document.getElementById('logo-hit');
   var orderLink = document.getElementById('order-link');
   var behindLink = document.getElementById('behind-link');
+  var behindProgress = document.getElementById('behind-progress');
+  var behindProgressFill = behindProgress ? behindProgress.querySelector('i') : null;
   function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
   function updateOrderLink(post) {
     if (!orderLink || !post) return;
@@ -545,6 +569,8 @@
     hasBehind = false;
     behindVideoEl = null;
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
+    stopBufferWait();
+    if (slowFadeTimer) { clearTimeout(slowFadeTimer); slowFadeTimer = null; }
     viewMode = 'zoom';
     showLoading();
     var div = document.createElement('div');
@@ -599,9 +625,9 @@
       behindVideoEl.draggable = false;
       behindVideoEl.addEventListener('contextmenu', function(e){ e.preventDefault(); });
       behindVideoEl.addEventListener('loadedmetadata', sizeBehindVideo); // 영상 쪽이 나중에 준비되는 경우 대비
-      // 끝까지 재생되면 마지막 프레임에 멈춰 있지 않고 사진으로 되돌아간다.
-      // 그래야 "unseen"을 다시 누르는 동작이 곧 재생이 된다.
-      behindVideoEl.addEventListener('ended', function(){ hideBehind(); });
+      // 끝까지 재생되면 마지막 프레임에 멈춰 있지 않고 5초에 걸쳐 천천히
+      // 사라지며 사진으로 되돌아간다.
+      behindVideoEl.addEventListener('ended', function(){ hideBehindSlow(); });
       behindVideoEl.src = buildImageUrl(post.behind);
       div.appendChild(behindVideoEl);
       hasBehind = true;
@@ -670,8 +696,78 @@
     behindVideoEl.style.left = ((curImgW - vw) / 2) + 'px';
     behindVideoEl.style.top  = ((curImgH - vh) / 2) + 'px';
   }
+  // ─── 비하인드 영상 다운로드 대기 ────────────────────────────────
+  // 재생 도중 끊기는 경험을 없애기 위해, 영상이 처음부터 끝까지
+  // 내려받아진 뒤에야 재생을 시작한다. 그 동안 "unseen" 글자 폭에 맞춘
+  // 얇은 막대가 아래에 나타나 내려받은 정도를 보여 준다.
+  var bufferPollTimer = null;
+  var waitingForBuffer = false;
+  var slowFadeTimer = null;
+  function positionBehindProgress() {
+    if (!behindProgress || !behindLink) return;
+    var r = behindLink.getBoundingClientRect();
+    // behind-link의 padding(좌우 10px)만큼 안으로 넣어 글자 폭과 맞춘다.
+    behindProgress.style.left  = (r.left + 10) + 'px';
+    behindProgress.style.width = Math.max(0, r.width - 20) + 'px';
+    behindProgress.style.top   = (r.bottom - 3) + 'px';
+  }
+  window.addEventListener('resize', positionBehindProgress);
+  // 0초부터 이어져 있는 버퍼 구간이 전체 길이의 몇 퍼센트인지.
+  function bufferedFraction(v) {
+    if (!v || !v.duration || !isFinite(v.duration) || v.duration <= 0) return 0;
+    if (!v.buffered || !v.buffered.length) return 0;
+    var end = 0;
+    for (var i = 0; i < v.buffered.length; i++) {
+      if (v.buffered.start(i) <= 0.05 && v.buffered.end(i) > end) end = v.buffered.end(i);
+    }
+    return Math.min(1, end / v.duration);
+  }
+  function isFullyBuffered(v) { return bufferedFraction(v) >= 0.995; }
+  function showBehindProgress() {
+    if (!behindProgress) return;
+    positionBehindProgress();
+    behindProgress.style.display = 'block';
+    requestAnimationFrame(function(){ behindProgress.classList.add('visible'); });
+  }
+  function hideBehindProgress() {
+    if (!behindProgress) return;
+    behindProgress.classList.remove('visible');
+    setTimeout(function(){
+      if (behindProgress && !behindProgress.classList.contains('visible')) {
+        behindProgress.style.display = 'none';
+      }
+    }, 260);
+  }
+  function stopBufferWait() {
+    waitingForBuffer = false;
+    if (bufferPollTimer) { clearInterval(bufferPollTimer); bufferPollTimer = null; }
+    hideBehindProgress();
+  }
+  function startBufferWait() {
+    if (!behindVideoEl) return;
+    waitingForBuffer = true;
+    showBehindProgress();
+    var last = -1, lastChange = Date.now();
+    function tick() {
+      if (!behindVideoEl || !waitingForBuffer) { stopBufferWait(); return; }
+      var f = bufferedFraction(behindVideoEl);
+      if (behindProgressFill) behindProgressFill.style.width = (f * 100).toFixed(1) + '%';
+      if (f > last + 0.001) { last = f; lastChange = Date.now(); }
+      if (f >= 0.995) { stopBufferWait(); showBehind(); return; }
+      // 일부 모바일 브라우저는 재생 전에 전체를 내려받지 않는다.
+      // 8초 넘게 진행이 없고 재생에 충분한 데이터가 있으면 그냥 시작한다.
+      if (Date.now() - lastChange > 8000 && behindVideoEl.readyState >= 4) {
+        stopBufferWait(); showBehind();
+      }
+    }
+    if (bufferPollTimer) clearInterval(bufferPollTimer);
+    tick();
+    bufferPollTimer = setInterval(tick, 120);
+  }
   function showBehind() {
     if (!hasBehind || !currentPostEl) return;
+    if (slowFadeTimer) { clearTimeout(slowFadeTimer); slowFadeTimer = null; }
+    if (behindVideoEl) behindVideoEl.classList.remove('slow-fade');
     currentPostEl.classList.add('show-behind');
     if (behindLink) behindLink.classList.add('active');
     // 영상이 로고를 덮으므로 힌트를 로고 아래가 아닌 화면 위쪽으로 옮긴다.
@@ -683,21 +779,41 @@
     }
   }
   function hideBehind() {
+    stopBufferWait();
+    if (slowFadeTimer) { clearTimeout(slowFadeTimer); slowFadeTimer = null; }
+    if (behindVideoEl) behindVideoEl.classList.remove('slow-fade');
     if (currentPostEl) currentPostEl.classList.remove('show-behind');
     if (behindLink) behindLink.classList.remove('active');
     // 영상이 꺼지면 로고가 다시 보이므로 힌트도 원래 자리로 돌아간다.
     positionHint();
     if (behindVideoEl) behindVideoEl.pause();
   }
-  // "unseen" 버튼: 누르면 비하인드 영상을 켜고, 다시 누르면 끈다.
-  // 3초/7초 길게 누르기와는 별개의, 확실하고 의도적인 접근 방법.
+  // 재생이 자연스럽게 끝났을 때: 5초에 걸쳐 천천히 옅어지며 사진으로 복귀.
+  function hideBehindSlow() {
+    if (!currentPostEl || !behindVideoEl) { hideBehind(); return; }
+    var v = behindVideoEl;
+    v.classList.add('slow-fade');
+    currentPostEl.classList.remove('show-behind');
+    if (behindLink) behindLink.classList.remove('active');
+    positionHint();
+    if (slowFadeTimer) clearTimeout(slowFadeTimer);
+    slowFadeTimer = setTimeout(function() {
+      slowFadeTimer = null;
+      try { v.pause(); } catch (err) {}
+      v.classList.remove('slow-fade');
+    }, 5100);
+  }
+  // "unseen" 버튼: 누르면 (다 받아진 뒤) 재생하고, 다시 누르면 끈다.
+  // 아직 받는 중이라면 진행바가 뜨고, 그 상태에서 다시 누르면 대기를 취소한다.
   function toggleBehindManual() {
     if (!hasBehind) return;
+    if (waitingForBuffer) { stopBufferWait(); return; }
     if (currentPostEl && currentPostEl.classList.contains('show-behind')) {
       hideBehind();
-    } else {
-      showBehind();
+      return;
     }
+    if (isFullyBuffered(behindVideoEl)) showBehind();
+    else startBufferWait();
   }
   if (behindLink) {
     // 터치 기기에서는 touchend가 처리한 뒤 브라우저가 뒤이어 합성 click을

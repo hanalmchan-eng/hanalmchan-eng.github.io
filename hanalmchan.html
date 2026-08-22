@@ -57,10 +57,6 @@
     transition: opacity 0.5s;
   }
   #hint.hidden { opacity: 0; }
-  /* 비하인드 영상 재생 중에는 로고가 가려져 힌트 문구도 의미가 없으므로
-     따로 숨긴다. 시간 경과로 붙는 .hidden과 서로 간섭하지 않도록
-     의도적으로 별도 클래스를 쓴다. */
-  #hint.behind-hidden { opacity: 0; }
   #hint-text {
     font-size: 10px;
     color: #ffffff;
@@ -300,9 +296,14 @@
   var LOGO_W_RATIO = 0.0936;
   var LOGO_HW_RATIO = 801 / 1429;
   var HIT_PAD = 1.6;
+  // 비하인드 영상이 사진 위를 덮고 있는 동안에는 로고가 보이지 않으므로,
+  // 힌트를 로고 아래로 밀어 둘 이유가 없다 — 그냥 화면 맨 위에 붙인다.
+  function isBehindShowing() {
+    return !!(currentPostEl && currentPostEl.classList.contains('show-behind'));
+  }
   function positionHint() {
     if (!hint) return;
-    if (viewMode === 'zoom' && curImgW) {
+    if (viewMode === 'zoom' && curImgW && !isBehindShowing()) {
       var logoW = curImgW * LOGO_W_RATIO * planeScale;
       var logoH = logoW * LOGO_HW_RATIO;
       hint.style.top = (HEADER_Y + logoH + 8) + 'px';
@@ -544,8 +545,6 @@
     hasBehind = false;
     behindVideoEl = null;
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
-    // 사진이 바뀌면 영상은 꺼진 상태이므로 힌트 숨김도 함께 풀어 둔다.
-    if (hint) hint.classList.remove('behind-hidden');
     viewMode = 'zoom';
     showLoading();
     var div = document.createElement('div');
@@ -672,8 +671,8 @@
     if (!hasBehind || !currentPostEl) return;
     currentPostEl.classList.add('show-behind');
     if (behindLink) behindLink.classList.add('active');
-    // 영상이 사진 위를 덮으면 로고도 함께 가려지므로, 로고 아래 안내 문구를 숨긴다.
-    if (hint) hint.classList.add('behind-hidden');
+    // 영상이 로고를 덮으므로 힌트를 로고 아래가 아닌 화면 위쪽으로 옮긴다.
+    positionHint();
     if (behindVideoEl) {
       try { behindVideoEl.currentTime = 0; } catch (err) {}
       var p = behindVideoEl.play();
@@ -683,8 +682,8 @@
   function hideBehind() {
     if (currentPostEl) currentPostEl.classList.remove('show-behind');
     if (behindLink) behindLink.classList.remove('active');
-    // 영상이 꺼지면 원래의 .hidden 타이머 상태로 그대로 돌아간다.
-    if (hint) hint.classList.remove('behind-hidden');
+    // 영상이 꺼지면 로고가 다시 보이므로 힌트도 원래 자리로 돌아간다.
+    positionHint();
     if (behindVideoEl) behindVideoEl.pause();
   }
   // "unseen" 버튼: 누르면 비하인드 영상을 켜고, 다시 누르면 끈다.
@@ -773,9 +772,7 @@
     }
     // 비하인드 영상("unseen")이 재생 중일 때는 로고를 눌러도 다음 사진으로
     // 넘어가지 않게 막는다 — 영상을 보는 도중 실수로 넘어가는 것 방지.
-    function isBehindShowing() {
-      return !!(currentPostEl && currentPostEl.classList.contains('show-behind'));
-    }
+    // 판정은 위쪽의 공용 isBehindShowing()을 그대로 쓴다.
     logoHit.addEventListener('mousedown', logoPressStart);
     logoHit.addEventListener('mouseup', logoPressEnd);
     logoHit.addEventListener('mouseleave', function(){ if (logoHoldTimer){ clearTimeout(logoHoldTimer); logoHoldTimer=null; } });

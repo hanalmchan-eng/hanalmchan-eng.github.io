@@ -57,6 +57,10 @@
     transition: opacity 0.5s;
   }
   #hint.hidden { opacity: 0; }
+  /* 비하인드 영상 재생 중에는 로고가 가려져 힌트 문구도 의미가 없으므로
+     따로 숨긴다. 시간 경과로 붙는 .hidden과 서로 간섭하지 않도록
+     의도적으로 별도 클래스를 쓴다. */
+  #hint.behind-hidden { opacity: 0; }
   #hint-text {
     font-size: 10px;
     color: #ffffff;
@@ -345,7 +349,9 @@
     if (!imgW || !imgH) return;
     curImgW = imgW; curImgH = imgH;
     zoomScale = ZOOM_K / BASE_DPR;
-    fitScale = window.innerWidth / imgW;
+    // 전체보기(fit)는 가로 기준만 쓰면 세로로 긴 화면에서 아래가 비어 버린다.
+    // 가로·세로 두 비율 중 작은 쪽을 택해 사진 전체가 화면 안에 들어오게 한다.
+    fitScale = Math.min(window.innerWidth / imgW, window.innerHeight / imgH);
   }
   function setHintText(mode) {
     if (!hintText) return;
@@ -388,9 +394,8 @@
     else { var cx = (W - maxX) / 2; bounds.maxX = cx; bounds.minX = cx; }
     if (maxY >= H) {
       bounds.maxY = 0; bounds.minY = -(maxY - H);
-    } else if (viewMode === 'fit') {
-      bounds.maxY = 0; bounds.minY = 0;
     } else {
+      // 남는 세로 공간은 위아래로 똑같이 나눈다(fit 모드 포함).
       var cy = (H - maxY) / 2; bounds.maxY = cy; bounds.minY = cy;
     }
   }
@@ -514,9 +519,9 @@
     if (viewMode === 'zoom') {
       alignToLogo(null);
     } else {
-      var W = window.innerWidth;
+      var W = window.innerWidth, H = window.innerHeight;
       tx = (W - curImgW * planeScale) / 2;
-      ty = 0;
+      ty = (H - curImgH * planeScale) / 2;
       updateTransform();
     }
   }
@@ -538,6 +543,8 @@
     hasBehind = false;
     behindVideoEl = null;
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
+    // 사진이 바뀌면 영상은 꺼진 상태이므로 힌트 숨김도 함께 풀어 둔다.
+    if (hint) hint.classList.remove('behind-hidden');
     viewMode = 'zoom';
     showLoading();
     var div = document.createElement('div');
@@ -664,6 +671,8 @@
     if (!hasBehind || !currentPostEl) return;
     currentPostEl.classList.add('show-behind');
     if (behindLink) behindLink.classList.add('active');
+    // 영상이 사진 위를 덮으면 로고도 함께 가려지므로, 로고 아래 안내 문구를 숨긴다.
+    if (hint) hint.classList.add('behind-hidden');
     if (behindVideoEl) {
       try { behindVideoEl.currentTime = 0; } catch (err) {}
       var p = behindVideoEl.play();
@@ -673,6 +682,8 @@
   function hideBehind() {
     if (currentPostEl) currentPostEl.classList.remove('show-behind');
     if (behindLink) behindLink.classList.remove('active');
+    // 영상이 꺼지면 원래의 .hidden 타이머 상태로 그대로 돌아간다.
+    if (hint) hint.classList.remove('behind-hidden');
     if (behindVideoEl) behindVideoEl.pause();
   }
   // "unseen" 버튼: 누르면 비하인드 영상을 켜고, 다시 누르면 끈다.

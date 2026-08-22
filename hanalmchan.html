@@ -252,6 +252,50 @@
   #info-card .info-price-val { color: rgba(255,255,255,0.92); letter-spacing: 0.02em; }
   #info-card .info-price-val em { font-style: normal; color: rgba(255,255,255,0.6); font-size: 11px; }
 </style>
+<script>
+(function() {
+  'use strict';
+  // ─── iOS 26 Safari 상단 바 색: "첫 로드"에 한해서만 맞춘다 ───────────
+  // iOS 26의 Safari는 theme-color 메타 태그를 더 이상 읽지 않고, 대신
+  // 첫 화면이 그려지는 그 순간의 <body> 배경색을 상단 바 색으로 그대로
+  // 가져다 쓴다. 그 순간 이후 자바스크립트로 배경을 바꿔도 반영되지
+  // 않으므로, 사진을 넘길 때마다 실시간으로 맞추는 것은 이 플랫폼에서는
+  // 불가능하다 — 대신 주소(#해시)로 곧장 열린 "첫 사진" 한 장만큼은
+  // 맞출 수 있다. 이걸 하려면 화면이 그려지기도 전에 색이 정해져 있어야
+  // 하는데, 캔버스로 사진을 내려받아 재는 방식은 네트워크를 타는 만큼
+  // 이미 "그려진 뒤"라 너무 늦다. 그래서 posts.json에 미리 적어 둔
+  // "topColor" 값을 화면이 그려지기 전에 동기(sync) 방식으로 읽어 온다.
+  // (posts.json 예시: { "file": "IMG_9317.jpg", "topColor": "#5a6640" })
+  try {
+    var h = decodeURIComponent((location.hash || '').replace(/^#/, '')).split('?')[0].toLowerCase();
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'posts.json', false);  // false = 의도적인 동기 요청
+    xhr.send(null);
+    if (xhr.status >= 200 && xhr.status < 300) {
+      var posts = JSON.parse(xhr.responseText) || [];
+      var post = null;
+      var im = h.match(/^i=(\d+)$/);
+      if (im) {
+        post = posts[parseInt(im[1], 10)];
+      } else if (h) {
+        for (var i = 0; i < posts.length; i++) {
+          var f = String(posts[i].file || '').toLowerCase();
+          if (f === h || f.replace(/\.[^.]+$/, '') === h) { post = posts[i]; break; }
+        }
+      }
+      if (!post) post = posts[0];
+      if (post && post.topColor) {
+        // 뒤이어 나올 본문 <style>의 흰 배경보다 나중에, 반드시 이 값이
+        // 이기도록 !important를 붙인다. body가 아직 파싱되기 전이므로
+        // 여기서 그려 넣는 <style>이 첫 페인트 시점의 배경으로 인정된다.
+        document.write('<style>html,body{background:' + post.topColor + ' !important;}</style>');
+      }
+    }
+  } catch (err) {
+    /* posts.json을 못 읽었거나 topColor가 없으면 기본 흰 배경 그대로 둔다 */
+  }
+})();
+</script>
 </head>
 <body>
 <div id="hint"><div id="hint-text"></div></div>
@@ -548,8 +592,11 @@
         ctx.drawImage(probe, sx, sy, sw, sh, 0, 0, 1, 1);
         var d = ctx.getImageData(0, 0, 1, 1).data;
         var rgb = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
-        setThemeColor(rgb);
-        themeDebug('성공 — 추출색 ' + rgb);
+        var hex = '#' + [d[0], d[1], d[2]].map(function(n){
+          return ('0' + n.toString(16)).slice(-2);
+        }).join('');
+        setThemeColor(rgb);   // iOS 26 이전 버전·데스크톱 크롬 등에는 여전히 유효
+        themeDebug('성공 — ' + hex + ' (' + rgb + ')\nposts.json에 "topColor": "' + hex + '" 로 붙여넣기');
       } catch (err) {
         /* CORS 미허용으로 캔버스가 오염되면 흰색을 그대로 둔다 */
         themeDebug('실패 — R2 CORS 차단\n' + (err && err.name ? err.name : ''));

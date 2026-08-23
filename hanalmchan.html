@@ -40,6 +40,26 @@
     cursor: grab;
     touch-action: none;
   }
+  /* Safari 26의 상단 바·하단 바 색 판정 전용 "미끼" 요소.
+     화면 맨 위/아래 가장자리에 살짝 걸치는 얇은 띠를 만들어 둔다 —
+     Safari 26+는 화면 위/아래 가장자리(위 4px, 아래 3px 이내)에 걸친
+     position:fixed 요소 중 폭이 충분히 넓고(가로 80%+, 세로 3px+)
+     배경색이 있는 것을 찾아 그 색으로 브라우저 UI를 물들이는데,
+     body나 #canvas가 항상 이 조건을 만족한다는 보장이 없어(사진이
+     화면을 다 못 덮는 경우, 아이패드의 넓은 창 등) 아예 이 조건에
+     딱 맞는 전용 요소를 별도로 둔다. 화면 가장자리 너머로 살짝 밀어
+     두어 실제로는 거의 보이지 않는다.
+     참고: https://jahir.dev/blog/safari-toolbar */
+  #tint-top, #tint-bottom {
+    position: fixed;
+    left: 0;
+    width: 100%;
+    min-height: 8px;
+    z-index: 999;
+    pointer-events: none;
+  }
+  #tint-top { top: -3px; }
+  #tint-bottom { bottom: -3px; }
   #canvas.dragging { cursor: grabbing; }
   #plane {
     position: absolute;
@@ -296,7 +316,12 @@
         // 있고, #canvas엔 배경색이 없어(투명) 검정으로 보였을 수 있다.
         // 정확한 내부 판정 기준은 애플이 공개하지 않았으므로, 셋 다에
         // 같은 색을 걸어 두어 어느 쪽을 고르든 결과가 같게 만든다.
-        document.write('<style>html,body,#canvas,#plane{background:' +
+        // html,body,#canvas,#plane뿐 아니라 위에서 새로 만든 전용 미끼
+        // 요소(#tint-top, #tint-bottom)에도 같은 색을 걸어 둔다. 이 둘은
+        // Safari 26이 문서화한 조건(가장자리 4px/3px 이내, 폭 80%+,
+        // 높이 3px+)에 정확히 맞춰 만들었으므로, body나 #canvas가 어떤
+        // 이유로든 조건을 못 채우는 경우에도 이 요소들이 대신 채택된다.
+        document.write('<style>html,body,#canvas,#plane,#tint-top,#tint-bottom{background:' +
                         post.topColor + ' !important;}</style>');
       }
     }
@@ -307,6 +332,8 @@
 </script>
 </head>
 <body>
+<div id="tint-top"></div>
+<div id="tint-bottom"></div>
 <div id="hint"><div id="hint-text"></div></div>
 <div id="nav"></div>
 <a id="back-link" href="index.html?from=ig">AWAY</a>

@@ -169,6 +169,14 @@
     -o-user-drag: none;
     user-drag: none;
     pointer-events: none;
+    transition: filter 0.18s ease;
+  }
+  /* 비하인드 영상이 떠 있는 동안 뒤에 깔린 사진(원본 photo, before는 제외)만
+     채도·명도를 아주 살짝 낮춘다 — 영상 자체는 건드리지 않고, "지금 앞에
+     보이는 건 사진이 아니라 영상"이라는 인상을 은은하게 준다. 값을 너무
+     세게 주면 티가 나서 튀므로 8~5% 선의 미세한 차이만 둔다. */
+  .post.show-behind img.photo:not(.photo-before) {
+    filter: saturate(0.92) brightness(0.95);
   }
   .post img.photo-before {
     position: absolute;

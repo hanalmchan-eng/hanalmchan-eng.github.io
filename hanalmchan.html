@@ -1041,7 +1041,14 @@
     if (behindDL.loaded > 0) return Math.min(0.9, behindDL.loaded / (behindDL.loaded + 3000000));
     return 0;
   }
-  function behindReady() { return !!(behindDL && behindDL.done); }
+  // "다운로드가 끝남"과 "끊김 없이 재생할 준비가 됨"은 서로 다른 순간이다.
+  // blob 전체가 메모리에 있어도 브라우저가 그걸 디코딩해 재생 가능한
+  // readyState까지 만드는 데는 별도 시간이 걸릴 수 있어 둘 다 확인한다.
+  // readyState 4 = HAVE_ENOUGH_DATA(끝까지 끊김 없이 재생 가능하다고 판단됨)
+  function behindReady() {
+    return !!(behindDL && behindDL.done &&
+              behindVideoEl && behindVideoEl.readyState >= 4);
+  }
   // 다 받아진 blob을 video에 물린다(이미 물려 있으면 아무 것도 하지 않음).
   function attachBehindSource() {
     if (!behindVideoEl || !behindDL) return;
@@ -1083,23 +1090,33 @@
     var STEP = 0.08; // 한 틱(40ms)에 최대 8% — 0→100%에 최소 0.5초
     function tick() {
       if (!behindVideoEl || !waitingForBuffer) { stopBufferWait(); return; }
-      // fetch가 막힌 경우(CORS 등)에는 예전 방식대로 주소를 직접 물려 재생한다.
+      // fetch가 막힌 경우(CORS 등): 바이트 진행률을 알 수 없으니
+      // readyState(디코딩 준비)만으로 재생 시점을 판단한다.
       if (behindDL && behindDL.failed) {
-        waitingForBuffer = false;
-        if (bufferPollTimer) { clearInterval(bufferPollTimer); bufferPollTimer = null; }
         attachBehindSource();
-        hideBehindProgress();
-        showBehind();
+        var readyF = behindVideoEl.readyState >= 4;
+        var targetF = readyF ? 1 : 0.97;
+        if (shown < targetF) shown = Math.min(targetF, shown + STEP);
+        if (behindProgressFill) behindProgressFill.style.width = (shown * 100).toFixed(1) + '%';
+        if (shown >= 0.97 && readyF) {
+          if (behindProgressFill) behindProgressFill.style.width = '100%';
+          waitingForBuffer = false;
+          if (bufferPollTimer) { clearInterval(bufferPollTimer); bufferPollTimer = null; }
+          setTimeout(function(){ hideBehindProgress(); showBehind(); }, 150);
+        }
         return;
       }
-      var target = behindDownloadFraction();
+      // 바이트를 다 받았으면 즉시 blob을 video에 물려 디코딩을 시작해 둔다.
+      if (behindDownloadFraction() >= 0.999) attachBehindSource();
+      // "다운로드 완료"와 "끊김 없이 재생 가능"은 다른 순간이다 — 후자가
+      // 확인되기(behindReady()) 전까지는 막대를 100%까지 채우지 않는다.
+      var target = behindReady() ? 1 : Math.min(0.97, behindDownloadFraction());
       if (shown < target) shown = Math.min(target, shown + STEP);
       if (behindProgressFill) behindProgressFill.style.width = (shown * 100).toFixed(1) + '%';
-      if (shown >= 0.999 && behindReady()) {
+      if (shown >= 0.97 && behindReady()) {
         if (behindProgressFill) behindProgressFill.style.width = '100%';
         waitingForBuffer = false;
         if (bufferPollTimer) { clearInterval(bufferPollTimer); bufferPollTimer = null; }
-        attachBehindSource();
         // 다 찬 막대를 잠깐 보여 준 뒤 재생으로 넘어간다.
         setTimeout(function(){ hideBehindProgress(); showBehind(); }, 180);
       }

@@ -84,6 +84,7 @@
   },
   {
     "file": "IMG_0107.jpg",
+    "before": "_F9A8007.CR3",
     "behind": "2F9A8006_stabilized.mov",
     "caption": "",
     "logoX": 2300,
@@ -91,6 +92,18 @@
     "logoW": 976,
     "logoH": 547,
     "topColor": "#788e9f",
+    "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
+  },
+  {
+    "file": "IMG_9295.jpeg",
+    "before": "_F9A4852.CR3",
+    "behind": "2F9A4844.MOV",
+    "caption": "",
+    "logoX": 2668,
+    "logoY": 4854,
+    "logoW": 976,
+    "logoH": 547,
+    "topColor": "#717372",
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   }
 ]

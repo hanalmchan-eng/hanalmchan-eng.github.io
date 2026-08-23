@@ -1025,6 +1025,12 @@
       if (!st.total) st.total = st.loaded || blob.size;
       st.loaded = st.total;
       st.done = true;
+      // 다운로드가 끝나는 즉시(= 사용자가 "unseen"을 누르기 전이라도)
+      // video에 blob을 미리 물려 브라우저가 메타데이터를 먼저 해석해
+      // 두게 한다. 이걸 재생 버튼을 누른 뒤로 미루면, 진행바가 100%를
+      // 찍고도 그때부터 video.load()의 해석 시간이 새로 붙어 한 번 더
+      // "로딩"처럼 느껴진다 — 다운로드가 끝난 시점에 미리 끝내 둔다.
+      if (behindDL === st) attachBehindSource();
     }
   }
   // 진행률. Content-Length가 없으면 받은 양으로 어림잡아 보여 준다.
@@ -1132,8 +1138,8 @@
   }
   // 재생이 자연스럽게 끝났을 때: 사라지지 않고 마지막 프레임에 그대로
   // 멈춘다(브라우저가 알아서 그렇게 둔다 — 여기선 "대기 중" 표시만 켠다).
-  // 이 상태에서 화면이 조금이라도 움직이면 hideBehindFast()가 불려
-  // 1초 만에 빠르게 사라진다.
+  // 이 상태에서 화면 아무 곳이나 클릭·탭하면 hideBehindFast()가 불려
+  // 1초 만에 빠르게 사라진다(드래그·휠 등 "움직임"은 더 이상 트리거가 아니다).
   function freezeBehind() {
     if (!hasBehind) return;
     behindFrozen = true;
@@ -1253,13 +1259,13 @@
       if (logoHoldTimer) { clearTimeout(logoHoldTimer); logoHoldTimer = null; }
       if (logoHeld) { e.preventDefault(); e.stopPropagation(); return; }
       e.preventDefault(); e.stopPropagation();
-      if (isBehindShowing()) return;
+      if (isBehindShowing()) { if (behindFrozen) hideBehindFast(); return; }
       nextPost();
     }, { passive: false });
     logoHit.addEventListener('click', function(e) {
       e.preventDefault();
       if (logoHeld) { logoHeld = false; return; }
-      if (isBehindShowing()) return;
+      if (isBehindShowing()) { if (behindFrozen) hideBehindFast(); return; }
       nextPost();
     });
   }
@@ -1267,7 +1273,6 @@
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
     e.preventDefault();
     hideHint();
-    if (behindFrozen) hideBehindFast();
     var dx = e.deltaX, dy = e.deltaY;
     if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
     else if (e.deltaMode === 2) { dx *= window.innerWidth; dy *= window.innerHeight; }
@@ -1296,9 +1301,15 @@
     if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
   }
   function startDrag(clientX, clientY, target) {
+    // didMove는 "이번 누르기가 움직였는가"를 나타내므로, 아래 가드로
+    // 드래그 자체를 시작 안 하는 경우(예: 정지된 video 위를 눌렀을 때)
+    // 에도 새 누르기가 시작된 이상 항상 새로 초기화해야 한다. 여기서
+    // 먼저 초기화하지 않으면, 직전 상호작용이 드래그였을 경우 그 값이
+    // 그대로 남아 있어 이번 클릭이 "드래그였다"고 잘못 판정될 수 있다.
+    didMove = false;
     if (target && target.closest && target.closest('button, input, textarea, video, audio, iframe, a')) return false;
     stopMomentum();
-    isDragging = true; didMove = false;
+    isDragging = true;
     dragStartX = clientX; dragStartY = clientY;
     dragStartTx = tx; dragStartTy = ty;
     lastDragX = clientX; lastDragY = clientY;
@@ -1320,7 +1331,6 @@
   var HOLD_CANCEL_DIST = 28;
   function moveDrag(clientX, clientY) {
     if (!isDragging) return;
-    if (behindFrozen) hideBehindFast();
     var dx = clientX - dragStartX, dy = clientY - dragStartY;
     var dist = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
     if (holding) {
@@ -1458,13 +1468,16 @@
   document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) { e.preventDefault(); return; }
     var step = 100;
-    if (e.key === 'ArrowLeft')  { if (behindFrozen) hideBehindFast(); tx += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowRight') { if (behindFrozen) hideBehindFast(); tx -= step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowUp')    { if (behindFrozen) hideBehindFast(); ty += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowDown')  { if (behindFrozen) hideBehindFast(); ty -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowLeft')  { tx += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowRight') { tx -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowUp')    { ty += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
   });
   canvas.addEventListener('click', function(e) {
-    if (didMove) { e.preventDefault(); e.stopPropagation(); }
+    if (didMove) { e.preventDefault(); e.stopPropagation(); return; }
+    // 영상이 끝나 멈춰 있는 동안에는, 화면 아무 곳이나(드래그 없이) 클릭·탭
+    // 하면 그 자리에서 1초 만에 빠르게 사라진다.
+    if (behindFrozen) { e.preventDefault(); e.stopPropagation(); hideBehindFast(); }
   }, true);
   updateTransform();
 })();

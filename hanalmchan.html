@@ -888,13 +888,31 @@
     saveQueue();
     navigateToIndex(idx);
   }
-  function enterZoom() {
+  // screenX,screenY(더블클릭·핀치가 일어난 화면 좌표)가 주어지면 확대한
+  // 뒤에도 그 지점이 화면의 같은 자리에 그대로 남도록 tx,ty를 잡는다.
+  // 좌표가 없을 때(최초 로드 등)만 예전처럼 로고 위치로 맞춘다.
+  function enterZoom(screenX, screenY) {
     if (viewMode === 'zoom') return;
+    var hasPoint = typeof screenX === 'number' && typeof screenY === 'number';
+    var imgX, imgY;
+    if (hasPoint) {
+      // 지금(=축소) 배율 기준으로, 누른 지점이 사진 속 어느 좌표인지 역산.
+      imgX = (screenX - tx) / planeScale;
+      imgY = (screenY - ty) / planeScale;
+    }
     viewMode = 'zoom';
-    applyMode();
+    applyMode();       // planeScale이 zoomScale로 바뀐다
     layoutPosts();
-    alignToLogo(currentPost);
-    updateTransform();
+    if (hasPoint) {
+      // 새 배율에서도 같은 사진 좌표가 같은 화면 좌표(screenX,screenY)에
+      // 오도록 tx,ty를 다시 계산한다.
+      tx = screenX - imgX * planeScale;
+      ty = screenY - imgY * planeScale;
+      updateTransform();
+    } else {
+      alignToLogo(currentPost);
+      updateTransform();
+    }
     showHintAgain();
   }
   function enterFit() {
@@ -905,8 +923,8 @@
     positionForMode();
     showHintAgain();
   }
-  function toggleMode() {
-    if (viewMode === 'fit') enterZoom(); else enterFit();
+  function toggleMode(screenX, screenY) {
+    if (viewMode === 'fit') enterZoom(screenX, screenY); else enterFit();
   }
   function showBefore() {
     if (hasBefore && currentPostEl) currentPostEl.classList.add('show-before');
@@ -1335,7 +1353,7 @@
       enterFit();
       return;
     }
-    toggleMode();
+    toggleMode(e.clientX, e.clientY);
   });
   var lastTapTime = 0;
   var lastTapX = 0, lastTapY = 0;
@@ -1352,7 +1370,7 @@
         clearHold();
         enterFit();
       } else {
-        toggleMode();
+        toggleMode(t.clientX, t.clientY);
       }
       lastTapTime = 0;
     } else {
@@ -1382,7 +1400,13 @@
       e.preventDefault();
       var d = touchDist(e.touches[0], e.touches[1]);
       var ratio = d / (pinchStartDist || d);
-      if (ratio > 1.18) { enterZoom(); pinching = false; }
+      if (ratio > 1.18) {
+        // 두 손가락의 중간 지점을 확대의 기준점으로 삼는다.
+        var midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        var midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        enterZoom(midX, midY);
+        pinching = false;
+      }
       else if (ratio < 0.85) { enterFit(); pinching = false; }
       return;
     }

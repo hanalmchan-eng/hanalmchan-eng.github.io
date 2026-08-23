@@ -200,6 +200,13 @@
     transition: opacity 0.18s ease;
     z-index: 3;
     pointer-events: none;
+    /* 액자 느낌: 얇은 흰 라이너(4px) + 로고에서 뽑은 색으로 된 두꺼운 매트(10px)
+       + 은은한 그림자로 마무리. --behind-frame-color는 JS가 이 사진의 로고
+       색상을 읽어 넣는다(아직 못 정했으면 기본값으로 옅은 흰색을 쓴다). */
+    box-shadow:
+      0 0 0 4px rgba(255,255,255,0.92),
+      0 0 0 14px var(--behind-frame-color, rgba(255,255,255,0.85)),
+      0 10px 34px rgba(0,0,0,0.35);
   }
   .post.show-behind video.photo-behind { opacity: 1; }
   /* 재생이 끝나면 그대로 정지 화면으로 멈춰 있다가, 화면을 조금이라도
@@ -620,12 +627,28 @@
   function setThemeColor(c) {
     if (themeMeta) themeMeta.setAttribute('content', c);
   }
+  // 비하인드 영상 액자의 매트 색을 이 사진의 로고 색으로 맞춘다.
+  // behindVideoEl은 showPost()에서 sampleTopColor 호출보다 먼저(동기적으로)
+  // 만들어져 있으므로, 이 함수가 나중에(네트워크 이후) 불려도 안전하다.
+  function setBehindFrameColor(c) {
+    if (behindVideoEl) behindVideoEl.style.setProperty('--behind-frame-color', c);
+  }
   function sampleTopColor(url, post, imgW) {
     if (!post) return;
-    // ① posts.json에 색을 직접 적어 두었으면 그것을 그대로 쓴다.
+    // 로고 색상을 posts.json에 직접 적어 두었으면(예: "logoColor": "#2b2a28")
+    // 그것을 액자 매트 색으로 바로 쓴다 — CORS와 무관하게 항상 동작.
+    if (post.logoColor) setBehindFrameColor(post.logoColor);
+    // ① 상단 바 색도 posts.json에 직접 적어 두었으면 그것을 그대로 쓴다.
     //    (예: { "file": "a.jpg", "topColor": "#2b2a28" })
     //    CORS 설정과 무관하게 항상 동작하는 가장 확실한 방법.
-    if (post.topColor) { setThemeColor(post.topColor); themeDebug('topColor 지정값 사용: ' + post.topColor); return; }
+    if (post.topColor) {
+      setThemeColor(post.topColor);
+      themeDebug('topColor 지정값 사용: ' + post.topColor);
+      // logoColor까지 이미 정해졌다면 픽셀을 읽을 이유가 없다.
+      if (post.logoColor) return;
+      // topColor는 있지만 logoColor가 없다면, 액자 색만을 위해 아래에서
+      // 계속 진행해 픽셀을 잰다(상단 바 색은 이미 정해졌으니 다시 안 건드림).
+    }
     if (!url || typeof post.logoX !== 'number' || typeof post.logoY !== 'number') {
       themeDebug('logoX/logoY 없음 — 추출 불가');
       return;
@@ -654,6 +677,9 @@
         var d = ctx.getImageData(0, 0, 1, 1).data;
         function toHex(n){ return ('0' + n.toString(16)).slice(-2); }
         var rawHex = '#' + toHex(d[0]) + toHex(d[1]) + toHex(d[2]);
+        // 액자 매트 색: posts.json에 logoColor를 직접 안 줬다면, 방금 잰
+        // 로고 자체의 색(반전 없이 원본 그대로)을 그대로 쓴다.
+        if (!post.logoColor) setBehindFrameColor(rawHex);
         // 뽑아낸 색을 그대로 쓰지 않고 반전(255에서 뺀 값)한다.
         // 힌트 문구·unseen 버튼이 mix-blend-mode:difference로 배경이 무엇이든
         // 항상 도드라지게 만드는 것과 같은 원리 — 흰 바탕 위에서 difference를
@@ -661,11 +687,12 @@
         var ir = 255 - d[0], ig = 255 - d[1], ib = 255 - d[2];
         var invHex = '#' + toHex(ir) + toHex(ig) + toHex(ib);
         var invRgb = 'rgb(' + ir + ',' + ig + ',' + ib + ')';
-        setThemeColor(invRgb);   // iOS 26 이전 버전·데스크톱 크롬 등에는 여전히 유효
+        // 상단 바 색은 posts.json에 topColor를 직접 안 줬을 때만 여기서 정한다.
+        if (!post.topColor) setThemeColor(invRgb);   // iOS 26 이전 버전·데스크톱 크롬 등에는 여전히 유효
         themeDebug('성공 — 원본 ' + rawHex + ' → 반대색 ' + invHex +
-                   '\nposts.json에 "topColor": "' + invHex + '" 로 붙여넣기');
+                   '\nposts.json에 "topColor": "' + invHex + '" / "logoColor": "' + rawHex + '" 로 붙여넣기');
       } catch (err) {
-        /* CORS 미허용으로 캔버스가 오염되면 흰색을 그대로 둔다 */
+        /* CORS 미허용으로 캔버스가 오염되면 기본값(흰색 계열)을 그대로 둔다 */
         themeDebug('실패 — R2 CORS 차단\n' + (err && err.name ? err.name : ''));
       }
     };

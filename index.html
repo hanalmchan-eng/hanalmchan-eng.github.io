@@ -336,7 +336,8 @@
   function toHex2(n){ return ('0' + n.toString(16)).slice(-2); }
   function sampleAboveLogo(img, post, W, H){
     try {
-      var logoW = Math.min(W, H) * LOGO_W_RATIO;
+      var logoW = (typeof post.logoW === 'number') ? post.logoW
+                    : Math.min(W, H) * LOGO_W_RATIO;
       var sx = Math.max(0, Math.round(post.logoX));
       var sy = Math.max(0, Math.round(post.logoY - TOPCOLOR_BAND_H));
       var sw = Math.min(Math.round(logoW), W - sx);
@@ -484,8 +485,16 @@
     if (src && typeof post.logoX === 'number' && typeof post.logoY === 'number'){
       enqueue(function(done){
         function regionFor(W, H){
-          var logoW = Math.min(W, H) * LOGO_W_RATIO;
-          var logoH = logoW * LOGO_HW_RATIO;
+          // 로고가 사진 해상도에 비례해서 항상 같은 비율로 찍혀 있다는
+          // 가정(LOGO_W_RATIO)이 항상 맞지는 않는다 — 사진마다 로고를
+          // 실제로 얼마나 크게 합성했는지가 다를 수 있어서, 그 경우
+          // 크롭 범위가 실제 로고보다 작아져 로고가 잘려 보인다.
+          // posts.json에 그 사진의 실측 로고 크기를 "logoW"(필요하면
+          // "logoH"까지)로 적어 두면 비율 계산 대신 그 값을 그대로 쓴다.
+          var logoW = (typeof post.logoW === 'number') ? post.logoW
+                        : Math.min(W, H) * LOGO_W_RATIO;
+          var logoH = (typeof post.logoH === 'number') ? post.logoH
+                        : logoW * LOGO_HW_RATIO;
           var sx = post.logoX + logoW * CROP_SIDE;
           var sy = post.logoY + logoH * CROP_TOP;
           var sw = logoW * (1 - CROP_SIDE * 2);

@@ -194,9 +194,9 @@
     pointer-events: none;
   }
   .post.show-behind video.photo-behind { opacity: 1; }
-  /* 재생이 끝나 사라질 때만 5초에 걸쳐 천천히 옅어진다.
-     켜질 때는 이 클래스를 떼어내므로 기존처럼 즉시 나타난다. */
-  .post video.photo-behind.slow-fade { transition: opacity 5s linear; }
+  /* 재생이 끝나면 그대로 정지 화면으로 멈춰 있다가, 화면을 조금이라도
+     움직이면 이 클래스가 붙으면서 1초에 걸쳐 빠르게 사라진다. */
+  .post video.photo-behind.fast-fade { transition: opacity 1s ease; }
   .post-photo a, .post-photoset a {
     display: block;
     cursor: inherit;
@@ -627,12 +627,14 @@
     probe.crossOrigin = 'anonymous';
     probe.onload = function() {
       try {
-        // 로고 폭만큼, 로고 위쪽으로 화면 여백(HEADER_Y)에 해당하는 높이만큼.
-        var bandH = Math.max(4, Math.round(HEADER_Y / (zoomScale || 1)));
+        // 로고 그 자체 영역(logoX,logoY ~ logoW,logoH)을 잰다.
+        // (예전엔 로고 "위쪽 띠"를 쟀는데, 그게 아니라 로고 자체 색이 맞다.)
+        var lw = (typeof post.logoW === 'number') ? post.logoW : imgW * LOGO_W_RATIO;
+        var lh = (typeof post.logoH === 'number') ? post.logoH : lw * LOGO_HW_RATIO;
         var sx = Math.max(0, Math.round(post.logoX));
-        var sy = Math.max(0, Math.round(post.logoY - bandH));
-        var sw = Math.min(Math.round((typeof post.logoW === 'number') ? post.logoW : imgW * LOGO_W_RATIO), probe.naturalWidth - sx);
-        var sh = Math.min(bandH, Math.round(post.logoY));
+        var sy = Math.max(0, Math.round(post.logoY));
+        var sw = Math.min(Math.round(lw), probe.naturalWidth - sx);
+        var sh = Math.min(Math.round(lh), probe.naturalHeight - sy);
         if (sw <= 0 || sh <= 0) return;
         // 1×1로 축소해 그리면 그 영역의 평균색이 한 픽셀로 남는다.
         var c = document.createElement('canvas');
@@ -788,7 +790,9 @@
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
     stopBufferWait();
     cancelBehindDownload();
-    if (slowFadeTimer) { clearTimeout(slowFadeTimer); slowFadeTimer = null; }
+    if (fastFadeTimer) { clearTimeout(fastFadeTimer); fastFadeTimer = null; }
+    behindFrozen = false;
+    behindFastFading = false;
     viewMode = 'zoom';
     showLoading();
     var div = document.createElement('div');
@@ -846,9 +850,10 @@
       behindVideoEl.draggable = false;
       behindVideoEl.addEventListener('contextmenu', function(e){ e.preventDefault(); });
       behindVideoEl.addEventListener('loadedmetadata', sizeBehindVideo); // 영상 쪽이 나중에 준비되는 경우 대비
-      // 끝까지 재생되면 마지막 프레임에 멈춰 있지 않고 5초에 걸쳐 천천히
-      // 사라지며 사진으로 되돌아간다.
-      behindVideoEl.addEventListener('ended', function(){ hideBehindSlow(); });
+      // 끝까지 재생되면 사라지지 않고 마지막 프레임에 그대로 멈춘다.
+      // 이 "정지" 상태에서 화면을 조금이라도 움직이면(드래그·휠·방향키)
+      // 1초에 걸쳐 빠르게 사라진다 — freezeBehind()가 그 대기 상태를 켠다.
+      behindVideoEl.addEventListener('ended', function(){ freezeBehind(); });
       div.appendChild(behindVideoEl);
       hasBehind = true;
       startBehindDownload(buildImageUrl(post.behind));  // 사진을 여는 순간부터 내려받기 시작
@@ -957,7 +962,9 @@
   // 얇은 막대가 아래에 나타나 내려받은 정도를 보여 준다.
   var bufferPollTimer = null;
   var waitingForBuffer = false;
-  var slowFadeTimer = null;
+  var fastFadeTimer = null;
+  var behindFrozen = false;      // 재생이 끝나 마지막 프레임에 멈춰 있는 상태
+  var behindFastFading = false;  // 그 상태에서 화면이 움직여 1초 페이드 중인 상태
   function positionBehindProgress() {
     if (!behindProgress || !behindLink) return;
     var r = behindLink.getBoundingClientRect();
@@ -1097,8 +1104,10 @@
   }
   function showBehind() {
     if (!hasBehind || !currentPostEl) return;
-    if (slowFadeTimer) { clearTimeout(slowFadeTimer); slowFadeTimer = null; }
-    if (behindVideoEl) behindVideoEl.classList.remove('slow-fade');
+    if (fastFadeTimer) { clearTimeout(fastFadeTimer); fastFadeTimer = null; }
+    if (behindVideoEl) behindVideoEl.classList.remove('fast-fade');
+    behindFrozen = false;
+    behindFastFading = false;
     currentPostEl.classList.add('show-behind');
     if (behindLink) behindLink.classList.add('active');
     // 영상이 로고를 덮으므로 힌트를 로고 아래가 아닌 화면 위쪽으로 옮긴다.
@@ -1111,28 +1120,41 @@
   }
   function hideBehind() {
     stopBufferWait();
-    if (slowFadeTimer) { clearTimeout(slowFadeTimer); slowFadeTimer = null; }
-    if (behindVideoEl) behindVideoEl.classList.remove('slow-fade');
+    if (fastFadeTimer) { clearTimeout(fastFadeTimer); fastFadeTimer = null; }
+    if (behindVideoEl) behindVideoEl.classList.remove('fast-fade');
+    behindFrozen = false;
+    behindFastFading = false;
     if (currentPostEl) currentPostEl.classList.remove('show-behind');
     if (behindLink) behindLink.classList.remove('active');
     // 영상이 꺼지면 로고가 다시 보이므로 힌트도 원래 자리로 돌아간다.
     positionHint();
     if (behindVideoEl) behindVideoEl.pause();
   }
-  // 재생이 자연스럽게 끝났을 때: 5초에 걸쳐 천천히 옅어지며 사진으로 복귀.
-  function hideBehindSlow() {
+  // 재생이 자연스럽게 끝났을 때: 사라지지 않고 마지막 프레임에 그대로
+  // 멈춘다(브라우저가 알아서 그렇게 둔다 — 여기선 "대기 중" 표시만 켠다).
+  // 이 상태에서 화면이 조금이라도 움직이면 hideBehindFast()가 불려
+  // 1초 만에 빠르게 사라진다.
+  function freezeBehind() {
+    if (!hasBehind) return;
+    behindFrozen = true;
+  }
+  function hideBehindFast() {
+    if (!behindFrozen || behindFastFading) return;
+    behindFrozen = false;
+    behindFastFading = true;
     if (!currentPostEl || !behindVideoEl) { hideBehind(); return; }
     var v = behindVideoEl;
-    v.classList.add('slow-fade');
+    v.classList.add('fast-fade');
     currentPostEl.classList.remove('show-behind');
     if (behindLink) behindLink.classList.remove('active');
     positionHint();
-    if (slowFadeTimer) clearTimeout(slowFadeTimer);
-    slowFadeTimer = setTimeout(function() {
-      slowFadeTimer = null;
+    if (fastFadeTimer) clearTimeout(fastFadeTimer);
+    fastFadeTimer = setTimeout(function() {
+      fastFadeTimer = null;
+      behindFastFading = false;
       try { v.pause(); } catch (err) {}
-      v.classList.remove('slow-fade');
-    }, 5100);
+      v.classList.remove('fast-fade');
+    }, 1100);
   }
   // "unseen" 버튼: 누르면 (다 받아진 뒤) 재생하고, 다시 누르면 끈다.
   // 아직 받는 중이라면 진행바가 뜨고, 그 상태에서 다시 누르면 대기를 취소한다.
@@ -1245,6 +1267,7 @@
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
     e.preventDefault();
     hideHint();
+    if (behindFrozen) hideBehindFast();
     var dx = e.deltaX, dy = e.deltaY;
     if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
     else if (e.deltaMode === 2) { dx *= window.innerWidth; dy *= window.innerHeight; }
@@ -1297,6 +1320,7 @@
   var HOLD_CANCEL_DIST = 28;
   function moveDrag(clientX, clientY) {
     if (!isDragging) return;
+    if (behindFrozen) hideBehindFast();
     var dx = clientX - dragStartX, dy = clientY - dragStartY;
     var dist = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
     if (holding) {
@@ -1434,10 +1458,10 @@
   document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) { e.preventDefault(); return; }
     var step = 100;
-    if (e.key === 'ArrowLeft')  { tx += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowRight') { tx -= step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowUp')    { ty += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowLeft')  { if (behindFrozen) hideBehindFast(); tx += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowRight') { if (behindFrozen) hideBehindFast(); tx -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowUp')    { if (behindFrozen) hideBehindFast(); ty += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowDown')  { if (behindFrozen) hideBehindFast(); ty -= step; updateTransform(); hideHint(); }
   });
   canvas.addEventListener('click', function(e) {
     if (didMove) { e.preventDefault(); e.stopPropagation(); }

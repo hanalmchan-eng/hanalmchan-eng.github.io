@@ -382,7 +382,9 @@
   var HEADER_X = 20;
   var HEADER_Y = 20;
   var HOLD_DELAY = 3000;     // 이 시간 이상 누르면 원본(before) 표시
-  var BEHIND_AREA_RATIO = 0.615; // 비하인드 영상이 보이는 "면적"을 사진 면적의 61.5%로
+  var BEHIND_AREA_RATIO = 0.444; // 비하인드 영상이 보이는 "면적"을 사진 면적의 44.4%로
+  // (기존 0.615에서 가로/세로 기준 15% 축소: 면적은 선형 크기의 제곱이므로
+  //  0.615 * 0.85^2 ≈ 0.444)
   var viewMode = 'zoom';
   var fitScale = 0.2688;
   var zoomScale = 0.2688;

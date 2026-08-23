@@ -87,6 +87,8 @@
     "caption": "",
     "logoX": 2545,
     "logoY": 286,
+    "logoW": 976,
+    "logoH": 547,
     "topColor": "#877160",
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   }

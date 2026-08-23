@@ -432,8 +432,15 @@
   function positionHint() {
     if (!hint) return;
     if (viewMode === 'zoom' && curImgW && !isBehindShowing()) {
-      var logoW = curImgW * LOGO_W_RATIO * planeScale;
-      var logoH = logoW * LOGO_HW_RATIO;
+      // 사진마다 로고를 실제로 얼마나 크게 합성했는지가 다를 수 있어,
+      // posts.json에 logoW(필요하면 logoH까지)가 있으면 그 값을 그대로
+      // 쓰고, 없을 때만 사진 폭에 비례한 값으로 어림잡는다.
+      var logoW = (currentPost && typeof currentPost.logoW === 'number')
+                    ? currentPost.logoW * planeScale
+                    : curImgW * LOGO_W_RATIO * planeScale;
+      var logoH = (currentPost && typeof currentPost.logoH === 'number')
+                    ? currentPost.logoH * planeScale
+                    : logoW * LOGO_HW_RATIO;
       hint.style.top = (HEADER_Y + logoH + 8) + 'px';
     } else {
       hint.style.top = HEADER_Y + 'px';
@@ -547,8 +554,8 @@
       logoHit.style.display = 'none';
       return;
     }
-    var lw = curImgW * LOGO_W_RATIO;
-    var lh = lw * LOGO_HW_RATIO;
+    var lw = (typeof currentPost.logoW === 'number') ? currentPost.logoW : curImgW * LOGO_W_RATIO;
+    var lh = (typeof currentPost.logoH === 'number') ? currentPost.logoH : lw * LOGO_HW_RATIO;
     var sx = tx + currentPost.logoX * planeScale;
     var sy = ty + currentPost.logoY * planeScale;
     var sw = lw * planeScale;
@@ -624,7 +631,7 @@
         var bandH = Math.max(4, Math.round(HEADER_Y / (zoomScale || 1)));
         var sx = Math.max(0, Math.round(post.logoX));
         var sy = Math.max(0, Math.round(post.logoY - bandH));
-        var sw = Math.min(Math.round(imgW * LOGO_W_RATIO), probe.naturalWidth - sx);
+        var sw = Math.min(Math.round((typeof post.logoW === 'number') ? post.logoW : imgW * LOGO_W_RATIO), probe.naturalWidth - sx);
         var sh = Math.min(bandH, Math.round(post.logoY));
         if (sw <= 0 || sh <= 0) return;
         // 1×1로 축소해 그리면 그 영역의 평균색이 한 픽셀로 남는다.

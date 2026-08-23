@@ -54,12 +54,18 @@
     position: fixed;
     left: 0;
     width: 100%;
-    min-height: 8px;
+    min-height: 12px;
     z-index: 999;
     pointer-events: none;
   }
-  #tint-top { top: -3px; }
-  #tint-bottom { bottom: -3px; }
+  /* -8px만큼 화면 밖으로 밀어내고 높이를 12px로 주면, 실제로 화면
+     안쪽에 걸리는 부분은 4px뿐이다(12 - 8 = 4). 이 4px이 Safari가
+     "가장자리에 있다"고 인정하는 데 필요한 최소한이면서 동시에 실제
+     화면에서 가장 얇게 보이는 값 — 다른 개발자가 실기기로 직접
+     하나씩 줄여 가며 찾아낸 수치라 마음대로 더 줄이면 다시 안 먹힐
+     수 있다. */
+  #tint-top { top: -8px; }
+  #tint-bottom { bottom: -8px; }
   #canvas.dragging { cursor: grabbing; }
   #plane {
     position: absolute;

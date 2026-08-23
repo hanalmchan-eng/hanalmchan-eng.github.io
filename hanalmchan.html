@@ -200,9 +200,10 @@
     transition: opacity 0.18s ease;
     z-index: 3;
     pointer-events: none;
-    /* 액자 느낌: 로고에서 뽑은 색으로 된 매트(10px) + 은은한 그림자로 마무리. */
+    /* 액자 느낌: 로고에서 뽑은 색으로 된 매트(13px, 얇은 액자 한 겹만큼 살짝 넓힘)
+       + 은은한 그림자로 마무리. */
     box-shadow:
-      0 0 0 10px var(--behind-frame-color, rgba(255,255,255,0.85)),
+      0 0 0 13px var(--behind-frame-color, rgba(255,255,255,0.85)),
       0 10px 34px rgba(0,0,0,0.35);
   }
   .post.show-behind video.photo-behind { opacity: 1; }
@@ -394,9 +395,9 @@
   var HEADER_X = 20;
   var HEADER_Y = 20;
   var HOLD_DELAY = 3000;     // 이 시간 이상 누르면 원본(before) 표시
-  var BEHIND_AREA_RATIO = 0.444; // 비하인드 영상이 보이는 "면적"을 사진 면적의 44.4%로
-  // (기존 0.615에서 가로/세로 기준 15% 축소: 면적은 선형 크기의 제곱이므로
-  //  0.615 * 0.85^2 ≈ 0.444)
+  var BEHIND_AREA_RATIO = 0.360; // 비하인드 영상이 보이는 "면적"을 사진 면적의 36.0%로
+  // (기존 0.444에서 가로/세로 기준 10% 축소: 면적은 선형 크기의 제곱이므로
+  //  0.444 * 0.9^2 ≈ 0.360)
   var viewMode = 'zoom';
   var fitScale = 0.2688;
   var zoomScale = 0.2688;

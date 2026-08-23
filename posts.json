@@ -80,5 +80,14 @@
     "logoY": 2875,
     "topColor": "#ad99bf",
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
+  },
+  {
+    "file": "IMG_0098.jpeg",
+    "behind": "2F9A8006.mov",
+    "caption": "",
+    "logoX": 1697,
+    "logoY": 191,
+    "topColor": "#877160",
+    "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   }
 ]

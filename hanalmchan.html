@@ -200,10 +200,9 @@
     transition: opacity 0.18s ease;
     z-index: 3;
     pointer-events: none;
-    /* 액자 느낌: 로고에서 뽑은 색으로 된 매트(13px, 얇은 액자 한 겹만큼 살짝 넓힘)
-       + 은은한 그림자로 마무리. */
+    /* 액자 느낌: 로고에서 뽑은 색으로 된 두꺼운 매트(65px) + 은은한 그림자로 마무리. */
     box-shadow:
-      0 0 0 13px var(--behind-frame-color, rgba(255,255,255,0.85)),
+      0 0 0 65px var(--behind-frame-color, rgba(255,255,255,0.85)),
       0 10px 34px rgba(0,0,0,0.35);
   }
   .post.show-behind video.photo-behind { opacity: 1; }

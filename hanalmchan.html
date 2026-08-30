@@ -439,6 +439,19 @@
   var behindLink = document.getElementById('behind-link');
   var behindProgress = document.getElementById('behind-progress');
   var behindProgressFill = behindProgress ? behindProgress.querySelector('.bar > i') : null;
+  var behindProgressTxt  = behindProgress ? behindProgress.querySelector('.txt') : null;
+  // 영상 다운로드의 남은 용량을 진행바 아래 문구에 함께 적는다.
+  var BEHIND_TXT_BASE = '불러오는 중...<br>loading...<br>読み込み中...';
+  function setBehindBytes(loaded, total) {
+    if (!behindProgressTxt) return;
+    var line = '';
+    if (total > 0) {
+      line = fmtMB(Math.max(0, total - loaded)) + ' 남음';
+    } else if (loaded > 0) {
+      line = fmtMB(loaded) + ' 받는 중';
+    }
+    behindProgressTxt.innerHTML = BEHIND_TXT_BASE + (line ? '<br>' + line : '');
+  }
   function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
   function updateOrderLink(post) {
     if (!orderLink || !post) return;
@@ -496,12 +509,31 @@
       hintHidden = true;
     }, ms);
   }
+  // 바이트를 "12.3 MB"처럼 사람이 읽는 형태로.
+  function fmtMB(bytes) {
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+  var LOADING_HTML = '불러오는 중...<br>loading...<br>読み込み中...' +
+                     '<br><span id="loading-mb" style="opacity:.75"></span>';
   function showLoading() {
     if (!loadingEl || !document.body.contains(loadingEl)) {
       loadingEl = document.createElement('div');
       loadingEl.id = 'loading';
-      loadingEl.innerHTML = '불러오는 중...<br>loading...<br>読み込み中...';
+      loadingEl.innerHTML = LOADING_HTML;
       document.body.appendChild(loadingEl);
+    }
+  }
+  // 사진 다운로드의 남은 용량을 로딩 문구 아래에 적어 준다.
+  function setLoadingBytes(loaded, total) {
+    var el = document.getElementById('loading-mb');
+    if (!el) return;
+    if (total > 0) {
+      el.textContent = fmtMB(Math.max(0, total - loaded)) + ' 남음';
+    } else if (loaded > 0) {
+      // 서버가 Content-Length를 안 주면 전체 크기를 알 수 없으니 받은 양만.
+      el.textContent = fmtMB(loaded) + ' 받는 중';
+    } else {
+      el.textContent = '';
     }
   }
   var tx = 0, ty = 50;
@@ -612,6 +644,58 @@
   }
   function buildImageUrl(filename) {
     return R2_BASE + '/' + encodeURIComponent(filename);
+  }
+  // ─── 사진 내려받기(진행률 표시용) ──────────────────────────────
+  // <img src="...">로 그냥 걸면 브라우저가 알아서 받지만 얼마나 받았는지
+  // 알 길이 없다. 영상과 똑같이 fetch로 직접 받아 바이트를 세면
+  // "몇 MB 남았는지"를 로딩 문구에 띄울 수 있다.
+  // fetch가 막히거나(CORS 등) 실패하면 예전 방식대로 주소를 그대로 물린다.
+  var photoDL = null;
+  function cancelPhotoDownload() {
+    if (!photoDL) return;
+    var st = photoDL;
+    photoDL = null;
+    st.cancelled = true;
+    if (st.ctrl) { try { st.ctrl.abort(); } catch (err) {} }
+    if (st.blobUrl) { try { URL.revokeObjectURL(st.blobUrl); } catch (err) {} }
+  }
+  function startPhotoDownload(url, imgEl) {
+    cancelPhotoDownload();
+    var st = { loaded: 0, total: 0, blobUrl: null, ctrl: null, cancelled: false };
+    photoDL = st;
+    setLoadingBytes(0, 0);
+    if (!window.fetch || !window.AbortController) { imgEl.src = url; return; }
+    try { st.ctrl = new AbortController(); } catch (err) { st.ctrl = null; }
+    fetch(url, st.ctrl ? { signal: st.ctrl.signal } : undefined).then(function(res) {
+      if (!res.ok) throw new Error('bad status');
+      var len = res.headers.get('content-length');
+      st.total = len ? parseInt(len, 10) : 0;
+      if (!res.body || !res.body.getReader) {
+        return res.blob().then(function(b) { finish(b); });
+      }
+      var reader = res.body.getReader();
+      var chunks = [];
+      function pump() {
+        return reader.read().then(function(r) {
+          if (st.cancelled) { try { reader.cancel(); } catch (err) {} return; }
+          if (r.done) { finish(new Blob(chunks)); return; }
+          chunks.push(r.value);
+          st.loaded += r.value.byteLength || r.value.length || 0;
+          if (photoDL === st) setLoadingBytes(st.loaded, st.total);
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function() {
+      // 실패하면 조용히 예전 방식으로 되돌아간다(화면에는 지장 없음).
+      if (!st.cancelled && photoDL === st) imgEl.src = url;
+    });
+    function finish(blob) {
+      if (st.cancelled) return;
+      st.blobUrl = URL.createObjectURL(blob);
+      setLoadingBytes(st.total || blob.size, st.total || blob.size);
+      imgEl.src = st.blobUrl;
+    }
   }
   var currentPost = null;
   // ─── iOS Safari 상단 바 색 맞추기 ───────────────────────────────
@@ -859,6 +943,7 @@
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
     stopBufferWait();
     cancelBehindDownload();
+    cancelPhotoDownload();
     if (fastFadeTimer) { clearTimeout(fastFadeTimer); fastFadeTimer = null; }
     behindFrozen = false;
     behindFastFading = false;
@@ -868,7 +953,8 @@
     div.className = 'post post-photo';
     var img = document.createElement('img');
     img.className = 'photo';
-    img.src = post.file ? buildImageUrl(post.file) : post.url;
+    // 색을 재는 쪽은 blob이 아니라 진짜 R2 주소가 필요하므로 따로 보관해 둔다.
+    var photoUrl = post.file ? buildImageUrl(post.file) : post.url;
     img.alt = post.caption || '';
     img.draggable = false;
     img.addEventListener('load', function() {
@@ -880,18 +966,31 @@
         beforeImg.style.height = h + 'px';
       }
       computeScales(w, h);
-      sampleTopColor(img.src, post, w);   // 상단 바 색을 이 사진에 맞춘다
+      sampleTopColor(photoUrl, post, w);   // 상단 바 색을 이 사진에 맞춘다
       sizeBehindVideo();   // 이 시점에 사진 크기(curImgW/H)가 정해짐 — 영상 쪽도 준비됐다면 같이 계산
       applyMode();
       layoutPosts();
       positionForMode();
       showHintAgain(2000);
       if (loadingEl) loadingEl.remove();
+      // 사진이 다 뜬 뒤에야 비하인드 영상을 받기 시작한다.
+      // 곧바로 시작하면 화면이 막 그려지는 순간과 겹치므로 1.2초 뜸을 들인다.
+      if (pendingBehindUrl) {
+        var url = pendingBehindUrl;
+        pendingBehindUrl = null;
+        if (behindPrefetchTimer) clearTimeout(behindPrefetchTimer);
+        behindPrefetchTimer = setTimeout(function() {
+          behindPrefetchTimer = null;
+          if (hasBehind && behindVideoEl) startBehindDownload(url);
+        }, 1200);
+      }
     });
     img.addEventListener('error', function() {
       if (div.parentNode) div.parentNode.removeChild(div);
     });
     div.appendChild(img);
+    // 요소를 붙인 뒤에 받기 시작한다(진행률이 로딩 문구에 실시간 반영됨).
+    startPhotoDownload(photoUrl, img);
     var beforeImg = null;
     if (post.before) {
       beforeImg = document.createElement('img');
@@ -925,7 +1024,11 @@
       behindVideoEl.addEventListener('ended', function(){ freezeBehind(); });
       div.appendChild(behindVideoEl);
       hasBehind = true;
-      startBehindDownload(buildImageUrl(post.behind));  // 사진을 여는 순간부터 내려받기 시작
+      // 예전에는 여기서 바로 내려받기 시작했는데, 그러면 사진 다운로드와
+      // 정면으로 경쟁한다. 영상 조각을 배열에 쌓는 작업이 드래그와 겹치면
+      // 화면이 뚝뚝 끊긴다. 그래서 사진이 다 뜬 뒤(아래 img load 핸들러)
+      // 잠깐 뜸을 들였다가 시작하도록 미뤄 둔다.
+      pendingBehindUrl = buildImageUrl(post.behind);
       if (behindLink) behindLink.classList.add('visible');
     }
     if (post.caption) {
@@ -1177,6 +1280,7 @@
       }
       // 바이트를 다 받았으면 즉시 blob을 video에 물려 디코딩을 시작해 둔다.
       if (behindDownloadFraction() >= 0.999) attachBehindSource();
+      if (behindDL) setBehindBytes(behindDL.loaded, behindDL.total);
       // "다운로드 완료"와 "끊김 없이 재생 가능"은 다른 순간이다 — 후자가
       // 확인되기(behindReady()) 전까지는 막대를 100%까지 채우지 않는다.
       var target = behindReady() ? 1 : Math.min(0.97, behindDownloadFraction());

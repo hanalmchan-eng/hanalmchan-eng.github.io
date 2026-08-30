@@ -118,7 +118,7 @@
     "logoY": 3936,
     "logoW": 976,
     "logoH": 547,
-    "topColor": "#ff9af0",
+    "topColor": "245 204 210",
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   }
 ]

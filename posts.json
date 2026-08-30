@@ -65,11 +65,14 @@
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   },
   {
-    "file": "IMG_9501.jpeg",
-    "before": "_F9A6379.jpg",
+    "file": "IMG_0155.jpg",
+    "before": "_F9A6226.CR3",
+    "behind": "2F9A6225_stabilized.mp4",
     "caption": "",
-    "logoX": 2066,
-    "logoY": 4129,
+    "logoX": 1644,
+    "logoY": 4041,
+    "logoW": 976,
+    "logoH": 547,
     "topColor": "#311100",
     "product": { "desc": "", "price": 0, "directPurchase": "O", "distribution": "O", "limit": 0 }
   },

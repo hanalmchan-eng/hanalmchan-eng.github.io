@@ -773,7 +773,16 @@
     for (var i = 0; i < allPosts.length; i++){
       if (i !== excludeIndex) idxs.push(i);
     }
-    nextQueue = shuffle(idxs);
+    idxs = shuffle(idxs);
+    // 비하인드 영상("unseen")이 있는 사진을 먼저 보여 준다.
+    // 순서는 이미 섞여 있으므로 "있는 것"과 "없는 것" 두 덩어리로만
+    // 나눠 붙인다 — 한 바퀴 도는 동안 어느 사진도 중복되거나 빠지지 않고,
+    // 다만 unseen이 있는 것들이 앞쪽에 몰려 나온다.
+    var withBehind = [], without = [];
+    idxs.forEach(function(i){
+      if (allPosts[i] && allPosts[i].behind) withBehind.push(i); else without.push(i);
+    });
+    nextQueue = withBehind.concat(without);
   }
   function indexFromHash(posts) {
     var h = decodeURIComponent((location.hash || '').replace(/^#/, ''));

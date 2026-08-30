@@ -126,13 +126,10 @@
   #behind-link.visible { opacity: 0.75; pointer-events: auto; }
   #behind-link.visible:hover { opacity: 1; }
   #behind-link.active { opacity: 1; }
-  /* 원본(보정 전) 버튼: 그 사진에 원본이 있을 때만 나타난다.
-     왼쪽 위는 로고와 힌트 문구가 쓰는 자리라 피하고, 오른쪽 위
-     "unseen" 바로 왼쪽에 나란히 놓는다(가로 위치는 JS가 unseen의
-     실제 폭을 재서 넣는다 — positionRawLink 참고).
-     unseen이 없는 사진에서는 unseen 자리를 그대로 차지한다. */
+  /* 원본(보정 전) 버튼: 그 사진에 원본이 있을 때만 왼쪽 위에 나타난다.
+     확대 모드에서 로고와 겹치더라도 그대로 둔다. */
   #raw-link {
-    top: 20px; right: 20px;
+    top: 20px; left: 20px;
     text-transform: lowercase;
     opacity: 0;
     pointer-events: none;
@@ -459,19 +456,6 @@
   var rawLink = document.getElementById('raw-link');
   var behindProgress = document.getElementById('behind-progress');
   var behindProgressFill = behindProgress ? behindProgress.querySelector('.bar > i') : null;
-  var behindProgressTxt  = behindProgress ? behindProgress.querySelector('.txt') : null;
-  // 영상 다운로드의 남은 용량을 진행바 아래 문구에 함께 적는다.
-  var BEHIND_TXT_BASE = '불러오는 중...<br>loading...<br>読み込み中...';
-  function setBehindBytes(loaded, total) {
-    if (!behindProgressTxt) return;
-    var line = '';
-    if (total > 0) {
-      line = fmtMB(Math.max(0, total - loaded)) + ' 남음';
-    } else if (loaded > 0) {
-      line = fmtMB(loaded) + ' 받는 중';
-    }
-    behindProgressTxt.innerHTML = BEHIND_TXT_BASE + (line ? '<br>' + line : '');
-  }
   function stem(name){ return String(name || '').replace(/\.[^.]+$/, ''); }
   function updateOrderLink(post) {
     if (!orderLink || !post) return;
@@ -529,31 +513,13 @@
       hintHidden = true;
     }, ms);
   }
-  // 바이트를 "12.3 MB"처럼 사람이 읽는 형태로.
-  function fmtMB(bytes) {
-    return (bytes / 1048576).toFixed(1) + ' MB';
-  }
-  var LOADING_HTML = '불러오는 중...<br>loading...<br>読み込み中...' +
-                     '<br><span id="loading-mb" style="opacity:.75"></span>';
+  var LOADING_HTML = '불러오는 중...<br>loading...<br>読み込み中...';
   function showLoading() {
     if (!loadingEl || !document.body.contains(loadingEl)) {
       loadingEl = document.createElement('div');
       loadingEl.id = 'loading';
       loadingEl.innerHTML = LOADING_HTML;
       document.body.appendChild(loadingEl);
-    }
-  }
-  // 사진 다운로드의 남은 용량을 로딩 문구 아래에 적어 준다.
-  function setLoadingBytes(loaded, total) {
-    var el = document.getElementById('loading-mb');
-    if (!el) return;
-    if (total > 0) {
-      el.textContent = fmtMB(Math.max(0, total - loaded)) + ' 남음';
-    } else if (loaded > 0) {
-      // 서버가 Content-Length를 안 주면 전체 크기를 알 수 없으니 받은 양만.
-      el.textContent = fmtMB(loaded) + ' 받는 중';
-    } else {
-      el.textContent = '';
     }
   }
   var tx = 0, ty = 50;
@@ -587,11 +553,11 @@
     if (viewMode === 'zoom') {
       planeScale = zoomScale;
       setHintText('zoom');
-      setTimeout(function(){ positionHint(); positionRawLink(); }, 50);
+      setTimeout(positionHint, 50);
     } else {
       planeScale = fitScale;
       setHintText('fit');
-      setTimeout(function(){ positionHint(); positionRawLink(); }, 50);
+      setTimeout(positionHint, 50);
     }
   }
   function updateBounds() {
@@ -683,7 +649,6 @@
     cancelPhotoDownload();
     var st = { loaded: 0, total: 0, blobUrl: null, ctrl: null, cancelled: false };
     photoDL = st;
-    setLoadingBytes(0, 0);
     if (!window.fetch || !window.AbortController) { imgEl.src = url; return; }
     try { st.ctrl = new AbortController(); } catch (err) { st.ctrl = null; }
     fetch(url, st.ctrl ? { signal: st.ctrl.signal } : undefined).then(function(res) {
@@ -701,7 +666,6 @@
           if (r.done) { finish(new Blob(chunks)); return; }
           chunks.push(r.value);
           st.loaded += r.value.byteLength || r.value.length || 0;
-          if (photoDL === st) setLoadingBytes(st.loaded, st.total);
           return pump();
         });
       }
@@ -713,7 +677,6 @@
     function finish(blob) {
       if (st.cancelled) return;
       st.blobUrl = URL.createObjectURL(blob);
-      setLoadingBytes(st.total || blob.size, st.total || blob.size);
       imgEl.src = st.blobUrl;
     }
   }
@@ -1057,9 +1020,6 @@
       pendingBehindUrl = buildImageUrl(post.behind);
       if (behindLink) behindLink.classList.add('visible');
     }
-    // unseen 표시 여부가 정해진 뒤에 raw의 가로 위치를 잡는다
-    // (unseen이 있으면 그 왼쪽, 없으면 unseen 자리).
-    positionRawLink();
     if (post.caption) {
       var cap = document.createElement('div');
       cap.className = 'caption';
@@ -1149,19 +1109,6 @@
     if (!hasBefore) return;
     if (isRawShowing()) hideBefore(); else showBefore();
   }
-  // "raw"는 오른쪽 위 "unseen" 바로 왼쪽에 나란히 앉는다.
-  // unseen이 그 사진에 없으면(=숨겨져 있으면) unseen 자리를 그대로 쓴다.
-  function positionRawLink() {
-    if (!rawLink) return;
-    var gapPx = 6;
-    var offset = 20;
-    if (behindLink && behindLink.classList.contains('visible')) {
-      offset = 20 + behindLink.offsetWidth + gapPx;
-    }
-    rawLink.style.right = offset + 'px';
-    rawLink.style.top = HEADER_Y + 'px';
-  }
-  window.addEventListener('resize', positionRawLink);
   if (rawLink) {
     // behind-link와 같은 이유로 터치 중복(합성 click)을 막는다.
     var rawTouchHandled = false;
@@ -1348,7 +1295,6 @@
       }
       // 바이트를 다 받았으면 즉시 blob을 video에 물려 디코딩을 시작해 둔다.
       if (behindDownloadFraction() >= 0.999) attachBehindSource();
-      if (behindDL) setBehindBytes(behindDL.loaded, behindDL.total);
       // "다운로드 완료"와 "끊김 없이 재생 가능"은 다른 순간이다 — 후자가
       // 확인되기(behindReady()) 전까지는 막대를 100%까지 채우지 않는다.
       var target = behindReady() ? 1 : Math.min(0.97, behindDownloadFraction());

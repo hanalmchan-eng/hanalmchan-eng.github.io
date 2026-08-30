@@ -100,7 +100,7 @@
   }
   #nav a { color: inherit; text-decoration: none; margin-left: 12px; }
   #nav a:hover { color: #888888; }
-  #back-link, #order-link, #behind-link {
+  #back-link, #order-link, #behind-link, #raw-link {
     position: fixed; z-index: 100;
     font-family: 'LMCHan', Georgia, serif;
     font-size: 22px; letter-spacing: 0.14em;
@@ -126,6 +126,20 @@
   #behind-link.visible { opacity: 0.75; pointer-events: auto; }
   #behind-link.visible:hover { opacity: 1; }
   #behind-link.active { opacity: 1; }
+  /* 원본(보정 전) 버튼: 그 사진에 원본이 있을 때만 왼쪽 위에 나타남.
+     오른쪽 위 "unseen"과 짝을 이루는 자리다. 로고가 왼쪽 위에 정렬되는
+     확대 모드에서는 로고와 겹치므로, 로고 아래로 내려 앉힌다(JS가 위치를
+     계산해 넣는다 — positionRawLink 참고). */
+  #raw-link {
+    top: 20px; left: 20px;
+    text-transform: lowercase;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  #raw-link.visible { opacity: 0.75; pointer-events: auto; }
+  #raw-link.visible:hover { opacity: 1; }
+  #raw-link.active { opacity: 1; }
   /* 다운로드 진행바: "unseen" 글자 폭에 맞춘 얇고 긴 막대.
      위치와 폭은 JS가 behind-link의 실제 좌표에서 계산해 넣는다.
      밝은 사진 위에서도 흰 채움이 또렷하게 보이도록 mix-blend-mode 대신
@@ -178,14 +192,18 @@
   .post.show-behind img.photo:not(.photo-before) {
     filter: saturate(0.92) brightness(0.95);
   }
+  /* 원본(보정 전) 사진. "raw"를 누르면 보정본을 겹치는 게 아니라
+     그 자리를 그대로 대신한다 — 페이드 없이 즉시 갈아끼워야 두 장을
+     같은 조건에서 비교할 수 있다. */
   .post img.photo-before {
     position: absolute;
     top: 0; left: 0;
-    opacity: 0;
-    transition: opacity 0.18s ease;
+    display: none;
     z-index: 2;
   }
-  .post.show-before img.photo-before { opacity: 1; }
+  .post.show-before img.photo-before { display: block; }
+  /* 원본이 떠 있는 동안 보정본은 아예 감춘다(겹쳐 비치지 않도록). */
+  .post.show-before img.photo:not(.photo-before) { visibility: hidden; }
   /* 비하인드 영상: "unseen" 버튼을 누르면 사진 위에 한 겹 더 뜬다.
      width/height/left/top은 실제 픽셀 값으로 JS가 계산해 넣는다(아래
      onMediaReady 참고) — 부모(.plane)의 확대/이동 transform 하나만 적용받고,
@@ -370,6 +388,7 @@
 <a id="back-link" href="index.html?from=ig">AWAY</a>
 <a id="order-link" href="pay.html">yours</a>
 <a id="behind-link" href="#" role="button">unseen</a>
+<a id="raw-link" href="#" role="button">raw</a>
 <div id="behind-progress">
   <div class="bar"><i></i></div>
   <div class="txt">불러오는 중...<br>loading...<br>読み込み中...</div>
@@ -406,7 +425,6 @@
   var curImgW = 0, curImgH = 0;
   var HEADER_X = 20;
   var HEADER_Y = 20;
-  var HOLD_DELAY = 3000;     // 이 시간 이상 누르면 원본(before) 표시
   var BEHIND_AREA_RATIO = 0.360; // 비하인드 영상이 보이는 "면적"을 사진 면적의 36.0%로
   // (기존 0.444에서 가로/세로 기준 10% 축소: 면적은 선형 크기의 제곱이므로
   //  0.444 * 0.9^2 ≈ 0.360)
@@ -437,6 +455,7 @@
   var logoHit  = document.getElementById('logo-hit');
   var orderLink = document.getElementById('order-link');
   var behindLink = document.getElementById('behind-link');
+  var rawLink = document.getElementById('raw-link');
   var behindProgress = document.getElementById('behind-progress');
   var behindProgressFill = behindProgress ? behindProgress.querySelector('.bar > i') : null;
   var behindProgressTxt  = behindProgress ? behindProgress.querySelector('.txt') : null;
@@ -567,11 +586,11 @@
     if (viewMode === 'zoom') {
       planeScale = zoomScale;
       setHintText('zoom');
-      setTimeout(positionHint, 50);
+      setTimeout(function(){ positionHint(); positionRawLink(); }, 50);
     } else {
       planeScale = fitScale;
       setHintText('fit');
-      setTimeout(positionHint, 50);
+      setTimeout(function(){ positionHint(); positionRawLink(); }, 50);
     }
   }
   function updateBounds() {
@@ -826,6 +845,8 @@
   var hasBefore = false;
   var hasBehind = false;        // 이 사진에 비하인드 영상이 있는지
   var behindVideoEl = null;     // 현재 포스트의 비하인드 <video> 엘리먼트 참조
+  var pendingBehindUrl = null;  // 사진이 다 뜬 뒤에 받기 시작할 영상 주소
+  var behindPrefetchTimer = null;
   var nextQueue = [];
   // 다음 사진은 이제 같은 문서 안에서 내용만 바꾸지 않고 실제로 페이지를
   // 다시 불러온다(아래 navigateToIndex 참고) — 그래야 iOS 26에서 사진마다
@@ -941,9 +962,12 @@
     hasBehind = false;
     behindVideoEl = null;
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
+    if (rawLink) { rawLink.classList.remove('visible', 'active'); }
     stopBufferWait();
     cancelBehindDownload();
     cancelPhotoDownload();
+    pendingBehindUrl = null;
+    if (behindPrefetchTimer) { clearTimeout(behindPrefetchTimer); behindPrefetchTimer = null; }
     if (fastFadeTimer) { clearTimeout(fastFadeTimer); fastFadeTimer = null; }
     behindFrozen = false;
     behindFastFading = false;
@@ -1000,6 +1024,7 @@
       beforeImg.draggable = false;
       div.appendChild(beforeImg);
       hasBefore = true;
+      if (rawLink) rawLink.classList.add('visible');
     }
     // 비하인드 영상: 브라우저의 preload="auto"는 어디까지나 "힌트"일 뿐이라
     // 모바일에서는 대개 무시되고 메타데이터만 받아 둔다(그래서 진행바가
@@ -1103,11 +1128,54 @@
   function toggleMode(screenX, screenY) {
     if (viewMode === 'fit') enterZoom(screenX, screenY); else enterFit();
   }
+  function isRawShowing() {
+    return !!(currentPostEl && currentPostEl.classList.contains('show-before'));
+  }
   function showBefore() {
-    if (hasBefore && currentPostEl) currentPostEl.classList.add('show-before');
+    if (!hasBefore || !currentPostEl) return;
+    currentPostEl.classList.add('show-before');
+    if (rawLink) rawLink.classList.add('active');
   }
   function hideBefore() {
     if (currentPostEl) currentPostEl.classList.remove('show-before');
+    if (rawLink) rawLink.classList.remove('active');
+  }
+  // "raw" 버튼: 누르면 보정 전 원본을 겹쳐 보여 주고, 다시 누르면 끈다.
+  function toggleRawManual() {
+    if (!hasBefore) return;
+    if (isRawShowing()) hideBefore(); else showBefore();
+  }
+  // 확대 모드에서는 로고가 왼쪽 위(HEADER_X, HEADER_Y)에 정렬되므로
+  // "raw"가 로고와 겹친다. 로고 높이만큼 아래로 내려 앉힌다.
+  function positionRawLink() {
+    if (!rawLink) return;
+    if (viewMode === 'zoom' && curImgW) {
+      var logoW = (currentPost && typeof currentPost.logoW === 'number')
+                    ? currentPost.logoW * planeScale
+                    : curImgW * LOGO_W_RATIO * planeScale;
+      var logoH = (currentPost && typeof currentPost.logoH === 'number')
+                    ? currentPost.logoH * planeScale
+                    : logoW * LOGO_HW_RATIO;
+      rawLink.style.top = (HEADER_Y + logoH + 8) + 'px';
+    } else {
+      rawLink.style.top = HEADER_Y + 'px';
+    }
+  }
+  window.addEventListener('resize', positionRawLink);
+  if (rawLink) {
+    // behind-link와 같은 이유로 터치 중복(합성 click)을 막는다.
+    var rawTouchHandled = false;
+    rawLink.addEventListener('touchend', function(e){
+      e.preventDefault(); e.stopPropagation();
+      rawTouchHandled = true;
+      toggleRawManual();
+      setTimeout(function(){ rawTouchHandled = false; }, 500);
+    }, { passive: false });
+    rawLink.addEventListener('click', function(e){
+      e.preventDefault();
+      if (rawTouchHandled) return;
+      toggleRawManual();
+    });
   }
   // 비하인드 영상 박스 크기: 사진 비율이 아니라 영상 자신의 실제 비율로
   // 정한다(그래야 object-fit:cover가 잘라내는 부분 없이 전체가 보임).
@@ -1481,17 +1549,6 @@
   var velX = 0, velY = 0, lastDragX = 0, lastDragY = 0;
   var VEL_SMOOTH = 0.3;
   var momentumRAF = null;
-  var holdTimer = null;
-  var holding = false;
-  var holdCancelled = false;
-  function clearHold() {
-    holdCancelled = true;
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (holding) {
-      holding = false;
-      hideBefore();
-    }
-  }
   function stopMomentum() {
     if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
   }
@@ -1509,37 +1566,12 @@
     velX = 0; velY = 0;
     canvas.classList.add('dragging');
     hideHint();
-    if (hasBefore) {
-      holdCancelled = false;
-      if (holdTimer) clearTimeout(holdTimer);
-      holdTimer = setTimeout(function() {
-        if (isDragging && !holdCancelled && hasBefore) {
-          holding = true;
-          showBefore();
-        }
-      }, HOLD_DELAY);
-    }
     return true;
   }
-  var HOLD_CANCEL_DIST = 28;
   function moveDrag(clientX, clientY) {
     if (!isDragging) return;
     var dx = clientX - dragStartX, dy = clientY - dragStartY;
-    var dist = Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy);
-    if (holding) {
-      if (dist > HOLD_CANCEL_DIST) {
-        didMove = true;
-        clearHold();
-        dragStartX = clientX; dragStartY = clientY;
-        dragStartTx = tx; dragStartTy = ty;
-        lastDragX = clientX; lastDragY = clientY;
-      }
-      return;
-    }
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-      didMove = true;
-      if (dist > HOLD_CANCEL_DIST) clearHold();
-    }
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didMove = true;
     var instVelX = clientX - lastDragX, instVelY = clientY - lastDragY;
     velX = velX + (instVelX - velX) * VEL_SMOOTH;
     velY = velY + (instVelY - velY) * VEL_SMOOTH;
@@ -1551,7 +1583,6 @@
     if (!isDragging) return;
     isDragging = false;
     canvas.classList.remove('dragging');
-    clearHold();
     if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) startMomentum();
   }
   function startMomentum() {
@@ -1575,11 +1606,6 @@
   window.addEventListener('mouseleave', endDrag);
   document.addEventListener('dblclick', function(e) {
     e.preventDefault();
-    if (holding) {
-      clearHold();
-      enterFit();
-      return;
-    }
     toggleMode(e.clientX, e.clientY);
   });
   var lastTapTime = 0;
@@ -1593,12 +1619,7 @@
     var dy = Math.abs(t.clientY - lastTapY);
     if (dt > 0 && dt < 350 && dx < 40 && dy < 40) {
       e.preventDefault();
-      if (holding) {
-        clearHold();
-        enterFit();
-      } else {
-        toggleMode(t.clientX, t.clientY);
-      }
+      toggleMode(t.clientX, t.clientY);
       lastTapTime = 0;
     } else {
       lastTapTime = now;

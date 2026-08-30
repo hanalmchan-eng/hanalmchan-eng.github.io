@@ -807,6 +807,14 @@
   var currentIndex = 0;
   var currentPostEl = null;
   var hasBefore = false;
+  // 사진을 연 뒤 화면을 한 번이라도 움직였는지. raw 버튼은 이게 참이
+  // 된 뒤에만 나타난다(처음 로고에 맞춰진 상태에서는 안 보이게).
+  var hasMovedOnce = false;
+  function markMoved() {
+    if (hasMovedOnce) return;
+    hasMovedOnce = true;
+    if (hasBefore && rawLink) rawLink.classList.add('visible');
+  }
   var hasBehind = false;        // 이 사진에 비하인드 영상이 있는지
   var behindVideoEl = null;     // 현재 포스트의 비하인드 <video> 엘리먼트 참조
   var pendingBehindUrl = null;  // 사진이 다 뜬 뒤에 받기 시작할 영상 주소
@@ -927,6 +935,7 @@
     behindVideoEl = null;
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
     if (rawLink) { rawLink.classList.remove('visible', 'active'); }
+    hasMovedOnce = false;   // 새 사진에서는 다시 "아직 안 움직인" 상태로
     stopBufferWait();
     cancelBehindDownload();
     cancelPhotoDownload();
@@ -988,7 +997,9 @@
       beforeImg.draggable = false;
       div.appendChild(beforeImg);
       hasBefore = true;
-      if (rawLink) rawLink.classList.add('visible');
+      // raw 버튼은 사진을 막 열었을 때(로고에 맞춰 정지해 있는 상태)는
+      // 숨겨 두고, 화면을 한 번이라도 움직인 뒤에 나타나게 한다.
+      // 실제 표시는 아래 markMoved()가 맡는다.
     }
     // 비하인드 영상: 브라우저의 preload="auto"는 어디까지나 "힌트"일 뿐이라
     // 모바일에서는 대개 무시되고 메타데이터만 받아 둔다(그래서 진행바가
@@ -1092,9 +1103,6 @@
   function toggleMode(screenX, screenY) {
     if (viewMode === 'fit') enterZoom(screenX, screenY); else enterFit();
   }
-  function isRawShowing() {
-    return !!(currentPostEl && currentPostEl.classList.contains('show-before'));
-  }
   function showBefore() {
     if (!hasBefore || !currentPostEl) return;
     currentPostEl.classList.add('show-before');
@@ -1104,25 +1112,46 @@
     if (currentPostEl) currentPostEl.classList.remove('show-before');
     if (rawLink) rawLink.classList.remove('active');
   }
-  // "raw" 버튼: 누르면 보정 전 원본을 겹쳐 보여 주고, 다시 누르면 끈다.
-  function toggleRawManual() {
-    if (!hasBefore) return;
-    if (isRawShowing()) hideBefore(); else showBefore();
-  }
+  // "raw" 버튼: 누르고 있는 동안에만 보정 전 원본을 보여 주고,
+  // 손/버튼을 떼면 바로 보정본으로 돌아간다.
   if (rawLink) {
-    // behind-link와 같은 이유로 터치 중복(합성 click)을 막는다.
+    // 터치와 마우스가 둘 다 들어오는 기기에서 이벤트가 겹치지 않도록,
+    // 터치로 처리한 직후 짧게 마우스 이벤트를 무시한다.
     var rawTouchHandled = false;
-    rawLink.addEventListener('touchend', function(e){
-      e.preventDefault(); e.stopPropagation();
+    function rawPressStart(e) {
+      e.preventDefault();
+      showBefore();
+    }
+    function rawPressEnd(e) {
+      if (e) e.preventDefault();
+      hideBefore();
+    }
+    rawLink.addEventListener('touchstart', function(e){
       rawTouchHandled = true;
-      toggleRawManual();
+      e.stopPropagation();
+      rawPressStart(e);
+    }, { passive: false });
+    rawLink.addEventListener('touchend', function(e){
+      e.stopPropagation();
+      rawPressEnd(e);
       setTimeout(function(){ rawTouchHandled = false; }, 500);
     }, { passive: false });
-    rawLink.addEventListener('click', function(e){
-      e.preventDefault();
+    rawLink.addEventListener('touchcancel', function(){ rawPressEnd(); });
+    rawLink.addEventListener('mousedown', function(e){
       if (rawTouchHandled) return;
-      toggleRawManual();
+      rawPressStart(e);
     });
+    rawLink.addEventListener('mouseup', function(e){
+      if (rawTouchHandled) return;
+      rawPressEnd(e);
+    });
+    // 누른 채로 버튼 밖으로 커서가 나가면 눌림이 풀린 것으로 본다.
+    rawLink.addEventListener('mouseleave', function(){
+      if (rawTouchHandled) return;
+      rawPressEnd();
+    });
+    // 링크의 기본 동작(#으로 이동)은 막는다.
+    rawLink.addEventListener('click', function(e){ e.preventDefault(); });
   }
   // 비하인드 영상 박스 크기: 사진 비율이 아니라 영상 자신의 실제 비율로
   // 정한다(그래야 object-fit:cover가 잘라내는 부분 없이 전체가 보임).
@@ -1482,6 +1511,7 @@
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
     e.preventDefault();
     hideHint();
+    markMoved();
     var dx = e.deltaX, dy = e.deltaY;
     if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
     else if (e.deltaMode === 2) { dx *= window.innerWidth; dy *= window.innerHeight; }
@@ -1517,7 +1547,7 @@
   function moveDrag(clientX, clientY) {
     if (!isDragging) return;
     var dx = clientX - dragStartX, dy = clientY - dragStartY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didMove = true;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) { didMove = true; markMoved(); }
     var instVelX = clientX - lastDragX, instVelY = clientY - lastDragY;
     velX = velX + (instVelX - velX) * VEL_SMOOTH;
     velY = velY + (instVelY - velY) * VEL_SMOOTH;
@@ -1628,10 +1658,10 @@
   document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) { e.preventDefault(); return; }
     var step = 100;
-    if (e.key === 'ArrowLeft')  { tx += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowRight') { tx -= step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowUp')    { ty += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowDown')  { ty -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowLeft')  { markMoved(); tx += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowRight') { markMoved(); tx -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowUp')    { markMoved(); ty += step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowDown')  { markMoved(); ty -= step; updateTransform(); hideHint(); }
   });
   canvas.addEventListener('click', function(e) {
     // 드래그로 화면을 옮긴 직후의 클릭은 무시한다.

@@ -293,6 +293,19 @@
 <script>
 (function() {
   'use strict';
+  // posts.json의 색 값은 "#ff9af0" 뿐 아니라 "144 145 233"(공백)이나
+  // "144,145,233"(쉼표)처럼 RGB 숫자 세 개로 적어도 되게 한다.
+  // CSS는 숫자 나열을 그대로 못 읽으므로 rgb(...) 형태로 바꿔 준다.
+  // 이미 #hex나 rgb()/hsl() 형태면 손대지 않고 그대로 돌려준다.
+  function toCssColor(v) {
+    if (typeof v !== 'string') return v;
+    var s = v.trim();
+    if (!s) return s;
+    if (s.charAt(0) === '#' || /^(rgb|hsl)/i.test(s)) return s;
+    var n = s.split(/[\s,]+/).map(Number).filter(function(x){ return isFinite(x); });
+    if (n.length >= 3) return 'rgb(' + n[0] + ',' + n[1] + ',' + n[2] + ')';
+    return s;
+  }
   // ─── iOS 26 Safari 상단 바 색: "첫 로드"에 한해서만 맞춘다 ───────────
   // iOS 26의 Safari는 theme-color 메타 태그를 더 이상 읽지 않고, 대신
   // 첫 화면이 그려지는 그 순간의 <body> 배경색을 상단 바 색으로 그대로
@@ -340,7 +353,7 @@
         // 높이 3px+)에 정확히 맞춰 만들었으므로, body나 #canvas가 어떤
         // 이유로든 조건을 못 채우는 경우에도 이 요소들이 대신 채택된다.
         document.write('<style>html,body,#canvas,#plane,#tint-top,#tint-bottom{background:' +
-                        post.topColor + ' !important;}</style>');
+                        toCssColor(post.topColor) + ' !important;}</style>');
       }
     }
   } catch (err) {
@@ -621,14 +634,27 @@
     }
     themeDebugEl.textContent = msg;
   }
+  // posts.json의 색 값은 "#ff9af0" 뿐 아니라 "144 145 233"(공백)이나
+  // "144,145,233"(쉼표)처럼 RGB 숫자 세 개로 적어도 되게 한다.
+  // (head의 동기 스크립트에도 같은 함수가 하나 더 있다 — 그쪽은 이
+  //  스크립트보다 먼저 실행되므로 서로 공유할 수 없어 부득이 중복이다.)
+  function toCssColor(v) {
+    if (typeof v !== 'string') return v;
+    var s = v.trim();
+    if (!s) return s;
+    if (s.charAt(0) === '#' || /^(rgb|hsl)/i.test(s)) return s;
+    var n = s.split(/[\s,]+/).map(Number).filter(function(x){ return isFinite(x); });
+    if (n.length >= 3) return 'rgb(' + n[0] + ',' + n[1] + ',' + n[2] + ')';
+    return s;
+  }
   function setThemeColor(c) {
-    if (themeMeta) themeMeta.setAttribute('content', c);
+    if (themeMeta) themeMeta.setAttribute('content', toCssColor(c));
   }
   // 비하인드 영상 액자의 매트 색을 이 사진의 로고 색으로 맞춘다.
   // behindVideoEl은 showPost()에서 sampleTopColor 호출보다 먼저(동기적으로)
   // 만들어져 있으므로, 이 함수가 나중에(네트워크 이후) 불려도 안전하다.
   function setBehindFrameColor(c) {
-    if (behindVideoEl) behindVideoEl.style.setProperty('--behind-frame-color', c);
+    if (behindVideoEl) behindVideoEl.style.setProperty('--behind-frame-color', toCssColor(c));
   }
   function sampleTopColor(url, post, imgW) {
     if (!post) return;

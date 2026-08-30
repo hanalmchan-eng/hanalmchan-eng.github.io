@@ -473,22 +473,13 @@
   function isBehindShowing() {
     return !!(currentPostEl && currentPostEl.classList.contains('show-behind'));
   }
+  // 설명 문구는 왼쪽 위 "raw" 버튼 바로 아래에 앉힌다.
+  // (raw는 opacity로만 숨겨 두므로 안 보일 때도 높이는 잴 수 있어,
+  //  버튼이 나타나고 사라져도 문구 위치는 흔들리지 않는다.)
   function positionHint() {
     if (!hint) return;
-    if (viewMode === 'zoom' && curImgW && !isBehindShowing()) {
-      // 사진마다 로고를 실제로 얼마나 크게 합성했는지가 다를 수 있어,
-      // posts.json에 logoW(필요하면 logoH까지)가 있으면 그 값을 그대로
-      // 쓰고, 없을 때만 사진 폭에 비례한 값으로 어림잡는다.
-      var logoW = (currentPost && typeof currentPost.logoW === 'number')
-                    ? currentPost.logoW * planeScale
-                    : curImgW * LOGO_W_RATIO * planeScale;
-      var logoH = (currentPost && typeof currentPost.logoH === 'number')
-                    ? currentPost.logoH * planeScale
-                    : logoW * LOGO_HW_RATIO;
-      hint.style.top = (HEADER_Y + logoH + 8) + 'px';
-    } else {
-      hint.style.top = HEADER_Y + 'px';
-    }
+    var rawH = (rawLink && rawLink.offsetHeight) ? rawLink.offsetHeight : 38;
+    hint.style.top = (HEADER_Y + rawH + 8) + 'px';
   }
   window.addEventListener('resize', positionHint);
   var hintHidden = false;

@@ -153,10 +153,29 @@
         if (posts[i] && posts[i].file === file) { post = posts[i]; break; }
       }
       if (post && post.topColor) {
-        var hex = post.topColor.replace('#', '');
-        var r = parseInt(hex.substr(0, 2), 16) || 0;
-        var g = parseInt(hex.substr(2, 2), 16) || 0;
-        var b = parseInt(hex.substr(4, 2), 16) || 0;
+        // 색 값은 "#ff9af0" 뿐 아니라 "144 145 233"(공백)이나
+        // "144,145,233"(쉼표)처럼 RGB 숫자 세 개로 적어도 되게 한다.
+        var raw = String(post.topColor).trim();
+        var r = 0, g = 0, b = 0, css = raw;
+        if (raw.charAt(0) === '#') {
+          var hex = raw.slice(1);
+          // #abc 같은 3자리 축약형도 받아 준다.
+          if (hex.length === 3) {
+            hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) +
+                  hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
+          }
+          r = parseInt(hex.substr(0, 2), 16) || 0;
+          g = parseInt(hex.substr(2, 2), 16) || 0;
+          b = parseInt(hex.substr(4, 2), 16) || 0;
+        } else {
+          var n = raw.replace(/^rgba?\(|\)$/gi, '')
+                     .split(/[\s,]+/).map(Number)
+                     .filter(function(x){ return isFinite(x); });
+          if (n.length >= 3) {
+            r = n[0]; g = n[1]; b = n[2];
+            css = 'rgb(' + r + ',' + g + ',' + b + ')';
+          }
+        }
         // 표준 상대휘도 근사식으로 배경이 밝은지 어두운지 가른다.
         var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
         var textVars = (lum < 0.5)
@@ -164,7 +183,7 @@
           : '--ink:#141414;--ink-60:rgba(20,20,20,.6);--ink-35:rgba(20,20,20,.35);--ink-16:rgba(20,20,20,.14);--ink-08:rgba(20,20,20,.07);';
         document.write(
           '<style>:root{' + textVars + '}' +
-          'html,body,#tint-top,#tint-bottom{background:' + post.topColor + ' !important;}' +
+          'html,body,#tint-top,#tint-bottom{background:' + css + ' !important;}' +
           '</style>'
         );
       }

@@ -126,12 +126,13 @@
   #behind-link.visible { opacity: 0.75; pointer-events: auto; }
   #behind-link.visible:hover { opacity: 1; }
   #behind-link.active { opacity: 1; }
-  /* 원본(보정 전) 버튼: 그 사진에 원본이 있을 때만 왼쪽 위에 나타남.
-     오른쪽 위 "unseen"과 짝을 이루는 자리다. 로고가 왼쪽 위에 정렬되는
-     확대 모드에서는 로고와 겹치므로, 로고 아래로 내려 앉힌다(JS가 위치를
-     계산해 넣는다 — positionRawLink 참고). */
+  /* 원본(보정 전) 버튼: 그 사진에 원본이 있을 때만 나타난다.
+     왼쪽 위는 로고와 힌트 문구가 쓰는 자리라 피하고, 오른쪽 위
+     "unseen" 바로 왼쪽에 나란히 놓는다(가로 위치는 JS가 unseen의
+     실제 폭을 재서 넣는다 — positionRawLink 참고).
+     unseen이 없는 사진에서는 unseen 자리를 그대로 차지한다. */
   #raw-link {
-    top: 20px; left: 20px;
+    top: 20px; right: 20px;
     text-transform: lowercase;
     opacity: 0;
     pointer-events: none;
@@ -1056,6 +1057,9 @@
       pendingBehindUrl = buildImageUrl(post.behind);
       if (behindLink) behindLink.classList.add('visible');
     }
+    // unseen 표시 여부가 정해진 뒤에 raw의 가로 위치를 잡는다
+    // (unseen이 있으면 그 왼쪽, 없으면 unseen 자리).
+    positionRawLink();
     if (post.caption) {
       var cap = document.createElement('div');
       cap.className = 'caption';
@@ -1145,21 +1149,17 @@
     if (!hasBefore) return;
     if (isRawShowing()) hideBefore(); else showBefore();
   }
-  // 확대 모드에서는 로고가 왼쪽 위(HEADER_X, HEADER_Y)에 정렬되므로
-  // "raw"가 로고와 겹친다. 로고 높이만큼 아래로 내려 앉힌다.
+  // "raw"는 오른쪽 위 "unseen" 바로 왼쪽에 나란히 앉는다.
+  // unseen이 그 사진에 없으면(=숨겨져 있으면) unseen 자리를 그대로 쓴다.
   function positionRawLink() {
     if (!rawLink) return;
-    if (viewMode === 'zoom' && curImgW) {
-      var logoW = (currentPost && typeof currentPost.logoW === 'number')
-                    ? currentPost.logoW * planeScale
-                    : curImgW * LOGO_W_RATIO * planeScale;
-      var logoH = (currentPost && typeof currentPost.logoH === 'number')
-                    ? currentPost.logoH * planeScale
-                    : logoW * LOGO_HW_RATIO;
-      rawLink.style.top = (HEADER_Y + logoH + 8) + 'px';
-    } else {
-      rawLink.style.top = HEADER_Y + 'px';
+    var gapPx = 6;
+    var offset = 20;
+    if (behindLink && behindLink.classList.contains('visible')) {
+      offset = 20 + behindLink.offsetWidth + gapPx;
     }
+    rawLink.style.right = offset + 'px';
+    rawLink.style.top = HEADER_Y + 'px';
   }
   window.addEventListener('resize', positionRawLink);
   if (rawLink) {

@@ -820,24 +820,42 @@
   // 사진을 연 뒤 화면을 한 번이라도 움직였는지.
   // AWAY·unseen·yours·raw 네 버튼 모두 이게 참이 된 뒤에만 나타난다
   // (처음 로고에 맞춰진 상태에서는 사진만 보이게).
-  var hasMovedOnce = false;
-  function markMoved() {
-    if (hasMovedOnce) return;
-    hasMovedOnce = true;
+  // 네 버튼(AWAY·unseen·yours·raw)의 표시 규칙:
+  //  · 사진을 막 열었을 때는 숨겨져 있고, 화면을 한 번 움직이면 나타난다.
+  //  · 확대(zoom) 상태에서는 3초 넘게 가만히 있으면 다시 사라지고,
+  //    움직이면 곧바로 다시 나타난다.
+  //  · 축소(fit) 상태에서는 사라지지 않고 계속 떠 있는다.
+  var LINKS_IDLE_MS = 3000;
+  var linksIdleTimer = null;
+  function showLinks() {
     if (backLink) backLink.classList.add('visible');
     if (orderLink) orderLink.classList.add('visible');
     if (hasBefore && rawLink) rawLink.classList.add('visible');
     if (hasBehind && behindLink) behindLink.classList.add('visible');
   }
-  // 네 버튼을 다시 감추고 "아직 안 움직인" 상태로 되돌린다.
-  // 사진을 새로 열 때와 처음 축소했을 때 쓴다 — 그 다음 움직임에서
-  // markMoved()가 다시 불려 버튼들이 나타난다.
-  function hideAllLinks() {
-    hasMovedOnce = false;
+  function hideLinks() {
     if (backLink) backLink.classList.remove('visible');
     if (orderLink) orderLink.classList.remove('visible');
     if (rawLink) rawLink.classList.remove('visible', 'active');
     if (behindLink) behindLink.classList.remove('visible');
+  }
+  // 움직였거나 모드가 바뀔 때마다 부른다: 버튼을 띄우고,
+  // 확대 상태라면 3초 뒤 자동으로 감추는 타이머를 다시 건다.
+  function bumpLinks() {
+    if (linksIdleTimer) { clearTimeout(linksIdleTimer); linksIdleTimer = null; }
+    showLinks();
+    if (viewMode === 'zoom') {
+      linksIdleTimer = setTimeout(hideLinks, LINKS_IDLE_MS);
+    }
+  }
+  function markMoved() {
+    bumpLinks();
+  }
+  // 사진을 새로 열 때: 버튼을 감추고 타이머도 지운다
+  // (다음 움직임에서 markMoved()가 다시 띄운다).
+  function hideAllLinks() {
+    if (linksIdleTimer) { clearTimeout(linksIdleTimer); linksIdleTimer = null; }
+    hideLinks();
   }
   var hasBehind = false;        // 이 사진에 비하인드 영상이 있는지
   var behindVideoEl = null;     // 현재 포스트의 비하인드 <video> 엘리먼트 참조
@@ -1113,6 +1131,7 @@
       alignToLogo(currentPost);
       updateTransform();
     }
+    bumpLinks();
     showHintOnce('zoom');
   }
   function enterFit() {
@@ -1121,9 +1140,8 @@
     applyMode();
     layoutPosts();
     positionForMode();
-    // 축소 화면도 처음 사진을 열었을 때처럼 사진만 보이게 시작한다 —
-    // 네 버튼은 여기서 다시 감추고, 이후 움직이면 다시 나타난다.
-    hideAllLinks();
+    // 축소 상태에서는 버튼이 사라지지 않고 계속 떠 있는다.
+    bumpLinks();
     showHintOnce('fit');
   }
   function toggleMode(screenX, screenY) {

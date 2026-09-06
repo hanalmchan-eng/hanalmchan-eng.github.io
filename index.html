@@ -141,10 +141,6 @@
     color:var(--ink-35); white-space:nowrap;
   }
   .mark.has-photo .mark-fallback{ display:none; }
-  .cap{
-    font-size:9.5px; letter-spacing:.06em; color:var(--ink-35);
-    font-variant-numeric:tabular-nums;
-  }
   #empty{ font-size:11px; color:var(--ink-35); margin-top:40px; }
   #map-section{
     width:100%;
@@ -465,10 +461,7 @@
     fb.className = 'mark-fallback';
     fb.textContent = '로딩 중';
     mark.appendChild(fb);
-    var cap = document.createElement('span');
-    cap.className = 'cap';
-    cap.textContent = captionOf(post, index);
-    a.appendChild(mark); a.appendChild(cap);
+    a.appendChild(mark);
     if (post.logo){
       enqueue(function(done){
         var limg = new Image();

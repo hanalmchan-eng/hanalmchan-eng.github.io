@@ -499,34 +499,29 @@
   window.addEventListener('resize', positionHint);
   var hintHidden = false;
   var hideTimer = null;
-  function hideHint() {
+  // 설명 문구는 시간이 지나서 사라지지 않는다 — 화면을 실제로 움직였을
+  // 때만 즉시 사라진다(hideHintNow). 그래야 처음 사진을 열고 가만히
+  // 보고 있는 동안에는 설명이 계속 남아 있는다.
+  function hideHintNow() {
     if (hintHidden || !hint) return;
     hintHidden = true;
-    if (hideTimer) clearTimeout(hideTimer);
-    hideTimer = setTimeout(function() {
-      if (hint) hint.classList.add('hidden');
-    }, 6000);
+    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    hint.classList.add('hidden');
   }
-  setTimeout(hideHint, 99000);
-  function showHintAgain(autoHideMs) {
+  function showHintAgain() {
     if (!hint) return;
     if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     hint.classList.remove('hidden');
     hintHidden = false;
-    var ms = (typeof autoHideMs === 'number') ? autoHideMs : 4000;
-    hideTimer = setTimeout(function() {
-      if (hint) hint.classList.add('hidden');
-      hintHidden = true;
-    }, ms);
   }
   // 설명 문구는 각 모드에서 딱 한 번씩만 뜬다.
   // 처음 사진이 뜰 때(확대 모드) 한 번, 그리고 처음 축소했을 때 한 번.
   // 그 뒤로는 모드를 오가도 다시 나타나지 않는다.
   var hintShown = { zoom: false, fit: false };
-  function showHintOnce(mode, autoHideMs) {
+  function showHintOnce(mode) {
     if (hintShown[mode]) return;
     hintShown[mode] = true;
-    showHintAgain(autoHideMs);
+    showHintAgain();
   }
   var LOADING_HTML = '불러오는 중...<br>loading...<br>読み込み中...';
   function showLoading() {
@@ -989,7 +984,7 @@
       applyMode();
       layoutPosts();
       positionForMode();
-      showHintOnce('zoom', 2000);
+      showHintOnce('zoom');
       if (loadingEl) loadingEl.remove();
       // 사진이 다 뜬 뒤에야 비하인드 영상을 받기 시작한다.
       // 곧바로 시작하면 화면이 막 그려지는 순간과 겹치므로 1.2초 뜸을 들인다.
@@ -1531,7 +1526,7 @@
   function onWheel(e) {
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); return; }
     e.preventDefault();
-    hideHint();
+    hideHintNow();
     markMoved();
     var dx = e.deltaX, dy = e.deltaY;
     if (e.deltaMode === 1) { dx *= 16; dy *= 16; }
@@ -1562,13 +1557,12 @@
     lastDragX = clientX; lastDragY = clientY;
     velX = 0; velY = 0;
     canvas.classList.add('dragging');
-    hideHint();
     return true;
   }
   function moveDrag(clientX, clientY) {
     if (!isDragging) return;
     var dx = clientX - dragStartX, dy = clientY - dragStartY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) { didMove = true; markMoved(); }
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) { didMove = true; markMoved(); hideHintNow(); }
     var instVelX = clientX - lastDragX, instVelY = clientY - lastDragY;
     velX = velX + (instVelX - velX) * VEL_SMOOTH;
     velY = velY + (instVelY - velY) * VEL_SMOOTH;
@@ -1679,10 +1673,10 @@
   document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) { e.preventDefault(); return; }
     var step = 100;
-    if (e.key === 'ArrowLeft')  { markMoved(); tx += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowRight') { markMoved(); tx -= step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowUp')    { markMoved(); ty += step; updateTransform(); hideHint(); }
-    if (e.key === 'ArrowDown')  { markMoved(); ty -= step; updateTransform(); hideHint(); }
+    if (e.key === 'ArrowLeft')  { markMoved(); tx += step; updateTransform(); hideHintNow(); }
+    if (e.key === 'ArrowRight') { markMoved(); tx -= step; updateTransform(); hideHintNow(); }
+    if (e.key === 'ArrowUp')    { markMoved(); ty += step; updateTransform(); hideHintNow(); }
+    if (e.key === 'ArrowDown')  { markMoved(); ty -= step; updateTransform(); hideHintNow(); }
   });
   canvas.addEventListener('click', function(e) {
     // 드래그로 화면을 옮긴 직후의 클릭은 무시한다.

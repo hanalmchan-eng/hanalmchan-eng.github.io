@@ -120,5 +120,17 @@
     "logoH": 547,
     "topColor": "89 127 179",
     "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
+  },
+  {
+    "file": "IMG_0288.JPG",
+    "before": "_F98997.jpg",
+    "behind": "2F9A8995_stabilized.mp4",
+    "caption": "",
+    "logoX": 2867,
+    "logoY": 6529,
+    "logoW": 976,
+    "logoH": 547,
+    "topColor": "99 79 88",
+    "product": { "desc": "", "price": 0, "directPurchase": "X", "distribution": "X", "limit": 0 }
   }
 ]

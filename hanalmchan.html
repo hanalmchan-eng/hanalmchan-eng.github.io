@@ -111,9 +111,12 @@
     mix-blend-mode: difference;
     transition: opacity 0.3s ease;
   }
-  #back-link { bottom: 20px; left: 20px; opacity: 0.9; }
-  #order-link { bottom: 20px; right: 20px; opacity: 0.9; }
-  #back-link:hover, #order-link:hover { opacity: 1; }
+  /* AWAY·yours도 raw·unseen과 마찬가지로 처음엔 숨겨 두고,
+     화면을 한 번이라도 움직인 뒤에 나타나게 한다. */
+  #back-link { bottom: 20px; left: 20px; opacity: 0; pointer-events: none; }
+  #order-link { bottom: 20px; right: 20px; opacity: 0; pointer-events: none; }
+  #back-link.visible, #order-link.visible { opacity: 0.9; pointer-events: auto; }
+  #back-link.visible:hover, #order-link.visible:hover { opacity: 1; }
   /* 비하인드 영상 버튼: 그 사진에 영상이 있을 때만 오른쪽 위에 나타남 */
   #behind-link {
     top: 20px; right: 20px;
@@ -452,6 +455,7 @@
   var loadingEl = document.getElementById('loading');
   var logoHit  = document.getElementById('logo-hit');
   var orderLink = document.getElementById('order-link');
+  var backLink = document.getElementById('back-link');
   var behindLink = document.getElementById('behind-link');
   var rawLink = document.getElementById('raw-link');
   var behindProgress = document.getElementById('behind-progress');
@@ -473,13 +477,24 @@
   function isBehindShowing() {
     return !!(currentPostEl && currentPostEl.classList.contains('show-behind'));
   }
-  // 설명 문구는 왼쪽 위 "raw" 버튼 바로 아래에 앉힌다.
-  // (raw는 opacity로만 숨겨 두므로 안 보일 때도 높이는 잴 수 있어,
-  //  버튼이 나타나고 사라져도 문구 위치는 흔들리지 않는다.)
+  // 설명 문구는 로고 바로 아래에 앉힌다. 확대 모드에서는 로고가
+  // 왼쪽 위(HEADER_X, HEADER_Y)에 정렬되므로 그 높이만큼 내려 준다.
+  // 사진마다 로고를 실제로 얼마나 크게 합성했는지가 달라, posts.json에
+  // logoW(필요하면 logoH까지)가 있으면 그 값을 그대로 쓰고 없을 때만
+  // 사진 폭에 비례한 값으로 어림잡는다.
   function positionHint() {
     if (!hint) return;
-    var rawH = (rawLink && rawLink.offsetHeight) ? rawLink.offsetHeight : 38;
-    hint.style.top = (HEADER_Y + rawH + 8) + 'px';
+    if (viewMode === 'zoom' && curImgW && !isBehindShowing()) {
+      var logoW = (currentPost && typeof currentPost.logoW === 'number')
+                    ? currentPost.logoW * planeScale
+                    : curImgW * LOGO_W_RATIO * planeScale;
+      var logoH = (currentPost && typeof currentPost.logoH === 'number')
+                    ? currentPost.logoH * planeScale
+                    : logoW * LOGO_HW_RATIO;
+      hint.style.top = (HEADER_Y + logoH + 8) + 'px';
+    } else {
+      hint.style.top = HEADER_Y + 'px';
+    }
   }
   window.addEventListener('resize', positionHint);
   var hintHidden = false;
@@ -503,6 +518,15 @@
       if (hint) hint.classList.add('hidden');
       hintHidden = true;
     }, ms);
+  }
+  // 설명 문구는 각 모드에서 딱 한 번씩만 뜬다.
+  // 처음 사진이 뜰 때(확대 모드) 한 번, 그리고 처음 축소했을 때 한 번.
+  // 그 뒤로는 모드를 오가도 다시 나타나지 않는다.
+  var hintShown = { zoom: false, fit: false };
+  function showHintOnce(mode, autoHideMs) {
+    if (hintShown[mode]) return;
+    hintShown[mode] = true;
+    showHintAgain(autoHideMs);
   }
   var LOADING_HTML = '불러오는 중...<br>loading...<br>読み込み中...';
   function showLoading() {
@@ -798,13 +822,17 @@
   var currentIndex = 0;
   var currentPostEl = null;
   var hasBefore = false;
-  // 사진을 연 뒤 화면을 한 번이라도 움직였는지. raw 버튼은 이게 참이
-  // 된 뒤에만 나타난다(처음 로고에 맞춰진 상태에서는 안 보이게).
+  // 사진을 연 뒤 화면을 한 번이라도 움직였는지.
+  // AWAY·unseen·yours·raw 네 버튼 모두 이게 참이 된 뒤에만 나타난다
+  // (처음 로고에 맞춰진 상태에서는 사진만 보이게).
   var hasMovedOnce = false;
   function markMoved() {
     if (hasMovedOnce) return;
     hasMovedOnce = true;
+    if (backLink) backLink.classList.add('visible');
+    if (orderLink) orderLink.classList.add('visible');
     if (hasBefore && rawLink) rawLink.classList.add('visible');
+    if (hasBehind && behindLink) behindLink.classList.add('visible');
   }
   var hasBehind = false;        // 이 사진에 비하인드 영상이 있는지
   var behindVideoEl = null;     // 현재 포스트의 비하인드 <video> 엘리먼트 참조
@@ -926,6 +954,8 @@
     behindVideoEl = null;
     if (behindLink) { behindLink.classList.remove('visible', 'active'); }
     if (rawLink) { rawLink.classList.remove('visible', 'active'); }
+    if (backLink) backLink.classList.remove('visible');
+    if (orderLink) orderLink.classList.remove('visible');
     hasMovedOnce = false;   // 새 사진에서는 다시 "아직 안 움직인" 상태로
     stopBufferWait();
     cancelBehindDownload();
@@ -959,7 +989,7 @@
       applyMode();
       layoutPosts();
       positionForMode();
-      showHintAgain(2000);
+      showHintOnce('zoom', 2000);
       if (loadingEl) loadingEl.remove();
       // 사진이 다 뜬 뒤에야 비하인드 영상을 받기 시작한다.
       // 곧바로 시작하면 화면이 막 그려지는 순간과 겹치므로 1.2초 뜸을 들인다.
@@ -1020,7 +1050,7 @@
       // 화면이 뚝뚝 끊긴다. 그래서 사진이 다 뜬 뒤(아래 img load 핸들러)
       // 잠깐 뜸을 들였다가 시작하도록 미뤄 둔다.
       pendingBehindUrl = buildImageUrl(post.behind);
-      if (behindLink) behindLink.classList.add('visible');
+      // unseen 버튼도 화면을 한 번 움직인 뒤에 나타난다(markMoved 참고).
     }
     if (post.caption) {
       var cap = document.createElement('div');
@@ -1081,7 +1111,7 @@
       alignToLogo(currentPost);
       updateTransform();
     }
-    showHintAgain();
+    showHintOnce('zoom');
   }
   function enterFit() {
     if (viewMode === 'fit') return;
@@ -1089,7 +1119,7 @@
     applyMode();
     layoutPosts();
     positionForMode();
-    showHintAgain();
+    showHintOnce('fit');
   }
   function toggleMode(screenX, screenY) {
     if (viewMode === 'fit') enterZoom(screenX, screenY); else enterFit();
